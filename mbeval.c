@@ -8220,7 +8220,7 @@ static bool Pos16(ZINDEX index, int *pos) {
     return Pos6(index, pos + 1);
 }
 
-static IndexType IndexTable[] = {
+static const IndexType IndexTable[] = {
     {111111, FREE_PAWNS, 0, Pos111111, Index111111},
     {111111, BP_11_PAWNS, 0, PosBP111111, IndexBP111111},
     {111111, OP_11_PAWNS, 0, PosOP111111, IndexOP111111},
@@ -8441,7 +8441,7 @@ static IndexType IndexTable[] = {
 
 typedef struct {
     ZINDEX index;
-    IndexType *eptr;
+    const IndexType *eptr;
     int bishop_parity[2];
 } PARITY_INDEX;
 
@@ -8452,9 +8452,10 @@ typedef struct {
     int piece_type_count[2][KING];
     int parity;
     int pawn_file_type;
-    IndexType *eptr_bp_11, *eptr_op_11, *eptr_op_21, *eptr_op_12, *eptr_dp_22,
-        *eptr_op_22, *eptr_op_31, *eptr_op_13, *eptr_op_41, *eptr_op_14,
-        *eptr_op_32, *eptr_op_23, *eptr_op_33, *eptr_op_42, *eptr_op_24;
+    const IndexType *eptr_bp_11, *eptr_op_11, *eptr_op_21, *eptr_op_12,
+        *eptr_dp_22, *eptr_op_22, *eptr_op_31, *eptr_op_13, *eptr_op_41,
+        *eptr_op_14, *eptr_op_32, *eptr_op_23, *eptr_op_33, *eptr_op_42,
+        *eptr_op_24;
     ZINDEX index_bp_11, index_op_11, index_op_21, index_op_12, index_dp_22,
         index_op_22, index_op_31, index_op_13, index_op_41, index_op_14,
         index_op_32, index_op_23, index_op_33, index_op_42, index_op_24;
@@ -8465,7 +8466,7 @@ typedef struct {
 typedef struct {
     int yk_position[MAX_PIECES_YK], yk_piece_types[MAX_PIECES_YK];
     int piece_type_count[2][KING];
-    IndexType *eptr;
+    const IndexType *eptr;
     ZINDEX index;
     int num_pieces;
     int kk_index;
@@ -10448,7 +10449,7 @@ static int GetYKPosition(BOARD *Board, int *yk_position) {
 }
 
 static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
-                         IndexType *eptr, int *kindex, ZINDEX *offset) {
+                         const IndexType *eptr, int *kindex, ZINDEX *offset) {
     if (eptr == NULL) {
         *kindex = -1;
         *offset = ALL_ONES;
@@ -10504,7 +10505,7 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
 }
 
 static int GetYKIndex(int *yk_pos, int npieces, bool pawns_present,
-                      IndexType *eptr, int *kindex, ZINDEX *offset) {
+                      const IndexType *eptr, int *kindex, ZINDEX *offset) {
     if (eptr == NULL) {
         *kindex = -1;
         *offset = ALL_ONES;
