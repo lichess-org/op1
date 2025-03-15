@@ -535,7 +535,6 @@ static int grook_orig_col = GROOK_ORIG_COL_TRADITIONAL;
 static char TbPaths[MAX_PATHS][1024];
 static int NumPaths = 0;
 
-static bool IgnoreCastle = true;
 static bool Chess960 = true;
 static bool Chess960Game = false;
 
@@ -12253,8 +12252,7 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
         }
     }
 
-    if (BoardIn->num_pieces > MAX_PIECES_MB ||
-        (BoardIn->castle && !IgnoreCastle))
+    if (BoardIn->num_pieces > MAX_PIECES_MB || BoardIn->castle)
         return UNKNOWN;
 
     BOARD Board;
