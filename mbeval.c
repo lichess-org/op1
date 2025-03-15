@@ -3,15 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <direct.h>
-#include <io.h>
+#include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#endif
 
 static char *Version = "7.9";
 
