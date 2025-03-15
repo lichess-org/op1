@@ -8674,92 +8674,6 @@ static int SetBoard(BOARD *Board, int *board, int side, int ep_square,
     return npieces;
 }
 
-static void DisplayRawBoard(int *board, char *label) {
-    int row, col, sq, pi;
-
-    MyPrintf("\n");
-    for (row = (NROWS - 1); row >= 0; row--) {
-#if (NROWS >= 10)
-        MyPrintf("%-2d", row + 1);
-#else
-        MyPrintf("%-1d", row + 1);
-#endif
-        for (col = 0; col < NCOLS; col++) {
-            sq = SquareMake(row, col);
-            pi = board[sq];
-            MyPrintf(" ");
-            if (pi) {
-                MyPrintf("%c",
-                         (pi > 0) ? toupper(piece_char(pi)) : piece_char(-pi));
-            } else
-                MyPrintf(".");
-        }
-        if (row == (NROWS - 1) && label != NULL)
-            MyPrintf("  %s", label);
-        MyPrintf("\n");
-    }
-#if (NROWS >= 10)
-    MyPrintf("  ");
-#else
-    MyPrintf(" ");
-#endif
-    for (col = 0; col < NCOLS; col++)
-        MyPrintf(" %c", 'a' + col);
-    MyPrintf("\n\n");
-}
-
-static void DisplayBoard(BOARD *Board, char *label) {
-    int row, col, sq, pi;
-
-    MyPrintf("\n");
-    for (row = (NROWS - 1); row >= 0; row--) {
-#if (NROWS >= 10)
-        MyPrintf("%-2d", row + 1);
-#else
-        MyPrintf("%-1d", row + 1);
-#endif
-        for (col = 0; col < NCOLS; col++) {
-            sq = SquareMake(row, col);
-            pi = Board->board[sq];
-            MyPrintf(" ");
-            if (pi) {
-                MyPrintf("%c",
-                         (pi > 0) ? toupper(piece_char(pi)) : piece_char(-pi));
-            } else if (Board->ep_square > 0 && sq == Board->ep_square) {
-                MyPrintf("e");
-            } else
-                MyPrintf(".");
-        }
-        if (row == (NROWS - 1) && label != NULL)
-            MyPrintf("  %s", label);
-        if (row == 1 && Board->castle) {
-            char castle_str[6] = {0, 0, 0, 0, 0, 0};
-            int nc = 0;
-            if (Board->castle & WK_CASTLE)
-                castle_str[nc++] = 'K';
-            if (Board->castle & WQ_CASTLE)
-                castle_str[nc++] = 'Q';
-            if (Board->castle & BK_CASTLE)
-                castle_str[nc++] = 'k';
-            if (Board->castle & BQ_CASTLE)
-                castle_str[nc++] = 'q';
-            MyPrintf("  %s", castle_str);
-        }
-        if (row == 0) {
-            MyPrintf("  %c...", (Board->side == WHITE) ? 'w' : 'b');
-        }
-        MyPrintf("\n");
-    }
-#if (NROWS >= 10)
-    MyPrintf("  ");
-#else
-    MyPrintf(" ");
-#endif
-    for (col = 0; col < NCOLS; col++)
-        MyPrintf(" %c", 'a' + col);
-    MyPrintf("\n\n");
-}
-
 static int GetPiece(char p) {
     switch (p) {
     case 'k':
@@ -10210,13 +10124,11 @@ static int ReadPosition(char *pos, BOARD *Board, char *title) {
     }
     if (legal != NEUTRAL) {
         if (Verbose > 3) {
-            MyPrintf("ReadPosition: Board scanned\n");
-            DisplayRawBoard(board, "before SetBoard");
+            MyPrintf("ReadPosition: before SetBoard\n");
         }
         SetBoard(Board, board, legal, ep_square, castle, half_move, full_move);
         if (Verbose > 3) {
             MyPrintf("ReadPosition: Board scanned\n");
-            DisplayBoard(Board, "after SetBoard");
         }
     }
     return legal;
@@ -10880,7 +10792,6 @@ static int GetMBPosition(BOARD *Board, int *mb_position, int *parity,
     if (loc != Board->num_pieces) {
         MyPrintf("GetMBPosition: Bad number of pieces: %d, expected %d", loc,
                  Board->num_pieces);
-        DisplayBoard(Board, NULL);
         exit(1);
     }
 
@@ -10918,7 +10829,6 @@ static int GetYKPosition(BOARD *Board, int *yk_position) {
     if (loc != Board->num_pieces) {
         MyPrintf("Bad number of pieces in GetYKPosition: %d, expected %d", loc,
                  Board->num_pieces);
-        DisplayBoard(Board, NULL);
         exit(1);
     }
 
@@ -13356,17 +13266,11 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
         FlipBoard(&Board);
     }
 
-    if (Verbose > 4) {
-        DisplayBoard(BoardIn, "ScorePosition: Board before flip");
-        DisplayBoard(&Board, "ScorePosition: Board after flip");
-    }
-
     int result = GetMBResult(&Board, index);
 
     if (Verbose > 3) {
         char label[64];
         sprintf(label, "ScorePosition: MB result: %d", result);
-        DisplayBoard(&Board, label);
     }
 
     // if we have definite result, can return right away
@@ -13397,7 +13301,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
             if (Verbose > 1) {
                 char label[64];
                 sprintf(label, "Unexpected result %d", result);
-                DisplayBoard(&Board, label);
             }
         }
     }
@@ -13412,7 +13315,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
         char label[64];
         sprintf(label, "ScorePosition: result=%d result_flipped=%d", result,
                 result_flipped);
-        DisplayBoard(&Board, label);
     }
 
     if (result_flipped == WON || result_flipped == LOST ||
@@ -13444,7 +13346,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
                 label,
                 "ScorePosition: Unexpected result=%d, flipped=%d combination",
                 result, result_flipped);
-            DisplayBoard(&Board, label);
         }
     }
 
