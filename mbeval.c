@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
@@ -688,8 +689,8 @@ static int MaximumNumberOfPieces = 9;
 static int MaxLineLength = 1000;
 static int LineWidth = 80;
 
-static ULONG CacheHits = 0;
-static ULONG DBHits = 0;
+static uint32_t CacheHits = 0;
+static uint32_t DBHits = 0;
 
 static bool FileExists(char *fname) {
     struct _stat64 buffer;
@@ -727,8 +728,8 @@ typedef struct {
     INDEX n_elements;
     int kk_index;
     int max_depth;
-    ULONG block_size;
-    ULONG num_blocks;
+    uint32_t block_size;
+    uint32_t num_blocks;
     BYTE nrows;
     BYTE ncols;
     BYTE side;
@@ -771,8 +772,8 @@ static int high_dtz_compar(const void *a, const void *b) {
 
 typedef struct {
     BYTE *buffer;
-    ULONG buf_size;
-    ULONG block_size;
+    uint32_t buf_size;
+    uint32_t block_size;
 } BUFFER;
 
 static INDEX FileReads = 0;
@@ -883,7 +884,7 @@ static void f_write(void *pv, size_t cb, file fp, INDEX indStart) {
         printf("indStart " DEC_INDEX_FORMAT
                " indStart shifted 32 bits to the right %lx, lHiPos = %lx, "
                "low_pos = %ld\n",
-               indStart, (ULONG)(indStart >> 32), lHiPos, (LONG)indStart);
+               indStart, (uint32_t)(indStart >> 32), lHiPos, (LONG)indStart);
         fflush(stdout);
         exit(1);
         return;
@@ -1003,7 +1004,7 @@ static void f_write(void *pv, INDEX cb, file fp, INDEX indStart) {
 #endif // Windows
 
 typedef unsigned char BYTE;
-typedef unsigned long ULONG;
+typedef unsigned long uint32_t;
 
 static FILE *flog = NULL;
 
@@ -1170,8 +1171,8 @@ typedef struct {
     bool bitbase;
     BYTE metric;
     int high_dtz;
-    ULONG (*IndexFromPos)(int *pos);
-    ULONG zone_size;
+    uint32_t (*IndexFromPos)(int *pos);
+    uint32_t zone_size;
     char *path;
     char fname[16];
     char fname_h[16];
@@ -12207,18 +12208,18 @@ typedef struct {
     int kk_index;
     int pawn_file_type;
     int bishop_parity[2];
-    ULONG max_num_blocks;
+    uint32_t max_num_blocks;
     file fp;
     HEADER header;
     INDEX *offsets;
     BYTE *block;
-    ULONG max_block_size;
+    uint32_t max_block_size;
     int block_index;
 } FILE_CACHE;
 
 typedef struct {
     int piece_type_count[2][KING];
-    ULONG max_num_blocks, num_blocks;
+    uint32_t max_num_blocks, num_blocks;
     int compression_method;
     int max_depth;
     INDEX num_high_dtc;
@@ -12227,7 +12228,7 @@ typedef struct {
     INDEX *offsets;
     BYTE *block;
     HDATA *block_high;
-    ULONG max_block_size, block_size;
+    uint32_t max_block_size, block_size;
     int block_index;
 } FILE_CACHE_YK;
 
@@ -12244,13 +12245,13 @@ typedef struct {
     int kk_index;
     int pawn_file_type;
     int bishop_parity[2];
-    ULONG max_num_blocks;
+    uint32_t max_num_blocks;
     file fp;
     HEADER header;
     INDEX *offsets;
     ZINDEX *starting_index;
     BYTE *block;
-    ULONG max_block_size;
+    uint32_t max_block_size;
     int block_index;
 } FILE_CACHE_HIGH_DTZ;
 
@@ -12260,7 +12261,7 @@ static int num_cached_files_high_dtz[2] = {0, 0};
 static int cached_file_high_dtz_lru[MAX_FILES_HIGH_DTZ][2];
 
 static BYTE *CompressionBuffer = NULL;
-static ULONG CompressionBufferSize = 0;
+static uint32_t CompressionBufferSize = 0;
 
 static void InitCaches() {
     memset(FileCache, 0, sizeof(FileCache));
@@ -12331,8 +12332,8 @@ static size_t MyCompressBound(size_t src_size) {
     return max_bound;
 }
 
-int MyUncompress(BYTE *dest, ULONG *dest_size, const BYTE *source,
-                 ULONG source_size, int method) {
+int MyUncompress(BYTE *dest, uint32_t *dest_size, const BYTE *source,
+                 uint32_t source_size, int method) {
     if (method == NO_COMPRESSION) {
         *dest_size = source_size;
         memcpy(dest, source, source_size);
@@ -20024,13 +20025,13 @@ static int GetMBCacheResult(MB_INFO *mb_info, int side) {
         if (fcache_high_dtz->block_index == -1)
             return UNKNOWN;
 
-        ULONG n_per_block = (fcache_high_dtz->header.n_elements +
+        uint32_t n_per_block = (fcache_high_dtz->header.n_elements +
                              fcache_high_dtz->header.num_blocks - 1) /
                             fcache_high_dtz->header.num_blocks;
 
         if (fcache_high_dtz->block_index ==
             fcache_high_dtz->header.num_blocks - 1) {
-            ULONG rem = fcache_high_dtz->header.n_elements % n_per_block;
+            uint32_t rem = fcache_high_dtz->header.n_elements % n_per_block;
             if (rem != 0)
                 n_per_block = rem;
         }
@@ -20096,7 +20097,7 @@ static int GetYKCacheResult(YK_INFO *yk_info, int side) {
         return UNKNOWN;
     }
 
-    ULONG offset = yk_info->index;
+    uint32_t offset = yk_info->index;
 
     bool pawns_present = yk_info->piece_type_count[WHITE][PAWN] ||
                          yk_info->piece_type_count[BLACK][PAWN];
@@ -20289,7 +20290,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             return HEADER_READ_ERROR;
         }
 
-        ULONG block_size, num_blocks;
+        uint32_t block_size, num_blocks;
 
         memcpy(&block_size, &header[0], 4);
         memcpy(&num_blocks, &header[4], 4);
@@ -20398,7 +20399,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
 
     if (b_index != fcache->block_index) {
         cache_hit = false;
-        ULONG length = fcache->offsets[b_index + 1] - fcache->offsets[b_index];
+        uint32_t length = fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (Verbose > 4) {
             MyPrintf(
                 "Reading compressed block size %lu at offset " DEC_INDEX_FORMAT
@@ -20419,7 +20420,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             }
         }
         f_read(CompressionBuffer, length, fcache->fp, fcache->offsets[b_index]);
-        ULONG tmp_zone_size = fcache->block_size;
+        uint32_t tmp_zone_size = fcache->block_size;
         if (tmp_zone_size > fcache->max_block_size) {
             if (fcache->block != NULL) {
                 MyFree(fcache->block, fcache->max_block_size);
@@ -21128,7 +21129,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
 
     if (b_index != fcache->block_index) {
         cache_hit = false;
-        ULONG length = fcache->offsets[b_index + 1] - fcache->offsets[b_index];
+        uint32_t length = fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (Verbose > 4) {
             MyPrintf("GetMBResult: Reading compressed block size %lu at "
                      "offset " DEC_INDEX_FORMAT " block index %lu\n",
@@ -21142,7 +21143,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
             CompressionBuffer = (BYTE *)MyMalloc(CompressionBufferSize);
         }
         f_read(CompressionBuffer, length, fcache->fp, fcache->offsets[b_index]);
-        ULONG tmp_zone_size = fcache->header.block_size;
+        uint32_t tmp_zone_size = fcache->header.block_size;
         if (tmp_zone_size > fcache->max_block_size) {
             if (fcache->block != NULL) {
                 MyFree(fcache->block, fcache->max_block_size);
@@ -21167,7 +21168,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
     if (result == 254 && fcache->header.max_depth > 254) {
         file_index = -1;
         FILE_CACHE_HIGH_DTZ *fcache_high_dtz = NULL;
-        ULONG n_per_block = 0;
+        uint32_t n_per_block = 0;
 
         for (int n = 0; n < num_cached_files_high_dtz[side]; n++) {
             int np = cached_file_high_dtz_lru[n][side];
@@ -21550,7 +21551,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
             f_read(fcache_high_dtz->starting_index,
                    (fcache_high_dtz->header.num_blocks + 1) * sizeof(ZINDEX),
                    fcache_high_dtz->fp, l_offset);
-            ULONG block_size = fcache_high_dtz->header.block_size;
+            uint32_t block_size = fcache_high_dtz->header.block_size;
             if (block_size > fcache_high_dtz->max_block_size) {
                 if (fcache_high_dtz->max_block_size > 0) {
                     MyFree(fcache_high_dtz->block,
@@ -21595,10 +21596,10 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         // check whether index is in range of block that may already be cached
         if (fcache_high_dtz->block_index != -1) {
             HIGH_DTZ *hptr = (HIGH_DTZ *)fcache_high_dtz->block;
-            ULONG n_per_block_cached = n_per_block;
+            uint32_t n_per_block_cached = n_per_block;
             if (fcache_high_dtz->block_index ==
                 fcache_high_dtz->header.num_blocks - 1) {
-                ULONG rem = fcache_high_dtz->header.n_elements % n_per_block;
+                uint32_t rem = fcache_high_dtz->header.n_elements % n_per_block;
                 if (rem != 0)
                     n_per_block_cached = rem;
             }
@@ -21625,7 +21626,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 l--;
             // now read block from file
             fcache_high_dtz->block_index = l;
-            ULONG length =
+            uint32_t length =
                 fcache_high_dtz->offsets[fcache_high_dtz->block_index + 1] -
                 fcache_high_dtz->offsets[fcache_high_dtz->block_index];
             if (length > CompressionBufferSize) {
@@ -21637,14 +21638,14 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
             }
             f_read(CompressionBuffer, length, fcache_high_dtz->fp,
                    fcache_high_dtz->offsets[fcache_high_dtz->block_index]);
-            ULONG n_per_block_cached = n_per_block;
+            uint32_t n_per_block_cached = n_per_block;
             if (fcache_high_dtz->block_index ==
                 fcache_high_dtz->header.num_blocks - 1) {
-                ULONG rem = fcache_high_dtz->header.n_elements % n_per_block;
+                uint32_t rem = fcache_high_dtz->header.n_elements % n_per_block;
                 if (rem != 0)
                     n_per_block_cached = rem;
             }
-            ULONG tmp_zone_size = n_per_block_cached * sizeof(HIGH_DTZ);
+            uint32_t tmp_zone_size = n_per_block_cached * sizeof(HIGH_DTZ);
             MyUncompress((BYTE *)fcache_high_dtz->block, &tmp_zone_size,
                          CompressionBuffer, length,
                          fcache_high_dtz->header.compression_method);
@@ -21656,10 +21657,10 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         HIGH_DTZ key;
         key.index = ind->index;
 
-        ULONG n_per_block_cached = n_per_block;
+        uint32_t n_per_block_cached = n_per_block;
         if (fcache_high_dtz->block_index ==
             fcache_high_dtz->header.num_blocks - 1) {
-            ULONG rem = fcache_high_dtz->header.n_elements % n_per_block;
+            uint32_t rem = fcache_high_dtz->header.n_elements % n_per_block;
             if (rem != 0)
                 n_per_block_cached = rem;
         }
@@ -24738,8 +24739,8 @@ int main(int argc, char *argv[]) {
             qsort(move_list, nmoves, sizeof(move_list[0]), MoveCompare);
 
             time_taken = 1000 * (clock() - time_taken) / CLOCKS_PER_SEC;
-            ULONG nodes = CacheHits + DBHits;
-            ULONG nps = nodes / max(1, time_taken / 1000);
+            uint32_t nodes = CacheHits + DBHits;
+            uint32_t nps = nodes / max(1, time_taken / 1000);
 
             char move[6];
 
