@@ -538,9 +538,6 @@ static int NumPaths = 0;
 static bool Chess960 = true;
 static bool Chess960Game = false;
 
-static uint32_t CacheHits = 0;
-static uint32_t DBHits = 0;
-
 typedef uint64_t INDEX;
 #define DEC_INDEX_FORMAT "%" PRIu64
 #define SEPARATOR ":"
@@ -11080,7 +11077,6 @@ static int GetYKInfo(BOARD *Board, YK_INFO *yk_info) {
 static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
     YK_INFO yk_info;
     FILE_CACHE_YK *fcache = NULL;
-    bool cache_hit = true;
 
     if (Board->num_pieces > MAX_PIECES_YK) {
         return TOO_MANY_PIECES;
@@ -11125,7 +11121,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
     // if file pointer is not cached, need to open new file
 
     if (file_index == -1) {
-        cache_hit = false;
         char ending[64];
         GetEndingName(yk_info.piece_type_count, ending);
 
@@ -11249,7 +11244,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
     int b_index = ind->kk_index * sub_blocks + sub_index;
 
     if (b_index != fcache->block_index) {
-        cache_hit = false;
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (length > CompressionBufferSize) {
@@ -11275,11 +11269,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
     }
 
     result = fcache->block[ind->index % fcache->block_size];
-
-    if (cache_hit)
-        CacheHits++;
-    else
-        DBHits++;
 
     if (result == 254) {
         if (fcache->max_depth == 254)
@@ -11321,7 +11310,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             (HDATA *)bsearch(&tdata, fcache->block_high, fcache->num_high_dtc,
                              sizeof(HDATA), CompareHigh);
         if (tptr != NULL) {
-            DBHits++;
             return tptr->dtc;
         }
     } else if (result == 255) {
@@ -11334,7 +11322,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
 static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
     MB_INFO mb_info = {0};
     FILE_CACHE *fcache;
-    bool cache_hit = true;
 
     int result = GetMBInfo(Board, &mb_info);
 
@@ -11522,7 +11509,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
     // if file pointer is not cached, need to open new file
 
     if (file_index == -1) {
-        cache_hit = false;
         char ending[64];
         GetEndingName(mb_info.piece_type_count, ending);
 
@@ -11705,7 +11691,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
     int b_index = ind->index / fcache->header.block_size;
 
     if (b_index != fcache->block_index) {
-        cache_hit = false;
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (length > CompressionBufferSize) {
@@ -11910,7 +11895,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         // if file pointer is not cached, need to open new file
 
         if (file_index == -1) {
-            cache_hit = false;
             char ending[64];
             GetEndingName(mb_info.piece_type_count, ending);
 
@@ -12120,10 +12104,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
             ind->index >
                 fcache_high_dtz
                     ->starting_index[fcache_high_dtz->header.num_blocks]) {
-            if (cache_hit)
-                CacheHits++;
-            else
-                DBHits++;
             return 254;
         }
 
@@ -12147,7 +12127,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
 
         // if block is not cached, need to read it from file
         if (fcache_high_dtz->block_index == -1) {
-            cache_hit = false;
             // do binary search to find which block of indices the depth would
             // be
             int l = 0, r = fcache_high_dtz->header.num_blocks;
@@ -12214,11 +12193,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         if (result == 255)
             result = UNRESOLVED;
     }
-
-    if (cache_hit)
-        CacheHits++;
-    else
-        DBHits++;
 
     if (result == UNKNOWN) {
         INDEX_DATA ind_yk;
