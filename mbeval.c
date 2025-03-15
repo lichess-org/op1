@@ -2792,7 +2792,7 @@ void DP22PosFromIndex(int index, int *w1, int *w2, int *b1, int *b2) {
     *b2 = SquareMake(b2_row, w2_col);
 }
 
-ZINDEX IndexDP22(int *);
+static ZINDEX IndexDP22(int *);
 
 static void InitN4OpposingTables(int *tab, int *pos) {
     for (int w1 = 0; w1 < NSQUARES; w1++) {
