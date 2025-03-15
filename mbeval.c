@@ -647,10 +647,8 @@ static size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     while (total < cb) {
         ssize_t result = pread(fp->fd, pv, cb - total, indStart + total);
         if (result < 0) {
-            fprintf(stderr, "*** pread failed: pos is %lu code is %d\n",
-                    indStart + total, errno);
-            exit(1);
-            return 0;
+            perror("f_read");
+            abort();
         }
         total += result;
     }
@@ -1473,10 +1471,7 @@ static void InitN2OpposingTables(int *tab, int *pos) {
         int row1 = Row(sq1);
         for (int row2 = row1 + 1; row2 < (NROWS - 1); row2++) {
             int sq2 = SquareMake(row2, col);
-            if (index >= NCOLS * (NROWS - 2) * (NROWS - 3) / 2) {
-                fprintf(stderr, "Too many positions for opposing pawns\n");
-                exit(1);
-            }
+            assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
             tab[sq2 + NSQUARES * sq1] = index;
             pos[index] = sq2 + NSQUARES * sq1;
             index++;
@@ -1569,11 +1564,7 @@ static void InitN2_1_OpposingTables(int *tab, int *pos) {
                      wp1_physical < bp1_physical) ||
                     (Column(wp2) == Column(bp1_physical) &&
                      wp2 < bp1_physical)) {
-                    if (index >= N2_1_OPPOSING) {
-                        fprintf(stderr, "Two many 2 vs 1 pawn positions with "
-                                        "an opposing pair\n");
-                        exit(1);
-                    }
+                    assert(index < N2_1_OPPOSING);
                     pos[index] = bp1 + NSQUARES * (wp2 + NSQUARES * wp1);
                     tab[bp1 + NSQUARES * (wp2 + NSQUARES * wp1)] = index;
                     tab[bp1 + NSQUARES * (wp1 + NSQUARES * wp2)] = index;
@@ -1673,11 +1664,7 @@ static void InitN1_2_OpposingTables(int *tab, int *pos) {
                      wp1_physical < bp1) ||
                     (Column(wp1_physical) == Column(bp2_physical) &&
                      wp1_physical < bp2_physical)) {
-                    if (index >= N1_2_OPPOSING) {
-                        fprintf(stderr, "Too many 1 vs 2 pawn positions with "
-                                        "an opposing pair\n");
-                        exit(1);
-                    }
+                    assert(index < N1_2_OPPOSING);
                     pos[index] = bp2 + NSQUARES * (bp1 + NSQUARES * wp1);
                     tab[bp2 + NSQUARES * (bp1 + NSQUARES * wp1)] = index;
                     tab[bp1 + NSQUARES * (bp2 + NSQUARES * wp1)] = index;
@@ -2281,10 +2268,7 @@ static void InitN4OpposingTables(int *tab, int *pos) {
                         adjacent++;
                     else if (dp_type == NON_ADJACENT)
                         non_adjacent++;
-                    if (index >= N4_OPPOSING) {
-                        fprintf(stderr, "Too many pairs of opposing pawns\n");
-                        exit(1);
-                    }
+                    assert(index < N4_OPPOSING);
                     int pos_array_00, pos_array_10, pos_array_01, pos_array_11;
                     int w1_col = Column(w1);
                     int b1_col = Column(b1);
@@ -8753,7 +8737,7 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
         }
     } else {
         fprintf(stderr, "MyUnompress: unknown de-compression method\n");
-        exit(1);
+        abort();
     }
 
     return COMPRESS_OK;
@@ -9063,9 +9047,7 @@ static int GetEndingType(int count[2][KING], int *piece_types,
                     sub_type_black = 10 * triplet_index + 1;
                 }
             } else {
-                fprintf(stderr, "Can only fix black bishop parity if black has "
-                                "two or three bishops\n");
-                exit(1);
+                assert(false);
             }
         }
 
@@ -9981,41 +9963,13 @@ static void InitTransforms() {
         for (int sym = 0; sym < NSYMMETRIES; sym++) {
             int *trans = Transforms[sym];
             int *inverse_trans = InverseTransforms[sym];
-            if (inverse_trans[trans[sq]] != sq) {
-                fprintf(stderr,
-                        "for symmetry transformation %s, sq = %d, inverse of "
-                        "trans = %d\n",
-                        SymmetryName[sym], sq, inverse_trans[trans[sq]]);
-                exit(-1);
-            }
+            assert(inverse_trans[trans[sq]] == sq);
         }
     }
 
 #if (NSQUARES > KK_TABLE_LIMIT)
-    if (KK_Transform_Table != NULL) {
-        fprintf(stderr,
-                "KK_Transform_Table already initialzed in InitTransform\n");
-        exit(1);
-    }
-    if (KK_Index_Table != NULL) {
-        fprintf(stderr, "KK_Index_Table already initialzed in InitTransform\n");
-        exit(1);
-    }
-
     KK_Transform_Table = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
     KK_Index_Table = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
-
-    if (KK_Transform_Table_NoPawns != NULL) {
-        fprintf(
-            stderr,
-            "KK_Transform_Table_NoPawns already initialzed in InitTransform\n");
-        exit(1);
-    }
-    if (KK_Index_Table_NoPawns != NULL) {
-        fprintf(stderr,
-                "KK_Index_Table_NoPawns already initialzed in InitTransform\n");
-        exit(1);
-    }
 
     KK_Transform_Table_NoPawns =
         (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
@@ -10136,17 +10090,8 @@ static void InitTransforms() {
         }
     }
 
-    if (nw != NUM_WHITE_SQUARES) {
-        fprintf(stderr, "Found %d white squares, expected %d\n", nw,
-                NUM_WHITE_SQUARES);
-        exit(1);
-    }
-
-    if (nb != NUM_BLACK_SQUARES) {
-        fprintf(stderr, "Found %d black squares, expected %d\n", nb,
-                NUM_BLACK_SQUARES);
-        exit(1);
-    }
+    assert(nw == NUM_WHITE_SQUARES);
+    assert(nb == NUM_BLACK_SQUARES);
 
     for (int i = 0; i < nw; i++) {
         int sq = WhiteSquares[i];
@@ -10953,13 +10898,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
         GetMBIndex(mb_info->mb_position, mb_info->num_pieces, pawns_present,
                    mb_info->parity_index[0].eptr, &mb_info->kk_index,
                    &mb_info->parity_index[0].index);
-        if (kk_index_blocked != -1) {
-            if (kk_index_blocked != mb_info->kk_index) {
-                fprintf(stderr,
-                        "GetMBInfo: kk_index_blocked = %d, kk_index = %d\n",
-                        kk_index_blocked, mb_info->kk_index);
-            }
-        }
     }
 
     // now gather index for specific bishop parity
@@ -11190,14 +11128,14 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             fcache->compression_method = ZSTD;
         else if (archive_id == LZMA_YK) {
             fprintf(stderr, "LZMA decompression not supported\n");
-            exit(1);
+            abort();
         } else if (archive_id == BZIP_YK) {
             fprintf(stderr, "BZIP decompression not supported\n");
-            exit(1);
+            abort();
         } else {
             fprintf(stderr, "Unknown decompression method %d in YK file %s\n",
                     archive_id, base_name);
-            exit(1);
+            abort();
         }
 
         int max_depth;
