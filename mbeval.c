@@ -530,8 +530,8 @@ static ZSTD_DCtx *ZSTD_DecompressionContext = NULL;
 static char TbPaths[MAX_PATHS][1024];
 static int NumPaths = 0;
 
-static bool Chess960 = true;
-static bool Chess960Game = false;
+static const bool Chess960 = true;
+static const bool Chess960Game = false;
 
 typedef uint64_t INDEX;
 #define DEC_INDEX_FORMAT "%" PRIu64
@@ -599,7 +599,7 @@ typedef struct {
 
 typedef FD_WRAPPER *file;
 
-static file f_open(const char *szFile, const char *szMode) {
+static file f_open(const char *szFile) {
     int fd = open(szFile, O_RDONLY);
     if (fd < 0) {
         return NULL;
@@ -10455,7 +10455,7 @@ static file OpenMBFile(char *ending, int kk_index, int bishop_parity[2],
                  DELIMITER[0], dirname, DELIMITER[0], ending,
                  (side == WHITE ? 'w' : 'b'), kk_index,
                  (high_dtz ? "hi" : "mb"));
-        file fptr = f_open(path, "rb");
+        file fptr = f_open(path);
         if (fptr != NULL) {
             return fptr;
         }
@@ -10469,7 +10469,7 @@ static file OpenYKFile(char *base_name) {
     for (int i = 0; i < NumPaths; i++) {
         snprintf(path, sizeof(path) - 1, "%s%c%s", TbPaths[i], DELIMITER[0],
                  base_name);
-        file fptr = f_open(path, "rb");
+        file fptr = f_open(path);
         if (fptr != NULL) {
             return fptr;
         }
