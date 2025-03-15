@@ -8837,12 +8837,6 @@ static int GetEndingName(int type_count[2][KING], char *ending) {
     return len;
 }
 
-typedef struct {
-    int types[KING];
-    int index;
-} ENDING_INDEX;
-
-
 static int SetBoard(BOARD *Board, int *board, int side, int ep_square,
                     int castle, int half_move, int full_move) {
     int npieces = 0, nwhite = 0, nblack = 0, strength_w = 0, strength_b = 0, i;
@@ -14253,7 +14247,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
  *
  * The input position is assumed to be legal.
  */
-
 static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
     if (Verbose > 4) {
         MyPrintf("Entering ScorePosition\n");
@@ -14380,11 +14373,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
 
     return UNKNOWN;
 }
-
-typedef struct {
-    int piece_types[2][KING];
-    unsigned int count;
-} FREQ_TABLE;
 
 /*
  * append paths given in TbDirs to existing paths
