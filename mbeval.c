@@ -692,8 +692,6 @@ static int LineWidth = 80;
 static uint32_t CacheHits = 0;
 static uint32_t DBHits = 0;
 
-static bool FileExists(char *fname) { return access(fname, F_OK) == 0; }
-
 typedef uint64_t INDEX;
 #define DEC_INDEX_FORMAT "%" PRIu64
 #define SEPARATOR ":"
@@ -835,11 +833,6 @@ size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     return total;
 }
 
-static void f_write(void *pv, size_t cb, file fp, INDEX indStart) {
-    fprintf(stderr, "*** f_write not implemented\n");
-    exit(1);
-}
-
 enum { WHITE = 0, BLACK, NEUTRAL };
 
 #define OtherSide(side) ((side) ^ 1)
@@ -971,23 +964,6 @@ typedef struct {
 } Ending;
 
 static Ending EndingTable[NUM_ENDINGS];
-
-static int EndingCompar(const void *a, const void *b) {
-    Ending *x = (Ending *)a;
-    Ending *y = (Ending *)b;
-
-    if (x->material < y->material)
-        return -1;
-    else if (x->material > y->material)
-        return 1;
-
-    if (x->side < y->side)
-        return -1;
-    else if (x->side > y->side)
-        return 1;
-
-    return 0;
-}
 
 typedef struct {
     int board[NSQUARES];
@@ -1230,112 +1206,6 @@ typedef struct {
     char cz_type;
     bool flipped;
 } POSITION;
-
-static int score_compar(const void *a, const void *b) {
-    SCORE *x = (SCORE *)a;
-    SCORE *y = (SCORE *)b;
-
-    if (x->game_num < y->game_num) {
-        return -1;
-    } else if (x->game_num > y->game_num) {
-        return 1;
-    }
-
-    if (x->move_no < y->move_no) {
-        return -1;
-    } else if (x->move_no > y->move_no) {
-        return 1;
-    }
-
-    if (x->side < y->side) {
-        return -1;
-    } else if (x->side > y->side) {
-        return 1;
-    }
-
-    return 0;
-}
-
-static int game_compar(const void *a, const void *b) {
-    SCORE *x = (SCORE *)a;
-    SCORE *y = (SCORE *)b;
-
-    if (x->game_num < y->game_num) {
-        return -1;
-    } else if (x->game_num > y->game_num) {
-        return 1;
-    }
-    return 0;
-}
-
-static int ending_compar(const void *a, const void *b) {
-    SCORE *x = (SCORE *)a;
-    SCORE *y = (SCORE *)b;
-
-    return strcmp(x->ending, y->ending);
-}
-
-static int ending_list_compar(const void *a, const void *b) {
-    ENDING_LIST *x = (ENDING_LIST *)a;
-    ENDING_LIST *y = (ENDING_LIST *)b;
-
-    return strcmp(x->ending, y->ending);
-}
-
-static int move_count_compar(const void *a, const void *b) {
-    ENDING_LIST *x = (ENDING_LIST *)a;
-    ENDING_LIST *y = (ENDING_LIST *)b;
-
-    if (x->num_total < y->num_total)
-        return 1;
-    else if (x->num_total > y->num_total)
-        return -1;
-    return 0;
-}
-
-static int game_pos_compar(const void *a, const void *b) {
-    POSITION *x = (POSITION *)a;
-    POSITION *y = (POSITION *)b;
-
-    if (x->game_num < y->game_num) {
-        return -1;
-    } else if (x->game_num > y->game_num) {
-        return 1;
-    }
-
-    if (x->move_no < y->move_no)
-        return -1;
-    if (x->move_no > y->move_no)
-        return 1;
-
-    return (y->side - x->side);
-}
-
-static int pos_compar(const void *a, const void *b) {
-    POSITION *x = (POSITION *)a;
-    POSITION *y = (POSITION *)b;
-
-    for (int i = 0; i < 2; i++) {
-        for (int j = KING - 1; j >= 0; j--) {
-            if (x->piece_type_count[i][j] > y->piece_type_count[i][j])
-                return 1;
-            else if (x->piece_type_count[i][j] < y->piece_type_count[i][j])
-                return -1;
-        }
-    }
-
-    if (x->kk_index > y->kk_index)
-        return 1;
-    else if (x->kk_index < y->kk_index)
-        return -1;
-
-    if (x->offset > y->offset)
-        return 1;
-    else if (x->offset < y->offset)
-        return -1;
-
-    return (y->side - x->side);
-}
 
 static int db_pos_compar(const void *a, const void *b) {
     POSITION_DB *x = (POSITION_DB *)a;
@@ -1919,40 +1789,6 @@ static void InitN3OddTables(int *tab, int *pos) {
     if (index != N3_ODD_PARITY) {
         fprintf(stderr, "Got %d odd triplets, expected %d\n", index,
                 N3_ODD_PARITY);
-        exit(1);
-    }
-}
-
-static void InitN2_2Tables(int *tab, int *pos) {
-    int index = 0, score;
-
-    for (int p2 = 1; p2 < NUM_BLACK_SQUARES; p2++) {
-        for (int p1 = 0; p1 <= p2; p1++) {
-            if (p1 == p2)
-                score = -1;
-            else {
-                if (pos != NULL)
-                    pos[index] = p2 + NUM_BLACK_SQUARES * p1;
-                int g_index = N2_2_Index_Function(p2, p1);
-                if (index != g_index) {
-                    fprintf(stderr,
-                            "Bad same color pair index=%d computed index=%d "
-                            "p1=%d p2=%d\n",
-                            index, g_index, p1, p2);
-                    exit(1);
-                }
-                score = index++;
-            }
-            if (tab != NULL) {
-                tab[p1 + NUM_BLACK_SQUARES * p2] = score;
-                tab[p2 + NUM_BLACK_SQUARES * p1] = score;
-            }
-        }
-    }
-
-    if (index != NUM_BLACK_PAIRS) {
-        fprintf(stderr, "Got %d same color doublets, expected %d\n", index,
-                NUM_BLACK_PAIRS);
         exit(1);
     }
 }
@@ -2825,7 +2661,6 @@ static void InitN4OpposingTables(int *tab, int *pos) {
                     int w1_col = Column(w1);
                     int b1_col = Column(b1);
                     int w2_col = Column(w2);
-                    int b2_col = Column(b2);
                     if (w1_col == b1_col) {
                         pos_array_00 =
                             Row(b2) +
@@ -3077,7 +2912,7 @@ static void InitN4Tables(int *tab, int *pos) {
 }
 
 static void InitN4TablesMB(int *pos) {
-    int index = 0, score;
+    int index = 0;
 
     for (int p4 = 3; p4 < NSQUARES; p4++) {
         for (int p3 = 2; p3 <= p4; p3++) {
@@ -3085,7 +2920,7 @@ static void InitN4TablesMB(int *pos) {
                 for (int p1 = 0; p1 <= p2; p1++) {
                     if (p1 == p2 || p1 == p3 || p1 == p4 || p2 == p3 ||
                         p2 == p4 || p3 == p4) {
-                        score = -1;
+                        // skip
                     } else {
                         if (pos != NULL)
                             pos[index] =
@@ -3101,7 +2936,7 @@ static void InitN4TablesMB(int *pos) {
                                     index, g_index, p1, p2, p3, p4);
                             exit(1);
                         }
-                        score = index++;
+                        index++;
                     }
                 }
             }
@@ -3517,33 +3352,6 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
             }
         }
     }
-}
-
-static ZINDEX GetZoneSize(int count[2][KING]) {
-    ZINDEX size = 1;
-    int pi, side;
-
-    for (pi = KNIGHT; pi < KING; pi++) {
-        for (side = WHITE; side <= BLACK; side++) {
-            if (count[side][pi] == 1)
-                size *= NSQUARES;
-            else if (count[side][pi] == 2)
-                size *= N2_Offset;
-            else if (count[side][pi] == 3)
-                size *= N3_Offset;
-            else if (count[side][pi] == 4) {
-                size *= N4_Offset;
-            } else if (count[side][pi] == 5) {
-                size *= N5_Offset;
-            } else if (count[side][pi] == 6) {
-                size *= N6_Offset;
-            } else if (count[side][pi] == 7) {
-                size *= N7_Offset;
-            }
-        }
-    }
-
-    return size;
 }
 
 int BinarySearchLeftmost(ZINDEX *arr, int n, ZINDEX x) {
@@ -8775,30 +8583,6 @@ static ZINDEX Index421_0011(int *pos) {
                                    N4_Index(pos[5], pos[4], pos[3], pos[2]));
 }
 
-static bool Pos421_0011(ZINDEX index, int *pos) {
-    int p2, p4, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_ODD_PARITY_Offset;
-    assert(id2 < N2_ODD_PARITY);
-    p2 = p2_odd_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_ODD_PARITY_Offset;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
-}
-
 static ZINDEX Index412(int *pos) {
     return pos[6] + NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
                                         N2_Offset * N4_Index(pos[5], pos[4],
@@ -9532,19 +9316,6 @@ static int ParseZZType(char *score) {
     return UNKNOWN;
 }
 
-static char ParseZZTypeChar(char *score) {
-    if (!strcmp(score, "-+"))
-        return 'f';
-    else if (!strcmp(score, "-="))
-        return 'm';
-    else if (!strcmp(score, "=+"))
-        return 'p';
-    else if (!strcmp(score, "--"))
-        return '-';
-
-    return '?';
-}
-
 static void ScoreToString(int score, char *string) {
     if (score == UNKNOWN)
         strcpy(string, "?");
@@ -9641,51 +9412,6 @@ static int side_compare(const void *a, const void *b) {
     return memcmp(x->types, y->types, sizeof(x->types));
 }
 
-static void InitEndingStats() {
-    int np;
-
-    if (num_side_endings != 0) {
-        MyFree(SingleSideCount, num_side_endings * sizeof(ENDING_INDEX));
-        num_side_endings = 0;
-    }
-
-    if (num_total_endings != 0) {
-        MyFree(EndingStats, num_total_endings * sizeof(unsigned int));
-        num_total_endings = 0;
-    }
-
-    for (np = 0; np <= MAX_PIECES_PER_SIDE; np++) {
-        memset(single_piece_side, 0, sizeof(single_piece_side));
-        fill_single_side(0, np, true);
-    }
-
-    if (Verbose > 1) {
-        MyPrintf("Total number of configurations with up to %d per side: %d\n",
-                 MAX_PIECES_PER_SIDE, num_side_endings);
-        MyFlush();
-    }
-
-    SingleSideCount =
-        (ENDING_INDEX *)MyMalloc(num_side_endings * sizeof(ENDING_INDEX));
-
-    num_side_endings = 0;
-
-    for (np = 0; np <= MAX_PIECES_PER_SIDE; np++) {
-        memset(single_piece_side, 0, sizeof(single_piece_side));
-        fill_single_side(0, np, false);
-    }
-
-    qsort(SingleSideCount, num_side_endings, sizeof(ENDING_INDEX),
-          side_compare);
-
-    num_total_endings = num_side_endings * num_side_endings;
-
-    EndingStats =
-        (unsigned int *)MyMalloc(num_total_endings * sizeof(unsigned int));
-
-    memset(EndingStats, 0, num_total_endings * sizeof(unsigned int));
-}
-
 static int ending_stat_index(int piece_types[2][KING]) {
     ENDING_INDEX single_side, *eptr;
     int id_w, id_b;
@@ -9717,34 +9443,6 @@ static int ending_stat_index(int piece_types[2][KING]) {
     id_b = eptr->index;
 
     return num_side_endings * id_w + id_b;
-}
-
-static void GetEndingFromIndex(int piece_types[2][KING], int index) {
-    int id_b, id_w, i;
-
-    id_b = index % num_side_endings;
-    id_w = index / num_side_endings;
-
-    if (id_w >= num_side_endings) {
-        fprintf(stderr, "Internal error in GetndingFromIndex\n");
-        exit(1);
-    }
-
-    for (i = 0; i < num_side_endings; i++) {
-        if (SingleSideCount[i].index == id_w) {
-            memcpy(piece_types[0], SingleSideCount[i].types,
-                   KING * sizeof(int));
-            break;
-        }
-    }
-
-    for (i = 0; i < num_side_endings; i++) {
-        if (SingleSideCount[i].index == id_b) {
-            memcpy(piece_types[1], SingleSideCount[i].types,
-                   KING * sizeof(int));
-            break;
-        }
-    }
 }
 
 #define MAX_LINES 10000
@@ -9838,11 +9536,6 @@ static void FlushPGNOutputCashed() {
         PGN_Game[NumOutputLines].OutputLine[0] = '\0';
     }
     OutputColumn = 0;
-    NumOutputLines++;
-}
-
-static void InsertBlankLine() {
-    PGN_Game[NumOutputLines].OutputLine[0] = '\0';
     NumOutputLines++;
 }
 
@@ -22929,133 +22622,6 @@ prompt:
     goto repeat;
 }
 
-static void EvaluateBleicher(char *pos, int side_in) {
-    BOARD Board;
-    int side, score, i, nmoves, nmoves_x;
-    Move move_list[MAX_MOVES];
-    INDEX_DATA index;
-    bool in_check, flipped, pawns_present = false;
-
-    side = ReadPosition(pos, &Board, NULL);
-
-    if (side == NEUTRAL) {
-        MyPrintf("INVALID\n");
-        return;
-    }
-
-    if (side_in != Board.side) {
-        Board.ep_square = 0;
-        Board.side = side_in;
-    }
-
-    score = ScorePosition(&Board, &index);
-
-    if (score == ILLEGAL) {
-        MyPrintf("INVALID\n");
-        return;
-    }
-
-    MyPrintf("SUCCESS\n");
-
-    flipped = false;
-
-    if (side == WHITE && (score == NOT_LOST || score == LOST || score <= 0))
-        flipped = true;
-
-    if (side == BLACK &&
-        (score == NOT_WON || score == WON ||
-         (score > 0 && score != DRAW && score != NOT_LOST && score != LOST)))
-        flipped = true;
-
-    if (flipped) {
-        FlipBoard(&Board);
-    }
-
-    nmoves = GenMoveScores(&Board, move_list, true, true);
-
-    if (flipped) {
-        FlipBoard(&Board);
-        for (i = 0; i < nmoves; i++)
-            FlipMove(&move_list[i]);
-    }
-
-    if (nmoves == 0) {
-        in_check = IsInCheck(&Board, Board.side);
-        if (in_check)
-            MyPrintf("%d\n", BLEICHER_MATED);
-        else
-            MyPrintf("%d\n", BLEICHER_DRAW);
-        MyPrintf("MOVES:%d\n", nmoves);
-        return;
-    }
-
-    if (score == UNKNOWN || score == NOT_WON || score == NOT_LOST) {
-        MyPrintf("%d\n", BLEICHER_NOT_FOUND);
-    } else if (score == DRAW)
-        MyPrintf("%d\n", BLEICHER_DRAW);
-    else if (score == WON)
-        MyPrintf("%d\n", BLEICHER_WON);
-    else if (score == LOST)
-        MyPrintf("%d\n", BLEICHER_LOST);
-    else
-        MyPrintf("%d\n", score);
-
-    nmoves_x = nmoves;
-
-    for (i = 0; i < nmoves; i++) {
-        Move reply_list[MAX_MOVES];
-        int nreplies;
-        bool in_check_x;
-        if ((move_list[i].flag & PROMOTION) &&
-            (ABS(move_list[i].piece_promoted) == PAWN)) {
-            nmoves_x--;
-            continue;
-        }
-        MakeMove(&Board, &move_list[i]);
-        nreplies = GenLegalMoves(&Board, reply_list, true, true);
-        in_check_x = IsInCheck(&Board, Board.side);
-        UnMakeMove(&Board, &move_list[i]);
-        if (nreplies == 0) {
-            if (in_check_x) {
-                move_list[i].score = CHECK_MATE;
-                move_list[i].flag |= MATE;
-            } else {
-                move_list[i].score = DRAW;
-            }
-        }
-    }
-
-    MyPrintf("MOVES:%d\n", nmoves_x);
-
-    qsort(move_list, nmoves, sizeof(move_list[0]), MoveCompare);
-
-    for (i = nmoves - 1; i >= 0; i--) {
-        Move *mptr = &move_list[i];
-        char move_string[16], score_string[16];
-
-        if ((mptr->flag & PROMOTION) && (ABS(mptr->piece_promoted) == PAWN))
-            continue;
-
-        GetMoveStringBleicher(mptr, move_string);
-
-        MyPrintf("%s:", move_string);
-
-        if (mptr->score == UNKNOWN || mptr->score == NOT_WON ||
-            mptr->score == NOT_LOST)
-            MyPrintf("%d\n", BLEICHER_NOT_FOUND);
-        else if (mptr->score == DRAW || mptr->score == STALE_MATE)
-            MyPrintf("%d\n", BLEICHER_DRAW);
-        else if (mptr->score == CHECK_MATE)
-            MyPrintf("%d\n", BLEICHER_MATED);
-        else if (mptr->score == LOST)
-            MyPrintf("%d\n", BLEICHER_LOST);
-        else if (mptr->score == WON)
-            MyPrintf("%d\n", BLEICHER_WON);
-        else
-            MyPrintf("%d\n", mptr->score);
-    }
-}
-
 typedef struct {
     int piece_types[2][KING];
     unsigned int count;
@@ -23084,52 +22650,6 @@ static void AddEndingToStats(BOARD *Board) {
     index = ending_stat_index(piece_types);
 
     EndingStats[index]++;
-}
-
-static void CompileEndingStats() {
-    int n = 0, i;
-
-    MyPrintf("Total number of positions: %u\n", num_positions);
-
-    for (i = 0; i < num_total_endings; i++) {
-        if (EndingStats[i] > 0) {
-            n++;
-        }
-    }
-
-    EndingFreqTable = (FREQ_TABLE *)MyMalloc(n * sizeof(FREQ_TABLE));
-
-    n = 0;
-    for (i = 0; i < num_total_endings; i++) {
-        if (EndingStats[i] > 0) {
-            GetEndingFromIndex(EndingFreqTable[n].piece_types, i);
-            EndingFreqTable[n++].count = EndingStats[i];
-        }
-    }
-
-    qsort(EndingFreqTable, n, sizeof(FREQ_TABLE), compare_freq);
-
-    for (i = 3; i <= 8; i++) {
-        MyPrintf("\nEndings with %d pieces\n", i);
-        for (int j = 0; j < n; j++) {
-            int len, piece;
-            char ending[64];
-
-            len = GetEndingName(EndingFreqTable[j].piece_types, ending);
-
-            if (len == i)
-                MyPrintf("%s  %d\n", ending, EndingFreqTable[j].count);
-        }
-    }
-}
-
-static void PrintSummary() {
-    MyPrintf("Fopen: %lu   Fclose: %lu"
-             "   Fread: " DEC_INDEX_FORMAT "   Fwrite: " DEC_INDEX_FORMAT "\n",
-             FilesOpened, FilesClosed, FileReads, FileWrites);
-    MyPrintf("Alloc: %lu   Free: %lu\n", MemoryAllocated, MemoryFreed);
-    MyPrintf("Database hits: %lu  Cache hits: %lu\n", DBHits, CacheHits);
-    MyFlush();
 }
 
 static bool FirstMove = true;
@@ -23422,10 +22942,6 @@ static int ProcessPosition(BOARD *pos, bool evaluate, bool best_capture,
     WritePositionData(&pos_data, 9);
 
     return changed;
-}
-
-static int EvaluatePosition(BOARD *board, bool best_capture, bool mark_mzugs) {
-    return ProcessPosition(board, true, best_capture, mark_mzugs);
 }
 
 PGNToken ParseMoveList(PGNToken symbol, FILE *fin, ParseType *yylval,
@@ -23983,107 +23499,6 @@ PGNToken ParseGame(PGNToken symbol, FILE *fin, ParseType *yylval,
         OutputCashedPGN();
 
     return symbol;
-}
-
-static void Usage(char *prog_name, bool show_version) {
-    if (show_version) {
-        MyPrintf("%s version %s"
-                 ", using 64 bit indices"
-#if defined(NO_DOUBLE_PAWN_MOVES)
-                 ", pawns can't make a double step"
-#endif
-#if (NROWS != 8 || NCOLS != 8)
-                 "\nUsing %dx%d board\n"
-#endif
-                 "\n(C) 2019-2024 Marc Bourzutschky\n\n",
-                 prog_name, Version
-#if (NROWS != 8) || (NCOLS != 8)
-                 ,
-                 NCOLS, NROWS
-#endif
-        );
-    }
-    MyPrintf(
-        "Usage: %s [options] [pos_file[%cn] | -f pos_string]\n"
-        "\n"
-        "Valid options:\n"
-        " -r               - read positions from standard input\n"
-        " -q               - interactively play through position\n"
-        " -p[elprsSz!] [l] - show best line. For -pz, also label mzugs with "
-        "{zz}:\n"
-        "                    for !, use !! for only, and ! for best DTZ moves\n"
-        "                    for l, read maximum line length from argument\n"
-        "                    for p, use strict PGN format ($1 for !, $3 for "
-        "!!)\n"
-        "                    for r, mark repeats of the original position with "
-        "switched sides with {rr}\n"
-        "                    for e, use EG format ('S' for 'N', no space after "
-        "'.')\n"
-        "                    for s, stop list after transition to capture sub "
-        "game (or pawn move with S)\n"
-        " -a[v][options]     process PGN pos_file (for v parse variations as "
-        "well). Valid options:\n"
-        "     s            - check syntax only and provide positions stats\n"
-        "     h[m-n]       - create position file (for later reading with -o)\n"
-        "                    m-n number of pieces between m and n (default %d "
-        "and %d)\n"
-        "     [aioc]       - create PGN with comments, based on data from -o "
-        "file\n"
-        "                    for a, add annotator to PGN (either EGTB or from "
-        "-t)\n"
-        "                    for o, add position valuation summary to header "
-        "from -o file\n"
-        "                    for i, insert scores from db file from -o file\n"
-        "                    for c, only include games with at least one TB "
-        "position\n"
-        "     e            - print EPD with incorrectly played positions in "
-        "pos_file\n"
-        " -h[sczu][m|y][r] - process position file\n"
-        "                    for c, evaluate best captures only\n"
-        "                    for r, identify possible cyclic zugzwang pairs\n"
-        "                    for z, label zugzwangs\n"
-        "                    for u, tag restricted promotions from -ul file\n"
-        "                    for s, sort position list for best caching\n"
-        "                    for m, convert YK indices to MB format\n"
-        "                    for y, convert MB indices to YK format\n"
-        " -d dirs          - search TBs in specified directories\n"
-        "                    (directories are separated by ;)\n"
-        " -yk              - Read YK files only\n"
-        " -mb              - Read MB files only\n"
-        " -o file          - read position evaluation from file for -ao "
-        "option\n"
-        " -oo[s] file      - extract bad moves from position file\n"
-        "                    for oos, provide additional statistics\n"
-        " -g[o] delta      - flag moves with depth differences >= delta\n"
-        "                    for o, also add position summary to header in -ao "
-        "option\n"
-        " -m[p[u]]         - find best move (for p, output in PGN rather than "
-        "EGTB format)\n"
-        "                    for pu, only keep positions with unique moves\n"
-        " -s               - evaluate for both white and black to move\n"
-        " -l[[a] file]     - echo output to file (if -la append to file)\n"
-        " -t annotator     - set annotator (for -aa option), default %s\n"
-        " -e               - output in Bleicher format\n"
-        " -ul file         - read endings with restricted promotions from "
-        "file\n"
-        " -u[x] promo      - allowed promotions (q, r, b, n, qn,...; default "
-        "qrbn)\n"
-        "                    ux: use all promotions for endings with < 8 "
-        "pieces\n"
-        " -n               - exclude en passant\n"
-        " -c[f]            - include castling rights (will return unknown from "
-        "egtb)\n"
-        "                    (for cf, include Chess960 castling)\n"
-        " -w n             - use output line width n (for -a and -p options), "
-        "default %d\n"
-        " -v[n]            - verbosity level, 0,1,2,..., default %d\n"
-        "\n"
-        "If %cn is given, only the n-th position is evaluated.\n"
-        "Positions can be FEN, or of form wka1 bkc1 wqg3...\n"
-        "\n",
-        prog_name, SEPARATOR[0], MinimumNumberOfPieces, MaximumNumberOfPieces,
-        Annotator, LineWidth, Verbose, SEPARATOR[0]);
-    fflush(stdout);
 }
 
 /*
