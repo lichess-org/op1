@@ -2911,20 +2911,7 @@ static void InitN7Tables() {
     }
 }
 
-static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
-    static bool m4_inited = false, m3_inited = false, m2_inited = false;
-    static bool m5_inited = false, m6_inited = false, m7_inited = false;
-    static bool m2_even_inited = false, m2_odd_inited = false;
-    static bool m3_even_inited = false, m3_odd_inited = false;
-    static bool m2_opposing_inited = false;
-    static bool m2_1_opposing_inited = false;
-    static bool m1_2_opposing_inited = false;
-    static bool m2_2_opposing_inited = false;
-    static bool m3_1_opposing_inited = false;
-    static bool m1_3_opposing_inited = false;
-    static bool m4_opposing_inited = false;
-
-    if (!m2_opposing_inited) {
+static void InitPermutationTables(void) {
         if (Verbose > 1) {
             MyPrintf("Initializing and checking permutation table for 2 "
                      "opposing pawns\n");
@@ -2938,10 +2925,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                                               (NROWS - 3) / 2 * sizeof(int));
         }
         InitN2OpposingTables(k2_opposing_tab, p2_opposing_tab);
-        m2_opposing_inited = true;
-    }
 
-    if (!m2_1_opposing_inited) {
         if (Verbose > 1) {
             MyPrintf("Initializing permutation tables for two vs one pawn, "
                      "with one opposing pair\n");
@@ -2954,10 +2938,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
             p2_1_opposing_tab = (int *)MyMalloc(N2_1_OPPOSING * sizeof(int));
         }
         InitN2_1_OpposingTables(k2_1_opposing_tab, p2_1_opposing_tab);
-        m2_1_opposing_inited = true;
-    }
 
-    if (!m1_2_opposing_inited) {
         if (Verbose > 1) {
             MyPrintf("Initializing permutation tables for one vs two pawns, "
                      "with one opposing pair\n");
@@ -2970,10 +2951,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
             p1_2_opposing_tab = (int *)MyMalloc(N1_2_OPPOSING * sizeof(int));
         }
         InitN1_2_OpposingTables(k1_2_opposing_tab, p1_2_opposing_tab);
-        m1_2_opposing_inited = true;
-    }
 
-    if (!m2_2_opposing_inited) {
         if (Verbose > 1) {
             MyPrintf("Initializing permutation tables for two vs two pawns, "
                      "with one opposing pair\n");
@@ -2986,10 +2964,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
             p2_2_opposing_tab = (int *)MyMalloc(N2_2_OPPOSING * sizeof(int));
         }
         InitN2_2_OpposingTables(k2_2_opposing_tab, p2_2_opposing_tab);
-        m2_2_opposing_inited = true;
-    }
 
-    if (!m3_1_opposing_inited) {
         if (Verbose > 1) {
             MyPrintf("Initializing permutation tables for three vs one pawn, "
                      "with one opposing pair\n");
@@ -3002,10 +2977,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
             p3_1_opposing_tab = (int *)MyMalloc(N3_1_OPPOSING * sizeof(int));
         }
         InitN3_1_OpposingTables(k3_1_opposing_tab, p3_1_opposing_tab);
-        m3_1_opposing_inited = true;
-    }
 
-    if (!m1_3_opposing_inited) {
         if (Verbose > 1) {
             MyPrintf("Initializing permutation tables for one vs three pawns, "
                      "with one opposing pair\n");
@@ -3018,10 +2990,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
             p1_3_opposing_tab = (int *)MyMalloc(N1_3_OPPOSING * sizeof(int));
         }
         InitN1_3_OpposingTables(k1_3_opposing_tab, p1_3_opposing_tab);
-        m1_3_opposing_inited = true;
-    }
 
-    if (!m4_opposing_inited) {
         if (Verbose > 1) {
             MyPrintf("Initializing and checking permutation table for two "
                      "pairs of opposing pawns\n");
@@ -3035,12 +3004,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
             p4_opposing_tab = (int *)MyMalloc(N4_OPPOSING * sizeof(int));
         }
         InitN4OpposingTables(k4_opposing_tab, p4_opposing_tab);
-        m4_opposing_inited = true;
-    }
 
-    for (int c = WHITE; c <= BLACK; c++) {
-        for (int p = PAWN; p < KING; p++) {
-            if (count[c][p] == 7 && !m7_inited) {
                 if (Verbose > 1) {
                     MyPrintf("Initializing and checking permutation table for "
                              "7 pieces\n");
@@ -3049,18 +3013,10 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                     p4_tab_mb = (int *)MyMalloc(N4 * sizeof(int));
                     InitN4TablesMB(p4_tab_mb);
                 }
-                if (!m5_inited) {
                     InitN5Tables();
-                    m5_inited = true;
-                }
-                if (!m6_inited) {
                     InitN6Tables();
-                    m6_inited = true;
-                }
                 InitN7Tables();
-                m7_inited = true;
-            }
-            if (count[c][p] == 6 && !m6_inited) {
+
                 if (Verbose > 1) {
                     MyPrintf("Initializing and checking permutation table for "
                              "6 pieces\n");
@@ -3069,14 +3025,9 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                     p4_tab_mb = (int *)MyMalloc(N4 * sizeof(int));
                     InitN4TablesMB(p4_tab_mb);
                 }
-                if (!m5_inited) {
                     InitN5Tables();
-                    m5_inited = true;
-                }
                 InitN6Tables();
-                m6_inited = true;
-            }
-            if (count[c][p] == 5 && !m5_inited) {
+
                 if (Verbose > 1) {
                     MyPrintf("Initializing and checking permutation table for "
                              "5 pieces\n");
@@ -3086,9 +3037,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                     InitN4TablesMB(p4_tab_mb);
                 }
                 InitN5Tables();
-                m5_inited = true;
-            }
-            if (count[c][p] == 4 && !m4_inited) {
+
                 if (Verbose > 1)
                     MyPrintf("Initializing and checking permutation tables for "
                              "4 piece\n");
@@ -3102,10 +3051,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                     p4_tab = (int *)MyMalloc(N4 * sizeof(int));
                 InitN4Tables(k4_tab, p4_tab);
 #endif
-                m4_inited = true;
-            }
-            if (count[c][p] == 3) {
-                if ((p != BISHOP || bishop_parity[c] == NONE) && !m3_inited) {
+
                     if (Verbose > 1)
                         MyPrintf("Initializing and checking permutation tables "
                                  "for 3 piece\n");
@@ -3119,11 +3065,9 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                         p3_tab = (int *)MyMalloc(N3 * sizeof(int));
                     InitN3Tables(k3_tab, p3_tab);
 #endif
-                    m3_inited = true;
-                }
+
 #if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
-                if (p == BISHOP && bishop_parity[c] == EVEN &&
-                    !m3_even_inited) {
+
                     if (Verbose > 1)
                         MyPrintf("Initializing tables for even triplets\n");
                     if (k3_even_tab == NULL)
@@ -3133,9 +3077,7 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                         p3_even_tab =
                             (int *)MyMalloc(N3_EVEN_PARITY * sizeof(int));
                     InitN3EvenTables(k3_even_tab, p3_even_tab);
-                    m3_even_inited = true;
-                }
-                if (p == BISHOP && bishop_parity[c] == ODD && !m3_odd_inited) {
+
                     if (Verbose > 1)
                         MyPrintf("Initializing tables for odd triplets\n");
                     if (k3_odd_tab == NULL)
@@ -3145,12 +3087,8 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                         p3_odd_tab =
                             (int *)MyMalloc(N3_ODD_PARITY * sizeof(int));
                     InitN3OddTables(k3_odd_tab, p3_odd_tab);
-                    m3_odd_inited = true;
-                }
 #endif
-            }
-            if (count[c][p] == 2) {
-                if ((p != BISHOP || bishop_parity[c] == NONE) && !m2_inited) {
+
                     if (Verbose > 1)
                         MyPrintf("Initializing and checking permutation tables "
                                  "for 2 piece\n");
@@ -3164,11 +3102,8 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                         p2_tab = (int *)MyMalloc(N2 * sizeof(int));
                     InitN2Tables(k2_tab, p2_tab);
 #endif
-                    m2_inited = true;
-                }
+
 #if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
-                if (p == BISHOP && bishop_parity[c] == EVEN &&
-                    !m2_even_inited) {
                     if (Verbose > 1)
                         MyPrintf("Initializing tables for even doublets\n");
                     if (k2_even_tab == NULL)
@@ -3178,10 +3113,8 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                         p2_even_tab =
                             (int *)MyMalloc(N2_EVEN_PARITY * sizeof(int));
                     InitN2EvenTables(k2_even_tab, p2_even_tab);
-                    m2_even_inited = true;
-                }
+
 #endif
-                if (p == BISHOP && bishop_parity[c] == ODD && !m2_odd_inited) {
                     if (Verbose > 1)
                         MyPrintf("Initializing tables for odd doublets\n");
                     if (k2_odd_tab == NULL)
@@ -3191,11 +3124,6 @@ static void InitPermutationTables(int count[2][KING], int bishop_parity[2]) {
                         p2_odd_tab =
                             (int *)MyMalloc(N2_ODD_PARITY * sizeof(int));
                     InitN2OddTables(k2_odd_tab, p2_odd_tab);
-                    m2_odd_inited = true;
-                }
-            }
-        }
-    }
 }
 
 int BinarySearchLeftmost(ZINDEX *arr, int n, ZINDEX x) {
@@ -15684,8 +15612,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
 
     int bishop_parity[2] = {NONE, NONE};
 
-    InitPermutationTables(mb_info->piece_type_count, bishop_parity);
-
     mb_info->num_pieces = Board->num_pieces;
 
     GetMBPosition(Board, mb_info->mb_position, &mb_info->parity,
@@ -15711,7 +15637,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
                sizeof(bishop_parity));
         mb_info->parity_index[0].eptr = &IndexTable[eindex];
         mb_info->num_parities++;
-        InitPermutationTables(mb_info->piece_type_count, bishop_parity);
         // check whether we can also probe blocked/opposing pawn data
 
         if (mb_info->pawn_file_type == OP_11_PAWNS ||
@@ -16141,7 +16066,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
                bishop_parity, sizeof(bishop_parity));
         mb_info->parity_index[mb_info->num_parities].eptr = &IndexTable[eindex];
         mb_info->num_parities++;
-        InitPermutationTables(mb_info->piece_type_count, bishop_parity);
     }
 
     // if both white and black have parity constraints, can add cases where only
@@ -16166,7 +16090,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             mb_info->parity_index[mb_info->num_parities].eptr =
                 &IndexTable[eindex];
             mb_info->num_parities++;
-            InitPermutationTables(mb_info->piece_type_count, sub_bishop_parity);
         }
 
         sub_bishop_parity[WHITE] = NONE;
@@ -16186,7 +16109,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             mb_info->parity_index[mb_info->num_parities].eptr =
                 &IndexTable[eindex];
             mb_info->num_parities++;
-            InitPermutationTables(mb_info->piece_type_count, sub_bishop_parity);
         }
     }
 
@@ -16395,8 +16317,6 @@ static int GetYKInfo(BOARD *Board, YK_INFO *yk_info) {
            sizeof(Board->piece_type_count));
 
     int bishop_parity[2] = {NONE, NONE};
-
-    InitPermutationTables(yk_info->piece_type_count, bishop_parity);
 
     yk_info->num_pieces = Board->num_pieces;
 
@@ -18203,6 +18123,7 @@ int main(int argc, char *argv[]) {
     InitPieceStrengths();
     NumPaths = InitPaths();
     InitCaches();
+    InitPermutationTables();
 
     assert(IsWinningScore(1));
     assert(IsLosingScore(-1));
