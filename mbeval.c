@@ -809,7 +809,7 @@ static void f_close(file f) {
 
 size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     bool bResult;
-    DWORD cbRead;
+    uint32_t cbRead;
 
 #if defined(USE_64_BIT)
     LARGE_INTEGER s;
@@ -825,7 +825,7 @@ size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     }
 #else
     LONG lHiPos;
-    DWORD dwPtr;
+    uint32_t dwPtr;
 
     if (sizeof(INDEX) == 4)
         lHiPos = 0;
@@ -853,7 +853,7 @@ size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
 
 static void f_write(void *pv, size_t cb, file fp, INDEX indStart) {
     bool bResult;
-    DWORD cbWritten;
+    uint32_t cbWritten;
 #if defined(USE_64_BIT)
     LARGE_INTEGER s;
     s.QuadPart = indStart;
@@ -867,7 +867,7 @@ static void f_write(void *pv, size_t cb, file fp, INDEX indStart) {
     }
 #else
     LONG lHiPos;
-    DWORD dwPtr;
+    uint32_t dwPtr;
 
     if (sizeof(INDEX) == 4)
         lHiPos = 0;
@@ -941,7 +941,7 @@ static void f_close(file f) {
 
 size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     bool bResult;
-    DWORD cbRead;
+    uint32_t cbRead;
 
 #if defined(USE_64_BIT)
     LARGE_INTEGER s;
@@ -957,7 +957,7 @@ size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     }
 #else
     LONG lHiPos;
-    DWORD dwPtr;
+    uint32_t dwPtr;
 
     if (sizeof(INDEX) == 4)
         lHiPos = 0;
