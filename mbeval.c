@@ -6087,7 +6087,7 @@ static bool Pos211111(ZINDEX index, int *pos) {
     pos[4] = index % NSQUARES;
     index /= NSQUARES;
     assert(index < N2);
-    p2 = p2_tab[index];
+    int p2 = p2_tab[index];
     pos[3] = p2 % NSQUARES;
     p2 /= NSQUARES;
     pos[2] = p2;
@@ -6119,7 +6119,7 @@ static bool Pos121111(ZINDEX index, int *pos) {
     pos[2] = index % NSQUARES;
     index /= NSQUARES;
     assert(index < N2);
-    p2 = p2_tab[index];
+    int p2 = p2_tab[index];
     pos[4] = p2 % NSQUARES;
     p2 /= NSQUARES;
     pos[3] = p2;
@@ -11339,72 +11339,6 @@ static void PrintPieceTypeCount(int types[2][KING], char *comment) {
     MyFlush();
 }
 
-static void BoardToFEN(BOARD *Board, char *FEN_String) {
-    char *pch;
-    int sq, sqLast, i;
-    int *board = Board->board;
-
-    pch = FEN_String;
-    sq = sqLast = SquareMake(NROWS - 1, 0);
-
-    for (;;) {
-        if (board[sq]) {
-            if (sq != sqLast) {
-                if (sq - sqLast >= 10) {
-                    *pch++ = '0' + ((sq - sqLast) / 10);
-                    *pch++ = '0' + ((sq - sqLast) % 10);
-                } else
-                    *pch++ = (char)(sq - sqLast + '0');
-            }
-            *pch++ = (board[sq] > 0) ? toupper(piece_char(board[sq]))
-                                     : piece_char(-board[sq]);
-            sqLast = sq + 1;
-        }
-        if (Column(sq) == (NCOLS - 1)) {
-            if (sq >= sqLast) {
-                if ((sq - sqLast + 1) >= 10) {
-                    *pch++ = '0' + ((sq - sqLast + 1) / 10);
-                    *pch++ = '0' + ((sq - sqLast + 1) % 10);
-                } else
-                    *pch++ = (char)(sq - sqLast + '1');
-            }
-            if (sq == SquareMake(0, NCOLS - 1))
-                break;
-            *pch++ = '/';
-            sq = SquareMake(Row(sq) - 1, 0);
-            sqLast = sq;
-        } else
-            sq++;
-    }
-    *pch++ = ' ';
-    *pch++ = (Board->side == WHITE) ? 'w' : 'b';
-    *pch++ = ' ';
-    if (Board->castle & WK_CASTLE)
-        *pch++ = 'K';
-    if (Board->castle & WQ_CASTLE)
-        *pch++ = 'Q';
-    if (Board->castle & BK_CASTLE)
-        *pch++ = 'k';
-    if (Board->castle & BQ_CASTLE)
-        *pch++ = 'q';
-    if (Board->castle == 0)
-        *pch++ = '-';
-    *pch++ = ' ';
-    if (Board->ep_square > 0) {
-        int row_ep = 1 + Row(Board->ep_square);
-        *pch++ = 'a' + Column(Board->ep_square);
-        if (row_ep < 10) {
-            *pch++ = '0' + row_ep;
-        } else {
-            *pch++ = '0' + (row_ep / 10);
-            *pch++ = '0' + (row_ep % 10);
-        }
-    } else
-        *pch++ = '-';
-    *pch++ = ' ';
-    sprintf(pch, "%d %d", Board->half_move, Board->full_move);
-}
-
 /*
  * KK_Canonical computes the symmetry operation to transform wk_in and bk_in to
  * a "canonical" configuration when pawns are present.  The symmetry operation
@@ -11413,7 +11347,6 @@ static void BoardToFEN(BOARD *Board, char *FEN_String) {
  *
  * The routine returns true if the position is legal, false otherwise
  */
-
 static bool KK_Canonical(int *wk_in, int *bk_in, int *sym) {
     int wk = *wk_in;
     int bk = *bk_in;
@@ -12371,7 +12304,7 @@ static int GetYKIndex(int *yk_pos, int npieces, bool pawns_present,
         *kindex = KK_Index_NoPawns(wk, bk);
 
     if (Verbose > 3) {
-        MyPrintf("GetYKIndex: kk_index = %lu\n", *kindex);
+        MyPrintf("GetYKIndex: kk_index = %d\n", *kindex);
     }
 
     return 0;
@@ -13073,8 +13006,6 @@ static int GetYKInfo(BOARD *Board, YK_INFO *yk_info) {
     memcpy(yk_info->piece_type_count, Board->piece_type_count,
            sizeof(Board->piece_type_count));
 
-    int bishop_parity[2] = {NONE, NONE};
-
     yk_info->num_pieces = Board->num_pieces;
 
     GetYKPosition(Board, yk_info->yk_position);
@@ -13232,7 +13163,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
         uint8_t header[YK_HEADER_SIZE];
         if (f_read(&header, YK_HEADER_SIZE, file_yk, 0) != YK_HEADER_SIZE) {
             if (Verbose > 2) {
-                MyPrintf("Could not read %d header bytes for yk file %s\n",
+                MyPrintf("Could not read %zu header bytes for yk file %s\n",
                          sizeof(header), base_name);
             }
             f_close(file_yk);
@@ -13254,7 +13185,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
                 (INDEX *)MyMalloc((fcache->max_num_blocks + 1) * sizeof(INDEX));
             if (fcache->offsets == NULL) {
                 if (Verbose > 2) {
-                    MyPrintf("Could not allocate %lu offsets\n",
+                    MyPrintf("Could not allocate %" PRIu32 " offsets\n",
                              fcache->max_num_blocks + 1);
                 }
                 return OFFSET_ALLOC_ERROR;
@@ -13329,7 +13260,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
 
     if (Verbose > 4) {
         MyPrintf(
-            "Searching YK index %lu block index %lu, header block size %lu\n",
+            "Searching YK index %lu block index %d, header block size %" PRIu32 "\n",
             ind->index, fcache->block_index, fcache->block_size);
     }
 
@@ -13352,8 +13283,8 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (Verbose > 4) {
             MyPrintf(
-                "Reading compressed block size %lu at offset " DEC_INDEX_FORMAT
-                " block index %lu\n",
+                "Reading compressed block size %" PRIu32 " at offset " DEC_INDEX_FORMAT
+                " block index %d\n",
                 length, fcache->offsets[b_index], b_index);
         }
         if (length > CompressionBufferSize) {
@@ -13364,7 +13295,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             CompressionBuffer = (uint8_t *)MyMalloc(CompressionBufferSize);
             if (CompressionBuffer == NULL) {
                 fprintf(stderr,
-                        "Could not allocate CompressionBuffer size %lu\n",
+                        "Could not allocate CompressionBuffer size %" PRIu32 "\n",
                         CompressionBufferSize);
                 exit(1);
             }
@@ -13378,7 +13309,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             fcache->max_block_size = tmp_zone_size;
             fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
             if (fcache->block == NULL) {
-                fprintf(stderr, "Could not allocate zone block size %lu\n",
+                fprintf(stderr, "Could not allocate zone block size %" PRIu32 "\n",
                         fcache->max_block_size);
                 exit(1);
             }
@@ -14070,7 +14001,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
     if (Verbose > 3) {
         MyPrintf(
             "GetMBResult: Searching result for %s, index " DEC_ZINDEX_FORMAT
-            " block index %lu, header block size %lu\n",
+            " block index %d, header block size %" PRIu32 "\n",
             fcache->header.basename, ind->index, fcache->block_index,
             fcache->header.block_size);
     }
@@ -14082,8 +14013,8 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (Verbose > 4) {
-            MyPrintf("GetMBResult: Reading compressed block size %lu at "
-                     "offset " DEC_INDEX_FORMAT " block index %lu\n",
+            MyPrintf("GetMBResult: Reading compressed block size %" PRIu32 " at "
+                     "offset " DEC_INDEX_FORMAT " block index %d\n",
                      length, fcache->offsets[b_index], b_index);
         }
         if (length > CompressionBufferSize) {
@@ -14148,8 +14079,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
 
             // if not found, check whether a blocked pawn file is applicable
 
-            int pawn_file_type = FREE_PAWNS;
-
             if (!found_parity) {
                 bool found_pawn_file = false;
                 if ((mb_info.pawn_file_type == OP_11_PAWNS ||
@@ -14157,7 +14086,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_11_PAWNS) {
                     if (mb_info.index_op_11 != ALL_ONES) {
                         ind->index = mb_info.index_op_11;
-                        pawn_file_type = OP_11_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14166,7 +14094,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == BP_11_PAWNS) {
                     if (mb_info.index_bp_11 != ALL_ONES) {
                         ind->index = mb_info.index_bp_11;
-                        pawn_file_type = BP_11_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14175,7 +14102,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_21_PAWNS) {
                     if (mb_info.index_op_21 != ALL_ONES) {
                         ind->index = mb_info.index_op_21;
-                        pawn_file_type = OP_21_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14184,7 +14110,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_12_PAWNS) {
                     if (mb_info.index_op_12 != ALL_ONES) {
                         ind->index = mb_info.index_op_12;
-                        pawn_file_type = OP_12_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14195,7 +14120,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_22_PAWNS) {
                     if (mb_info.index_op_22 != ALL_ONES) {
                         ind->index = mb_info.index_op_22;
-                        pawn_file_type = OP_22_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14204,7 +14128,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == DP_22_PAWNS) {
                     if (mb_info.index_dp_22 != ALL_ONES) {
                         ind->index = mb_info.index_dp_22;
-                        pawn_file_type = DP_22_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14213,7 +14136,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_31_PAWNS) {
                     if (mb_info.index_op_31 != ALL_ONES) {
                         ind->index = mb_info.index_op_31;
-                        pawn_file_type = OP_31_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14222,7 +14144,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_13_PAWNS) {
                     if (mb_info.index_op_13 != ALL_ONES) {
                         ind->index = mb_info.index_op_13;
-                        pawn_file_type = OP_13_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14231,7 +14152,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_41_PAWNS) {
                     if (mb_info.index_op_41 != ALL_ONES) {
                         ind->index = mb_info.index_op_41;
-                        pawn_file_type = OP_41_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14240,7 +14160,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_14_PAWNS) {
                     if (mb_info.index_op_14 != ALL_ONES) {
                         ind->index = mb_info.index_op_14;
-                        pawn_file_type = OP_14_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14249,7 +14168,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_32_PAWNS) {
                     if (mb_info.index_op_32 != ALL_ONES) {
                         ind->index = mb_info.index_op_32;
-                        pawn_file_type = OP_32_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14258,7 +14176,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_23_PAWNS) {
                     if (mb_info.index_op_23 != ALL_ONES) {
                         ind->index = mb_info.index_op_23;
-                        pawn_file_type = OP_23_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14267,7 +14184,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_33_PAWNS) {
                     if (mb_info.index_op_33 != ALL_ONES) {
                         ind->index = mb_info.index_op_33;
-                        pawn_file_type = OP_33_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14276,7 +14192,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_42_PAWNS) {
                     if (mb_info.index_op_42 != ALL_ONES) {
                         ind->index = mb_info.index_op_42;
-                        pawn_file_type = OP_42_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14285,7 +14200,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                     fcache_high_dtz->pawn_file_type == OP_24_PAWNS) {
                     if (mb_info.index_op_24 != ALL_ONES) {
                         ind->index = mb_info.index_op_24;
-                        pawn_file_type = OP_24_PAWNS;
                         found_pawn_file = true;
                     }
                 }
@@ -14686,11 +14600,8 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
     // make the stronger side white to reduce chance of having
     // to probe "flipped" position
 
-    bool flipped = false;
-
     if (Board.strength_w < Board.strength_b) {
         FlipBoard(&Board);
-        flipped = true;
     }
 
     if (Verbose > 4) {
