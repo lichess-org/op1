@@ -6140,8 +6140,6 @@ static ZINDEX Index112111(int *pos) {
 }
 
 static bool Pos112111(ZINDEX index, int *pos) {
-    int p2, id2;
-
     pos[8] = index % NSQUARES;
     index /= NSQUARES;
     pos[7] = index % NSQUARES;
@@ -6153,7 +6151,7 @@ static bool Pos112111(ZINDEX index, int *pos) {
     pos[2] = index % NSQUARES;
     index /= NSQUARES;
     assert(index < N2);
-    p2 = p2_tab[index];
+    int p2 = p2_tab[index];
     pos[5] = p2 % NSQUARES;
     p2 /= NSQUARES;
     pos[4] = p2;
@@ -6174,8 +6172,6 @@ static ZINDEX Index111211(int *pos) {
 }
 
 static bool Pos111211(ZINDEX index, int *pos) {
-    int p2, id2;
-
     pos[8] = index % NSQUARES;
     index /= NSQUARES;
     pos[7] = index % NSQUARES;
@@ -6187,7 +6183,7 @@ static bool Pos111211(ZINDEX index, int *pos) {
     pos[2] = index % NSQUARES;
     index /= NSQUARES;
     assert(index < N2);
-    p2 = p2_tab[index];
+    int p2 = p2_tab[index];
     pos[6] = p2 % NSQUARES;
     p2 /= NSQUARES;
     pos[5] = p2;
@@ -6208,8 +6204,6 @@ static ZINDEX Index111121(int *pos) {
 }
 
 static bool Pos111121(ZINDEX index, int *pos) {
-    int p2, id2;
-
     pos[8] = index % NSQUARES;
     index /= NSQUARES;
     pos[5] = index % NSQUARES;
@@ -6221,7 +6215,7 @@ static bool Pos111121(ZINDEX index, int *pos) {
     pos[2] = index % NSQUARES;
     index /= NSQUARES;
     assert(index < N2);
-    p2 = p2_tab[index];
+    int p2 = p2_tab[index];
     pos[7] = p2 % NSQUARES;
     p2 /= NSQUARES;
     pos[6] = p2;
@@ -6242,8 +6236,6 @@ static ZINDEX Index111112(int *pos) {
 }
 
 static bool Pos111112(ZINDEX index, int *pos) {
-    int p2, id2;
-
     pos[6] = index % NSQUARES;
     index /= NSQUARES;
     pos[5] = index % NSQUARES;
@@ -6255,7 +6247,7 @@ static bool Pos111112(ZINDEX index, int *pos) {
     pos[2] = index % NSQUARES;
     index /= NSQUARES;
     assert(index < N2);
-    p2 = p2_tab[index];
+    int p2 = p2_tab[index];
     pos[8] = p2 % NSQUARES;
     p2 /= NSQUARES;
     pos[7] = p2;
@@ -9114,41 +9106,6 @@ static int ParseEndingName(char *ending, int count[2][KING]) {
     return n_pieces;
 }
 
-void NormalizeEnding(char *ending) {
-    char lending[16];
-    int count[2][KING];
-
-    int npieces = ParseEndingName(ending, count);
-
-    int strength_w = 0, strength_b = 0, n_w = 0, n_b = 0;
-    for (int i = 0; i < KING; i++) {
-        strength_w += count[0][i] * PieceStrengths[i];
-        strength_b += count[1][i] * PieceStrengths[i];
-        n_w += count[0][i];
-        n_b += count[1][i];
-    }
-
-    bool reversed = false;
-    for (int i = (KING - 1); i >= 0; i--) {
-        if (count[0][i] != count[1][i]) {
-            if (count[1][i] > count[0][i])
-                reversed = true;
-            break;
-        }
-    }
-
-    if (strength_w < strength_b || (strength_w == strength_b && n_w < n_b) ||
-        (strength_w == strength_b && n_w == n_b && reversed)) {
-        for (int i = 0; i < KING; i++) {
-            int tmp = count[0][i];
-            count[0][i] = count[1][i];
-            count[1][i] = tmp;
-        }
-        GetEndingName(count, lending);
-        strcpy(ending, lending);
-    }
-}
-
 /* Is the symbol a capturing one?
  * In fact, this is used to recognise any general separator
  * between two parts of a move, e.g.:
@@ -11306,8 +11263,7 @@ static bool KK_Canonical(int *wk_in, int *bk_in, int *sym) {
  *
  * The routine returns true if the position is legal, false otherwise
  */
-
-bool KK_Canonical_NoPawns(int *wk_in, int *bk_in, int *sym) {
+static bool KK_Canonical_NoPawns(int *wk_in, int *bk_in, int *sym) {
     int wk = *wk_in;
     int bk = *bk_in;
     int wk_row = Row(wk);
