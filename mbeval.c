@@ -24142,8 +24142,11 @@ static int InitPaths() {
 
 static void AssertScore(const char* fen, int expected_score)
 {
+    char mutable_fen[256] = {0};
+    strncpy(mutable_fen, fen, sizeof(mutable_fen) - 1);
+
     BOARD Board;
-    int side = ReadPosition(fen, &Board, NULL);
+    int side = ReadPosition(mutable_fen, &Board, NULL);
     assert(side != NEUTRAL);
 
     INDEX_DATA index;
