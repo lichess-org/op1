@@ -580,7 +580,7 @@ static int NumPaths = 0;
 static size_t FilesOpened = 0;
 static size_t FilesClosed = 0;
 
-static int Verbose = 0;
+static int Verbose = 2;
 static bool UseEnPassant = true;
 static bool IgnoreCastle = true;
 static bool Chess960 = true;
@@ -2558,12 +2558,7 @@ static void InitN4OpposingTables(int *tab, int *pos) {
     assert(one_column == N4_ONE_COLUMN);
     assert(adjacent == N4_ADJACENT);
     assert(non_adjacent == N4_NON_ADJACENT);
-    if (index != N4_OPPOSING) {
-        fprintf(stderr,
-                "Got %d pairs of opposing pawn positions, expected %d\n", index,
-                N4_OPPOSING);
-        exit(1);
-    }
+    assert(index == N4_OPPOSING);
 
     for (int w1 = 0; w1 < NSQUARES; w1++) {
         for (int w2 = 0; w2 < NSQUARES; w2++) {
@@ -2606,13 +2601,7 @@ static void InitN3Tables(int *tab, int *pos) {
                     if (pos != NULL)
                         pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
                     int g_index = N3_Index_Function(p3, p2, p1);
-                    if (index != g_index) {
-                        fprintf(stderr,
-                                "Bad triplet index: index=%d computed index=%d "
-                                "p1=%d p2=%d p3=%d\n",
-                                index, g_index, p1, p2, p3);
-                        exit(1);
-                    }
+                    assert(index == g_index);
                     score = index++;
                 }
                 if (tab != NULL) {
@@ -2629,10 +2618,7 @@ static void InitN3Tables(int *tab, int *pos) {
         }
     }
 
-    if (index != N3) {
-        fprintf(stderr, "Got %d triplets, expected %d\n", index, N3);
-        exit(1);
-    }
+    assert(index == N3);
 }
 
 static void InitN4Tables(int *tab, int *pos) {
@@ -2658,13 +2644,7 @@ static void InitN4Tables(int *tab, int *pos) {
                                 p4 + NSQUARES *
                                          (p3 + NSQUARES * (p2 + NSQUARES * p1));
                         int g_index = N4_Index_Function(p4, p3, p2, p1);
-                        if (index != g_index) {
-                            fprintf(stderr,
-                                    "Bad quadruplet index: index=%d computed "
-                                    "index=%d p1=%d p2=%d p3=%d p4=%d\n",
-                                    index, g_index, p1, p2, p3, p4);
-                            exit(1);
-                        }
+                        assert(index == g_index);
                         score = index++;
                     }
                     if (tab != NULL) {
@@ -2749,10 +2729,7 @@ static void InitN4Tables(int *tab, int *pos) {
         }
     }
 
-    if (index != N4) {
-        fprintf(stderr, "Got %d quadruplets, expected %d\n", index, N4);
-        exit(1);
-    }
+    assert(index == N4);
 }
 
 static void InitN4TablesMB(int *pos) {
@@ -2773,13 +2750,7 @@ static void InitN4TablesMB(int *pos) {
                         int g_index = p4 * (p4 - 1) * (p4 - 2) * (p4 - 3) / 24 +
                                       p3 * (p3 - 1) * (p3 - 2) / 6 +
                                       p2 * (p2 - 1) / 2 + p1;
-                        if (index != g_index) {
-                            fprintf(stderr,
-                                    "Bad quadruplet index: index=%d computed "
-                                    "index=%d p1=%d p2=%d p3=%d p4=%d\n",
-                                    index, g_index, p1, p2, p3, p4);
-                            exit(1);
-                        }
+                        assert(index == g_index);
                         index++;
                     }
                 }
@@ -2787,11 +2758,7 @@ static void InitN4TablesMB(int *pos) {
         }
     }
 
-    if (index != N4) {
-        fprintf(stderr, "Got %d quadruplets, expected %d in InitN4TablesMB\n",
-                index, N4);
-        exit(1);
-    }
+    assert(index == N4);
 }
 
 static void InitN5Tables() {
@@ -2806,13 +2773,7 @@ static void InitN5Tables() {
                 for (int p2 = 1; p2 < p3; p2++) {
                     for (int p1 = 0; p1 < p2; p1++) {
                         int g_index = N5_Index_Function(p5, p4, p3, p2, p1);
-                        if (index != g_index) {
-                            fprintf(stderr,
-                                    "Bad quintuplet index: index=%d computed "
-                                    "index=%d p1=%d p2=%d p3=%d p4=%d p5=%d\n",
-                                    index, g_index, p1, p2, p3, p4, p5);
-                            exit(1);
-                        }
+                        assert(index == g_index);
                         index++;
                     }
                 }
@@ -2820,10 +2781,7 @@ static void InitN5Tables() {
         }
     }
 
-    if (index != N5) {
-        fprintf(stderr, "Got %lu quintuplets, expected %lu\n", index, N5);
-        exit(1);
-    }
+    assert(index == N5);
 }
 
 static void InitN6Tables() {
@@ -2841,14 +2799,7 @@ static void InitN6Tables() {
                         for (int p1 = 0; p1 < p2; p1++) {
                             int g_index =
                                 N6_Index_Function(p6, p5, p4, p3, p2, p1);
-                            if (index != g_index) {
-                                fprintf(stderr,
-                                        "Bad sextuplet index: index=%d "
-                                        "computed index=%d p1=%d p2=%d p3=%d "
-                                        "p4=%d p5=%d p6=%d\n",
-                                        index, g_index, p1, p2, p3, p4, p5, p6);
-                                exit(1);
-                            }
+                            assert(index == g_index);
                             index++;
                         }
                     }
@@ -2857,10 +2808,7 @@ static void InitN6Tables() {
         }
     }
 
-    if (index != N6) {
-        fprintf(stderr, "Got %lu sextuplets, expected %lu\n", index, N6);
-        exit(1);
-    }
+    assert(index == N6);
 }
 
 static void InitN7Tables() {
@@ -2884,17 +2832,7 @@ static void InitN7Tables() {
                             for (int p1 = 0; p1 < p2; p1++) {
                                 ZINDEX g_index = N7_Index_Function(
                                     p7, p6, p5, p4, p3, p2, p1);
-                                if (index != g_index) {
-                                    fprintf(stderr,
-                                            "Bad septuplet index: "
-                                            "index=" DEC_ZINDEX_FORMAT
-                                            " computed index=" DEC_ZINDEX_FORMAT
-                                            " p1=%d p2=%d p3=%d p4=%d p5=%d "
-                                            "p6=%d p7=%d\n",
-                                            index, g_index, p1, p2, p3, p4, p5,
-                                            p6, p7);
-                                    exit(1);
-                                }
+                                assert(index == g_index);
                                 index++;
                             }
                         }
@@ -2904,11 +2842,7 @@ static void InitN7Tables() {
         }
     }
 
-    if (index != N7) {
-        fprintf(stderr, "Got " DEC_ZINDEX_FORMAT " septuplets, expected %d\n",
-                index, N7);
-        exit(1);
-    }
+    assert(index == N7);
 }
 
 static void InitPermutationTables(void) {
