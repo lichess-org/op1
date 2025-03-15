@@ -696,7 +696,6 @@ static bool FileExists(char *fname) {
     return access(fname, F_OK) == 0;
 }
 
-#define strtok_r strtok_s
 typedef uint64_t INDEX;
 #define DEC_INDEX_FORMAT "%" PRIu64
 #define SEPARATOR ":"
