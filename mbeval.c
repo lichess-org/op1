@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -10,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <zlib.h>
@@ -577,20 +575,6 @@ typedef struct {
     int score;
 } HIGH_DTZ;
 
-typedef struct {
-    char ending[32];
-    int kk_index;
-    INDEX offset;
-    int side;
-    int promos;
-    int game_num;
-    int move_no;
-    int result;
-    int score;
-    int zz_type;
-    char cz_type;
-} POSITION_DATA;
-
 static int high_dtz_compar(const void *a, const void *b) {
     HIGH_DTZ *x = (HIGH_DTZ *)a;
     HIGH_DTZ *y = (HIGH_DTZ *)b;
@@ -601,12 +585,6 @@ static int high_dtz_compar(const void *a, const void *b) {
         return 1;
     return 0;
 }
-
-typedef struct {
-    uint8_t *buffer;
-    uint32_t buf_size;
-    uint32_t block_size;
-} BUFFER;
 
 static void *MyMalloc(size_t cb) {
     void *pv = malloc(cb);
@@ -789,116 +767,6 @@ typedef struct {
     int zz_type;
     unsigned int game_num;
 } BOARD;
-
-typedef struct {
-    int piece_type_count[2][KING];
-    int ply, kk_index, pindex;
-    char result;
-    ZINDEX offset;
-} GINFO;
-
-typedef struct {
-    int from, to, piece_moved, piece_captured, piece_promoted;
-    int save_ep_square;
-    int save_castle;
-    int save_half_move;
-    unsigned int flag;
-    int score;
-    uint8_t metric;
-} Move;
-
-/* Different classes of move determined by the lexical analyser. */
-typedef enum {
-    PAWN_MOVE,
-    PAWN_MOVE_WITH_PROMOTION,
-    ENPASSANT_PAWN_MOVE,
-    PIECE_MOVE,
-    KINGSIDE_CASTLE,
-    QUEENSIDE_CASTLE,
-    NULL_MOVE,
-    UNKNOWN_MOVE
-} MoveClass;
-
-/* List the tags so that the strings that they represent
- * would be in alphabetical order. E.g. note that EVENT_TAG and
- * EVENT_DATE_TAG should be in this order because the strings are
- * "Event" and "EventDate".
- */
-typedef enum {
-    ANNOTATOR_TAG,
-    BLACK_TAG,
-    BLACK_ELO_TAG,
-    BLACK_NA_TAG,
-    BLACK_TITLE_TAG,
-    BLACK_TYPE_TAG,
-    BLACK_USCF_TAG,
-    BOARD_TAG,
-    DATE_TAG,
-    ECO_TAG,
-    /* The PSEUDO_ELO_TAG is not a real PGN one.  It is used with the -t
-     * argument so that it becomes possible to indicate a rating of either
-     * colour.
-     */
-    PSEUDO_ELO_TAG,
-    EVENT_TAG,
-    EVENT_DATE_TAG,
-    EVENT_SPONSOR_TAG,
-    FEN_TAG,
-    LONG_ECO_TAG,
-    MODE_TAG,
-    NIC_TAG,
-    OPENING_TAG,
-    /* The PSEUDO_PLAYER_TAG is not a real PGN one.  It is used with the -t
-     * argument so that it becomes possible to indicate a player of either
-     * colour.
-     */
-    PSEUDO_PLAYER_TAG,
-    PLY_COUNT_TAG,
-    RESULT_TAG,
-    ROUND_TAG,
-    SECTION_TAG,
-    SETUP_TAG,
-    SITE_TAG,
-    STAGE_TAG,
-    SUB_VARIATION_TAG,
-    TERMINATION_TAG,
-    TIME_TAG,
-    TIME_CONTROL_TAG,
-    UTC_DATE_TAG,
-    UTC_TIME_TAG,
-    VARIANT_TAG,
-    VARIATION_TAG,
-    WHITE_TAG,
-    WHITE_ELO_TAG,
-    WHITE_NA_TAG,
-    WHITE_TITLE_TAG,
-    WHITE_TYPE_TAG,
-    WHITE_USCF_TAG,
-    /* The following should always be last. It should not be used
-     * as a tag identification.
-     */
-    ORIGINAL_NUMBER_OF_TAGS
-} TagName;
-
-/* Define a table to hold the list of tag strings and the corresponding
- * TagName index. This is initialised in init_tag_list().
- */
-
-typedef struct {
-    char *string_info;
-    int move_number;
-    int tag_index;
-} ParseType;
-
-/* Define a character that may be used to comment a line in, e.g.
- * the variations files.
- * Use the PGN escape mechanism character, for consistency.
- */
-
-#define COMMENT_CHAR '%'
-
-#define MAX_CHAR 256
-#define ALPHA_DIST ('a' - 'A')
 
 static int ParityTable[NSQUARES];
 static int WhiteSquare[NSQUARES / 2], BlackSquare[NSQUARES / 2];
