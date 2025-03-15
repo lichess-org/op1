@@ -535,7 +535,6 @@ static int grook_orig_col = GROOK_ORIG_COL_TRADITIONAL;
 static char TbPaths[MAX_PATHS][1024];
 static int NumPaths = 0;
 
-static bool UseEnPassant = true;
 static bool IgnoreCastle = true;
 static bool Chess960 = true;
 static bool Chess960Game = false;
@@ -9793,11 +9792,6 @@ static int ReadPosition(char *pos, BOARD *Board, char *title) {
     } else {
         legal = ScanPosition(pos, board, &ep_square, &castle, title);
     }
-    if (!UseEnPassant) {
-        if (ep_square > 0) {
-            ep_square = 0;
-        }
-    }
     if (legal != NEUTRAL) {
         SetBoard(Board, board, legal, ep_square, castle, half_move, full_move);
     }
@@ -10206,7 +10200,7 @@ static int GetMBPosition(BOARD *Board, int *mb_position, int *parity,
         int *pos = Board->piece_locations[color][PAWN];
         for (int i = 0; i < Board->piece_type_count[color][PAWN]; i++) {
             mb_position[loc] = pos[i];
-            if (UseEnPassant && Board->ep_square > 0) {
+            if (Board->ep_square > 0) {
                 if (color == WHITE &&
                     SquareMake(Row(pos[i]) - 1, Column(pos[i])) ==
                         Board->ep_square)
@@ -10432,7 +10426,7 @@ static int GetYKPosition(BOARD *Board, int *yk_position) {
             int *pos = Board->piece_locations[color][type];
             for (int i = 0; i < Board->piece_type_count[color][type]; i++) {
                 yk_position[loc] = pos[i];
-                if (type == PAWN && UseEnPassant && Board->ep_square > 0) {
+                if (type == PAWN && Board->ep_square > 0) {
                     if (color == WHITE &&
                         SquareMake(Row(pos[i]) - 1, Column(pos[i])) ==
                             Board->ep_square)
