@@ -13,8 +13,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <zstd.h>
 #include <zlib.h>
+#include <zstd.h>
 
 #define NROWS 8
 #define NCOLS 8
@@ -50,10 +50,10 @@ enum {
     OP_24_PAWNS
 };
 
-static const char *OpExtensionName[] = {"Free Pawns", "BP_11", "OP_11", "OP_21",
-                                 "OP_12",      "OP_22", "DP_22", "OP_31",
-                                 "OP_13",      "OP_41", "OP_14", "OP_32",
-                                 "OP_23",      "OP_33", "OP_42", "OP_24"};
+static const char *OpExtensionName[] = {
+    "Free Pawns", "BP_11", "OP_11", "OP_21", "OP_12", "OP_22",
+    "DP_22",      "OP_31", "OP_13", "OP_41", "OP_14", "OP_32",
+    "OP_23",      "OP_33", "OP_42", "OP_24"};
 
 enum { NO_COMPRESSION = 0, ZLIB, ZSTD, NUM_COMPRESSION_METHODS };
 enum { ZLIB_YK = 0, BZIP_YK, LZMA_YK, ZSTD_YK, NO_COMPRESSION_YK };
@@ -8897,8 +8897,7 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
     if (method == NO_COMPRESSION) {
         *dest_size = source_size;
         memcpy(dest, source, source_size);
-    }
-    else if (method == ZSTD) {
+    } else if (method == ZSTD) {
         size_t destCapacity = *dest_size;
         if (ZSTD_DecompressionContext == NULL)
             destCapacity =
@@ -8915,8 +8914,7 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
             return COMPRESS_NOT_OK;
         }
         *dest_size = destCapacity;
-    }
-    else if (method == ZLIB) {
+    } else if (method == ZLIB) {
         uLongf dest_size_value = 0;
         int err_code = uncompress(dest, &dest_size_value, source, source_size);
         *dest_size = dest_size_value;
@@ -8937,8 +8935,7 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
             }
             return COMPRESS_NOT_OK;
         }
-    }
-    else {
+    } else {
         fprintf(stderr, "MyUnompress: unknown de-compression method\n");
         exit(1);
     }
@@ -12700,8 +12697,8 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                              "file missing\n",
                              OpExtensionName[mb_info.pawn_file_type]);
                 }
-                    INDEX_DATA ind_yk;
-                    return GetYKResult(Board, &ind_yk);
+                INDEX_DATA ind_yk;
+                return GetYKResult(Board, &ind_yk);
             } else {
                 if (Verbose > 3)
                     MyPrintf("GetMBResult: Found file for %s\n",
