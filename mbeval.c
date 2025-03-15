@@ -24138,6 +24138,20 @@ static int InitPaths() {
     return num_paths;
 }
 
+static void AssertScore(const char* fen, int expected_score)
+{
+    BOARD Board;
+    int side = ReadPosition(fen, &Board, NULL);
+    assert(side != NEUTRAL);
+
+    INDEX_DATA index;
+    int score = ScorePosition(&Board, &index);
+    if (score != expected_score) {
+        printf("FEN: %s - expected score: %d, actual score: %d\n", fen, expected_score, score);
+        abort();
+    }
+}
+
 int main(int argc, char *argv[]) {
     FILE *fin;
     time_t tm_start, tm_finish;
@@ -24184,12 +24198,15 @@ int main(int argc, char *argv[]) {
     InitPieceStrengths();
     NumPaths = InitPaths();
 
-    side = ReadPosition("8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", &Board, NULL);
-    assert(side != NEUTRAL);
-
-    INDEX_DATA index;
-    int score = ScorePosition(&Board, &index);
-    assert(score == -3);
+    AssertScore("8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", -3);
+    AssertScore("8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1", -1);
+    AssertScore("8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1", -2);
+    AssertScore("8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1", -7);
+    AssertScore("8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", 6);
+    AssertScore("8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", 4);
+    AssertScore("8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1", DRAW);
+    AssertScore("8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", UNKNOWN);
+    exit(0);
 
 #if defined(UCI_LOG)
     FILE *fout = fopen("f:\\baseykmb\\new_mb\\uci_ykmb.txt", "w");
