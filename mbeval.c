@@ -9067,45 +9067,6 @@ int GetPiecePGN(char *move) {
     return piece;
 }
 
-static int ParseEndingName(char *ending, int count[2][KING]) {
-    int i, j, n_kings = 0, n_pieces = 0, color = BLACK;
-
-    for (i = 0; i < 2; i++)
-        for (j = 0; j < KING; j++)
-            count[i][j] = 0;
-
-    for (i = 0; i < strlen(ending); i++) {
-        int piece = GetPiece(ending[i]);
-
-        if (piece < 0) {
-            if (Verbose > 1) {
-                MyPrintf("Invalid piece %c in ParseEndingName\n", ending[i]);
-                MyFlush();
-            }
-            continue;
-        }
-
-        if (piece == KING) {
-            color = OtherSide(color);
-            n_kings++;
-            continue;
-        }
-
-        count[color][piece]++;
-        n_pieces++;
-    }
-    n_pieces += 2;
-
-    if (n_kings != 2) {
-        if (Verbose > 1) {
-            MyPrintf("Strange number of kings %d in %s\n", n_kings, ending);
-            MyFlush();
-        }
-    }
-
-    return n_pieces;
-}
-
 /* Is the symbol a capturing one?
  * In fact, this is used to recognise any general separator
  * between two parts of a move, e.g.:
