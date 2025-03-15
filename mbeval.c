@@ -50,11 +50,6 @@ enum {
     OP_24_PAWNS
 };
 
-static const char *OpExtensionName[] = {
-    "Free Pawns", "BP_11", "OP_11", "OP_21", "OP_12", "OP_22",
-    "DP_22",      "OP_31", "OP_13", "OP_41", "OP_14", "OP_32",
-    "OP_23",      "OP_33", "OP_42", "OP_24"};
-
 enum { NO_COMPRESSION = 0, ZLIB, ZSTD, NUM_COMPRESSION_METHODS };
 enum { ZLIB_YK = 0, BZIP_YK, LZMA_YK, ZSTD_YK, NO_COMPRESSION_YK };
 
@@ -540,10 +535,6 @@ static int grook_orig_col = GROOK_ORIG_COL_TRADITIONAL;
 static char TbPaths[MAX_PATHS][1024];
 static int NumPaths = 0;
 
-static size_t FilesOpened = 0;
-static size_t FilesClosed = 0;
-
-static int Verbose = 2;
 static bool UseEnPassant = true;
 static bool IgnoreCastle = true;
 static bool Chess960 = true;
@@ -622,29 +613,15 @@ typedef struct {
     uint32_t block_size;
 } BUFFER;
 
-#define MyPrintf(...) printf(__VA_ARGS__)
-
-static size_t MemoryAllocated = 0;
-static size_t MemoryFreed = 0;
-
 static void *MyMalloc(size_t cb) {
-    void *pv;
-
-    if (Verbose > 2)
-        MyPrintf("Allocating %lu bytes of memory\n", cb);
-    pv = malloc(cb);
-    if (pv == NULL) {
-        MyPrintf("Could not allocate %lu bytes of memory\n", cb);
-        exit(1);
-    }
-    MemoryAllocated += cb;
+    void *pv = malloc(cb);
+    assert(pv != NULL);
+    if (pv == NULL)
+        abort();
     return pv;
 }
 
-static void MyFree(void *pv, size_t cb) {
-    MemoryFreed += cb;
-    free(pv);
-}
+static void MyFree(void *pv) { free(pv); }
 
 typedef struct {
     int fd;
@@ -652,7 +629,7 @@ typedef struct {
 
 typedef FD_WRAPPER *file;
 
-file f_open(const char *szFile, const char *szMode) {
+static file f_open(const char *szFile, const char *szMode) {
     int fd = open(szFile, O_RDONLY);
     if (fd < 0) {
         return NULL;
@@ -660,7 +637,6 @@ file f_open(const char *szFile, const char *szMode) {
 
     FD_WRAPPER *h = MyMalloc(sizeof(FD_WRAPPER));
     h->fd = fd;
-    FilesOpened++;
     return h;
 }
 
@@ -668,11 +644,10 @@ static void f_close(file f) {
     if (f == NULL)
         return;
     close(f->fd);
-    MyFree(f, sizeof(FD_WRAPPER));
-    FilesClosed++;
+    MyFree(f);
 }
 
-size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
+static size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     size_t total = 0;
     while (total < cb) {
         ssize_t result = pread(fp->fd, pv, cb - total, indStart + total);
@@ -2649,82 +2624,47 @@ static void InitN7Tables() {
 }
 
 static void InitPermutationTables(void) {
-    if (Verbose > 1) {
-        MyPrintf("Initializing and checking permutation table for 2 "
-                 "opposing pawns\n");
-    }
     k2_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
     p2_opposing_tab =
         (int *)MyMalloc(NCOLS * (NROWS - 2) * (NROWS - 3) / 2 * sizeof(int));
     InitN2OpposingTables(k2_opposing_tab, p2_opposing_tab);
 
-    if (Verbose > 1) {
-        MyPrintf("Initializing permutation tables for two vs one pawn, "
-                 "with one opposing pair\n");
-    }
     k2_1_opposing_tab =
         (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
     p2_1_opposing_tab = (int *)MyMalloc(N2_1_OPPOSING * sizeof(int));
     InitN2_1_OpposingTables(k2_1_opposing_tab, p2_1_opposing_tab);
 
-    if (Verbose > 1) {
-        MyPrintf("Initializing permutation tables for one vs two pawns, "
-                 "with one opposing pair\n");
-    }
     k1_2_opposing_tab =
         (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
     p1_2_opposing_tab = (int *)MyMalloc(N1_2_OPPOSING * sizeof(int));
     InitN1_2_OpposingTables(k1_2_opposing_tab, p1_2_opposing_tab);
 
-    if (Verbose > 1) {
-        MyPrintf("Initializing permutation tables for two vs two pawns, "
-                 "with one opposing pair\n");
-    }
     k2_2_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
                                         NSQUARES * sizeof(int));
     p2_2_opposing_tab = (int *)MyMalloc(N2_2_OPPOSING * sizeof(int));
     InitN2_2_OpposingTables(k2_2_opposing_tab, p2_2_opposing_tab);
 
-    if (Verbose > 1) {
-        MyPrintf("Initializing permutation tables for three vs one pawn, "
-                 "with one opposing pair\n");
-    }
     k3_1_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
                                         NSQUARES * sizeof(int));
     p3_1_opposing_tab = (int *)MyMalloc(N3_1_OPPOSING * sizeof(int));
     InitN3_1_OpposingTables(k3_1_opposing_tab, p3_1_opposing_tab);
 
-    if (Verbose > 1) {
-        MyPrintf("Initializing permutation tables for one vs three pawns, "
-                 "with one opposing pair\n");
-    }
     k1_3_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
                                         NSQUARES * sizeof(int));
     p1_3_opposing_tab = (int *)MyMalloc(N1_3_OPPOSING * sizeof(int));
     InitN1_3_OpposingTables(k1_3_opposing_tab, p1_3_opposing_tab);
 
-    if (Verbose > 1) {
-        MyPrintf("Initializing and checking permutation table for two "
-                 "pairs of opposing pawns\n");
-    }
     k4_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
                                       NSQUARES * sizeof(int));
     p4_opposing_tab = (int *)MyMalloc(N4_OPPOSING * sizeof(int));
     InitN4OpposingTables(k4_opposing_tab, p4_opposing_tab);
 
-    if (Verbose > 1) {
-        MyPrintf("Initializing and checking permutation table for "
-                 "7 pieces\n");
-    }
     p4_tab_mb = (int *)MyMalloc(N4 * sizeof(int));
     InitN4TablesMB(p4_tab_mb);
     InitN5Tables();
     InitN6Tables();
     InitN7Tables();
 
-    if (Verbose > 1)
-        MyPrintf("Initializing and checking permutation tables for "
-                 "4 piece\n");
 #if defined(USE_PERMUTATION_FUNCTIONS)
     InitN4Tables(NULL, NULL);
 #else
@@ -2734,9 +2674,6 @@ static void InitPermutationTables(void) {
     InitN4Tables(k4_tab, p4_tab);
 #endif
 
-    if (Verbose > 1)
-        MyPrintf("Initializing and checking permutation tables "
-                 "for 3 piece\n");
 #if defined(USE_PERMUTATION_FUNCTIONS)
     InitN3Tables(NULL, NULL);
 #else
@@ -2746,22 +2683,15 @@ static void InitPermutationTables(void) {
 #endif
 
 #if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
-    if (Verbose > 1)
-        MyPrintf("Initializing tables for even triplets\n");
     k3_even_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
     p3_even_tab = (int *)MyMalloc(N3_EVEN_PARITY * sizeof(int));
     InitN3EvenTables(k3_even_tab, p3_even_tab);
 
-    if (Verbose > 1)
-        MyPrintf("Initializing tables for odd triplets\n");
     k3_odd_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
     p3_odd_tab = (int *)MyMalloc(N3_ODD_PARITY * sizeof(int));
     InitN3OddTables(k3_odd_tab, p3_odd_tab);
 #endif
 
-    if (Verbose > 1)
-        MyPrintf("Initializing and checking permutation tables "
-                 "for 2 piece\n");
 #if defined(USE_PERMUTATION_FUNCTIONS)
     InitN2Tables(NULL, NULL);
 #else
@@ -2771,15 +2701,11 @@ static void InitPermutationTables(void) {
 #endif
 
 #if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
-    if (Verbose > 1)
-        MyPrintf("Initializing tables for even doublets\n");
     k2_even_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
     p2_even_tab = (int *)MyMalloc(N2_EVEN_PARITY * sizeof(int));
     InitN2EvenTables(k2_even_tab, p2_even_tab);
-
 #endif
-    if (Verbose > 1)
-        MyPrintf("Initializing tables for odd doublets\n");
+
     k2_odd_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
     p2_odd_tab = (int *)MyMalloc(N2_ODD_PARITY * sizeof(int));
     InitN2OddTables(k2_odd_tab, p2_odd_tab);
@@ -2797,7 +2723,7 @@ static int BinarySearchLeftmost(ZINDEX *arr, int n, ZINDEX x) {
     return l;
 }
 
-int LargestSquareInSeptuplet(ZINDEX *index) {
+static int LargestSquareInSeptuplet(ZINDEX *index) {
     if (*index == 0)
         return 6;
 
@@ -2809,7 +2735,7 @@ int LargestSquareInSeptuplet(ZINDEX *index) {
     return m;
 }
 
-int LargestSquareInSextuplet(ZINDEX *index) {
+static int LargestSquareInSextuplet(ZINDEX *index) {
     if (*index == 0)
         return 5;
 
@@ -2821,7 +2747,7 @@ int LargestSquareInSextuplet(ZINDEX *index) {
     return m;
 }
 
-int LargestSquareInQuintuplet(ZINDEX *index) {
+static int LargestSquareInQuintuplet(ZINDEX *index) {
     if (*index == 0)
         return 4;
 
@@ -8821,10 +8747,6 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
                 ZSTD_decompressDCtx(ZSTD_DecompressionContext, dest,
                                     destCapacity, source, source_size);
         if (ZSTD_isError(destCapacity)) {
-            if (Verbose > 0) {
-                MyPrintf("ZSTD decompress error %s\n",
-                         ZSTD_getErrorName(destCapacity));
-            }
             return COMPRESS_NOT_OK;
         }
         *dest_size = destCapacity;
@@ -8834,19 +8756,6 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
         *dest_size = dest_size_value;
 
         if (err_code != Z_OK) {
-            if (Verbose > 0) {
-                if (err_code == Z_MEM_ERROR)
-                    MyPrintf("ZLIB uncompress: not enough memory\n");
-                else if (err_code == Z_BUF_ERROR)
-                    MyPrintf(
-                        "ZLIB uncompress: not enough room in output buffer\n");
-                else if (err_code == Z_DATA_ERROR)
-                    MyPrintf("ZLIB uncompress: data corrupted or incomplete\n");
-                else if (err_code == Z_VERSION_ERROR)
-                    MyPrintf("ZLIB uncompress: version error\n");
-                else
-                    MyPrintf("ZLIB uncompress: error code %d\n", err_code);
-            }
             return COMPRESS_NOT_OK;
         }
     } else {
@@ -9096,10 +9005,6 @@ static int GetEndingType(int count[2][KING], int *piece_types,
                     if (count[WHITE][piece] == 2)
                         pair_index++;
                 }
-                if (Verbose > 1) {
-                    MyPrintf("White bishop pair is doublet number %d\n",
-                             pair_index);
-                }
                 if (bishop_parity[WHITE] == EVEN) {
                     sub_type = 10 * pair_index + 0;
                 } else if (bishop_parity[WHITE] == ODD) {
@@ -9115,19 +9020,13 @@ static int GetEndingType(int count[2][KING], int *piece_types,
                     if (count[WHITE][piece] == 3)
                         triplet_index++;
                 }
-                if (Verbose > 1) {
-                    MyPrintf("White bishop triplet is triplet number %d\n",
-                             triplet_index);
-                }
                 if (bishop_parity[WHITE] == EVEN) {
                     sub_type = 10 * triplet_index + 0;
                 } else if (bishop_parity[WHITE] == ODD) {
                     sub_type = 10 * triplet_index + 1;
                 }
             } else {
-                fprintf(stderr, "Can only fix white bishop parity if white has "
-                                "two or three bishops\n");
-                exit(1);
+                assert(false);
             }
         }
 
@@ -9147,10 +9046,6 @@ static int GetEndingType(int count[2][KING], int *piece_types,
                     if (count[BLACK][piece] == 2)
                         pair_index++;
                 }
-                if (Verbose > 1) {
-                    MyPrintf("Black bishop pair is doublet number %d\n",
-                             pair_index);
-                }
                 if (bishop_parity[BLACK] == EVEN) {
                     sub_type_black = 10 * pair_index + 0;
                 } else if (bishop_parity[BLACK] == ODD) {
@@ -9168,10 +9063,6 @@ static int GetEndingType(int count[2][KING], int *piece_types,
                 for (int piece = KING - 1; piece > BISHOP; piece--) {
                     if (count[BLACK][piece] == 3)
                         triplet_index++;
-                }
-                if (Verbose > 1) {
-                    MyPrintf("Black bishop triplet is triplet number %d\n",
-                             triplet_index);
                 }
                 if (bishop_parity[BLACK] == EVEN) {
                     sub_type_black = 10 * triplet_index + 0;
@@ -9372,12 +9263,6 @@ static int CastleRights(int *board, int proposed_castle) {
                 if (wrcol != -1) {
                     if (Chess960) {
                         grook_orig_col = wrcol;
-                        if (nrooks > 1) {
-                            if (Verbose > 1) {
-                                printf("Warning: more than one rook availble "
-                                       "for white k-side castling\n");
-                            }
-                        }
                         castle |= WK_CASTLE;
                     } else {
                         if (wrcol == GROOK_ORIG_COL_TRADITIONAL) {
@@ -9401,12 +9286,6 @@ static int CastleRights(int *board, int proposed_castle) {
                 if (wrcol != -1) {
                     if (Chess960) {
                         crook_orig_col = wrcol;
-                        if (nrooks > 1) {
-                            if (Verbose > 1) {
-                                printf("Warning: more than one rook availble "
-                                       "for white q-side castling\n");
-                            }
-                        }
                         castle |= WQ_CASTLE;
                     } else {
                         if (wrcol == CROOK_ORIG_COL_TRADITIONAL) {
@@ -9464,12 +9343,6 @@ static int CastleRights(int *board, int proposed_castle) {
                 if (brcol != -1) {
                     if (Chess960) {
                         grook_orig_col = brcol;
-                        if (nrooks > 1) {
-                            if (Verbose > 1) {
-                                printf("Warning: more than one rook availble "
-                                       "for black k-side castling\n");
-                            }
-                        }
                         castle |= BK_CASTLE;
                     } else {
                         if (brcol == GROOK_ORIG_COL_TRADITIONAL) {
@@ -9498,12 +9371,6 @@ static int CastleRights(int *board, int proposed_castle) {
                 if (brcol != -1) {
                     if (Chess960) {
                         crook_orig_col = brcol;
-                        if (nrooks > 1) {
-                            if (Verbose > 1) {
-                                printf("Warning: more than one rook availble "
-                                       "for black q-side castling\n");
-                            }
-                        }
                         castle |= BQ_CASTLE;
                     } else {
                         if (brcol == CROOK_ORIG_COL_TRADITIONAL) {
@@ -9565,17 +9432,11 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
             col = (int)(ccol - 'a');
             row--;
             if (col < 0 || col >= NCOLS || row < 0 || row >= NROWS) {
-                if (Verbose > 1) {
-                    MyPrintf("Invalid coordinate in %s\n", &pos_string[i]);
-                }
                 return NEUTRAL;
             }
             sq = SquareMake(row, col);
             pi = GetPiece(ptype);
             if (pi == -1) {
-                if (Verbose > 1) {
-                    MyPrintf("Invalid piece %c\n", ptype);
-                }
                 return NEUTRAL;
             }
             i += (4 + (row >= 9));
@@ -9587,17 +9448,11 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
         case 'e':
             n = sscanf(&pos_string[i + 1], "%c%d", &ccol, &row);
             if (n != 2) {
-                if (Verbose > 1) {
-                    MyPrintf("Could not read e.p. from %s\n", &pos_string[i]);
-                }
                 return NEUTRAL;
             }
             col = (int)(ccol - 'a');
             row--;
             if (col < 0 || col >= NCOLS || row < 0 || row >= NROWS) {
-                if (Verbose > 1) {
-                    MyPrintf("e.p. square %c%d out of range\n", ccol, 1 + row);
-                }
                 return NEUTRAL;
             }
             *ep_square = SquareMake(row, col);
@@ -9619,10 +9474,6 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
             i += strlen(castle_str);
             break;
         default:
-            if (Verbose > 1) {
-                MyPrintf("Invalid character %c in position string\n",
-                         pos_string[i]);
-            }
             return NEUTRAL;
         }
     }
@@ -9630,17 +9481,11 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
     for (i = 0; i < NSQUARES; i++) {
         if (board[i] == KING) {
             if (wk != -1) {
-                if (Verbose > 1) {
-                    MyPrintf("Too many white kings\n");
-                }
                 return NEUTRAL;
             }
             wk = i;
         } else if (board[i] == -KING) {
             if (bk != -1) {
-                if (Verbose > 1) {
-                    MyPrintf("Too many black kings\n");
-                }
                 return NEUTRAL;
             }
             bk = i;
@@ -9653,9 +9498,6 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
     int col_bk = Column(bk);
 
     if (wk == bk || (ABS(row_wk - row_bk) <= 1 && ABS(col_wk - col_bk) <= 1)) {
-        if (Verbose > 1) {
-            MyPrintf("Invalid king positions\n");
-        }
         return NEUTRAL;
     }
 
@@ -9665,35 +9507,18 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
         for (;;) {
             if (side == WHITE) {
                 if (row != NROWS - 3) {
-                    if (Verbose > 1) {
-                        MyPrintf("e.p. square %c%d on wrong row for wtm\n",
-                                 'a' + col, 1 + row);
-                    }
                     *ep_square = 0;
                     break;
                 }
                 if (board[SquareMake(row, col)] != 0) {
-                    if (Verbose > 1) {
-                        MyPrintf("e.p. %c%d square occupied\n", 'a' + col,
-                                 1 + row);
-                    }
                     *ep_square = 0;
                     break;
                 }
                 if (board[SquareMake(row + 1, col)] != 0) {
-                    if (Verbose > 1) {
-                        MyPrintf("e.p. starting square %c%d occupied\n",
-                                 'a' + col, 1 + row + 1);
-                    }
                     *ep_square = 0;
                     break;
                 }
                 if (board[SquareMake(row - 1, col)] != -PAWN) {
-                    if (Verbose > 1) {
-                        MyPrintf("No black pawn available to be e.p. captured "
-                                 "on %c%d\n",
-                                 'a' + col, 1 + row);
-                    }
                     *ep_square = 0;
                     break;
                 }
@@ -9703,43 +9528,21 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
                      board[SquareMake(row - 1, col + 1)] == PAWN))
                     ok = true;
                 if (!ok) {
-                    if (Verbose > 1) {
-                        MyPrintf(
-                            "No white pawn available to e.p. capture on %c%d\n",
-                            'a' + col, 1 + row);
-                    }
                     *ep_square = 0;
                     break;
                 }
                 break;
             } else if (side == BLACK) {
                 if (row != 2) {
-                    if (Verbose > 1) {
-                        MyPrintf("e.p. square %c%d on wrong row for btm\n",
-                                 'a' + col, 1 + row);
-                    }
                     break;
                 }
                 if (board[SquareMake(row, col)] != 0) {
-                    if (Verbose > 1) {
-                        MyPrintf("e.p. square %c%d occupied\n", 'a' + col,
-                                 1 + row);
-                    }
                     break;
                 }
                 if (board[SquareMake(row - 1, col)] != 0) {
-                    if (Verbose > 1) {
-                        MyPrintf("e.p. starting square %c%d occupied\n",
-                                 'a' + col, 1 + row - 1);
-                    }
                     break;
                 }
                 if (board[SquareMake(row + 1, col)] != PAWN) {
-                    if (Verbose > 1) {
-                        MyPrintf("No white pawn available to be e.p. captured "
-                                 "on %c%d\n",
-                                 'a' + col, 1 + row);
-                    }
                     break;
                 }
                 bool ok = false;
@@ -9748,11 +9551,6 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
                      board[SquareMake(row + 1, col + 1)] == -PAWN))
                     ok = true;
                 if (!ok) {
-                    if (Verbose > 1) {
-                        MyPrintf(
-                            "No black pawn available to e.p. capture on %c%d\n",
-                            'a' + col, 1 + row);
-                    }
                     break;
                 }
                 break;
@@ -9763,19 +9561,6 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
     if (*castle != 0) {
         int avail_castle = CastleRights(board, *castle);
         if ((*castle) != avail_castle) {
-            if (Verbose > 1) {
-                char invalid_castle[5] = {0, 0, 0, 0, 0};
-                int nc = 0;
-                if (((*castle) & WK_CASTLE) && !(avail_castle & WK_CASTLE))
-                    invalid_castle[nc++] = 'K';
-                if (((*castle) & WQ_CASTLE) && !(avail_castle & WQ_CASTLE))
-                    invalid_castle[nc++] = 'Q';
-                if (((*castle) & BK_CASTLE) && !(avail_castle & BK_CASTLE))
-                    invalid_castle[nc++] = 'k';
-                if (((*castle) & BQ_CASTLE) && !(avail_castle & BQ_CASTLE))
-                    invalid_castle[nc++] = 'q';
-                MyPrintf("Bad castle status %s\n", invalid_castle);
-            }
             *castle = avail_castle;
         }
     }
@@ -9807,9 +9592,6 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
         *pptr = save_char;
 
     if (n < 1) {
-        if (Verbose > 1)
-            MyPrintf("ScanFEN: Too few elements in FEN string %s\n",
-                     fen_string);
         goto error;
     }
 
@@ -9836,8 +9618,6 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
             int piece = GetPiece(c);
             int color = WHITE, sq;
             if (piece < 0) {
-                if (Verbose > 1)
-                    MyPrintf("ScanFEN: Invalid piece %c in %s\n", c, pos_str);
                 goto error;
             }
             if (islower(c))
@@ -9846,9 +9626,6 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
                 (color == WHITE) ? kings[0]++ : kings[1]++;
 
             if (row < 0 || col > (NCOLS - 1)) {
-                if (Verbose > 1)
-                    MyPrintf("ScanFEN: Square %c%d outside board\n", '1' + col,
-                             1 + row);
                 goto error;
             }
 
@@ -9867,8 +9644,6 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
     }
 
     if (kings[0] != 1 || kings[1] != 1) {
-        if (Verbose > 1)
-            MyPrintf("ScanFEN: Wrong number of kings in %s\n", pos_str);
         goto error;
     }
 
@@ -9878,8 +9653,6 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
     int col_bk = Column(bk);
 
     if (ABS(row_wk - row_bk) <= 1 && ABS(col_wk - col_bk) <= 1) {
-        if (Verbose > 1)
-            MyPrintf("ScanFEN: Kings are adjacent in %s\n", pos_str);
         goto error;
     }
 
@@ -9890,8 +9663,6 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
         } else if (side_str[0] == 'b' || side_str[0] == 'B') {
             side = BLACK;
         } else {
-            if (Verbose > 1)
-                MyPrintf("ScanFEN: Unrecognized side to move %s\n", side_str);
             goto error;
         }
     }
@@ -9912,22 +9683,6 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
         if (strchr(castle_str, 'q'))
             my_castle |= BQ_CASTLE;
         avail_castle = CastleRights(board, my_castle);
-        if (my_castle != avail_castle) {
-            if (Verbose > 1) {
-                char invalid_castle[5] = {0, 0, 0, 0, 0};
-                int nc = 0;
-                if ((my_castle & WK_CASTLE) & !(avail_castle & WK_CASTLE))
-                    invalid_castle[nc++] = 'K';
-                if ((my_castle & WQ_CASTLE) & !(avail_castle & WQ_CASTLE))
-                    invalid_castle[nc++] = 'Q';
-                if ((my_castle & BK_CASTLE) & !(avail_castle & BK_CASTLE))
-                    invalid_castle[nc++] = 'k';
-                if ((my_castle & BQ_CASTLE) & !(avail_castle & BQ_CASTLE))
-                    invalid_castle[nc++] = 'q';
-                MyPrintf("ScanFEN: bad castle status %s\n", invalid_castle);
-                MyPrintf("For %s\n", fen_string);
-            }
-        }
     castle_done:
         *castle = avail_castle;
     }
@@ -9942,45 +9697,20 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
             sscanf(&ep_str[1], "%d", &row);
             row--;
             if (col < 0 || col >= NCOLS || row < 0 || row >= NROWS) {
-                if (Verbose > 1) {
-                    MyPrintf(
-                        "ScanFEN: Warning: e.p. square %c%d out of range\n",
-                        'a' + col, 1 + row);
-                }
                 break;
             }
 
             if (side == WHITE) {
                 if (row != NROWS - 3) {
-                    if (Verbose > 1) {
-                        MyPrintf("ScanFEN: Warning: e.p. square %c%d on wrong "
-                                 "row for wtm\n",
-                                 'a' + col, 1 + row);
-                    }
                     break;
                 }
                 if (board[SquareMake(row, col)] != 0) {
-                    if (Verbose > 1) {
-                        MyPrintf(
-                            "ScanFEN: Warning: e.p. square %c%d occupied\n",
-                            'a' + col, 1 + row);
-                    }
                     break;
                 }
                 if (board[SquareMake(row + 1, col)] != 0) {
-                    if (Verbose > 1) {
-                        MyPrintf("ScanFEN: Warning: e.p. starting square %c%d "
-                                 "occupied\n",
-                                 'a' + col, 1 + row + 1);
-                    }
                     break;
                 }
                 if (board[SquareMake(row - 1, col)] != -PAWN) {
-                    if (Verbose > 1) {
-                        MyPrintf("ScanFEN: Warning: no black pawn available to "
-                                 "be e.p. captured on %c%d\n",
-                                 'a' + col, 1 + row);
-                    }
                     break;
                 }
                 bool ok = false;
@@ -9989,46 +9719,21 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
                      board[SquareMake(row - 1, col + 1)] == PAWN))
                     ok = true;
                 if (!ok) {
-                    if (Verbose > 1) {
-                        MyPrintf("ScanFEN: Warning: no white pawn available to "
-                                 "e.p. capture on %c%d\n",
-                                 'a' + col, 1 + row);
-                    }
                     break;
                 }
                 *ep_square = SquareMake(row, col);
                 break;
             } else if (side == BLACK) {
                 if (row != 2) {
-                    if (Verbose > 1) {
-                        MyPrintf("ScanFEN: Warning: e.p. square %c%d on wrong "
-                                 "row for btm\n",
-                                 'a' + col, 1 + row);
-                    }
                     break;
                 }
                 if (board[SquareMake(row, col)] != 0) {
-                    if (Verbose > 1) {
-                        MyPrintf(
-                            "ScanFEN: Warning: e.p. square %c%d occupied\n",
-                            'a' + col, 1 + row);
-                    }
                     break;
                 }
                 if (board[SquareMake(row - 1, col)] != 0) {
-                    if (Verbose > 1) {
-                        MyPrintf("ScanFEN: Warning: e.p. starting square %c%d "
-                                 "occupied\n",
-                                 'a' + col, 1 + row - 1);
-                    }
                     break;
                 }
                 if (board[SquareMake(row + 1, col)] != PAWN) {
-                    if (Verbose > 1) {
-                        MyPrintf("ScanFEN: Warning: no white pawn available to "
-                                 "be e.p. captured on %c%d\n",
-                                 'a' + col, 1 + row);
-                    }
                     break;
                 }
                 bool ok = false;
@@ -10037,21 +9742,10 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
                      board[SquareMake(row + 1, col + 1)] == -PAWN))
                     ok = true;
                 if (!ok) {
-                    if (Verbose > 1) {
-                        MyPrintf("ScanFEN: Warning: no black pawn available to "
-                                 "e.p. capture on %c%d\n",
-                                 'a' + col, 1 + row);
-                    }
                     break;
                 }
                 *ep_square = SquareMake(row, col);
                 break;
-            }
-        }
-        if (*ep_square == 0) {
-            if (Verbose > 1) {
-                MyPrintf("ScanFEN: Warning: Could not assign e.p. from %s\n",
-                         ep_str);
             }
         }
     }
@@ -10096,56 +9790,21 @@ static int ReadPosition(char *pos, BOARD *Board, char *title) {
     int legal, board[NSQUARES], ep_square = 0, castle = 0, half_move = 0,
                                 full_move = 1;
 
-    if (Verbose > 3) {
-        MyPrintf("ReadPosition with: %s\n", pos);
-    }
     if (strchr(pos, '/') != NULL) {
-        if (Verbose > 3) {
-            MyPrintf("ReadPosition: entering FEN scan\n");
-        }
         legal = ScanFEN(pos, board, &ep_square, &castle, &half_move, &full_move,
                         title);
     } else {
-        if (Verbose > 3) {
-            MyPrintf("ReadPosition: entering non-FEN scan\n");
-        }
         legal = ScanPosition(pos, board, &ep_square, &castle, title);
     }
     if (!UseEnPassant) {
         if (ep_square > 0) {
-            if (Verbose > 1) {
-                MyPrintf("Ignoring e.p.\n");
-            }
             ep_square = 0;
         }
     }
-    if (Verbose > 3) {
-        MyPrintf("ReadPosition: legal from scan: %d\n", legal);
-    }
     if (legal != NEUTRAL) {
-        if (Verbose > 3) {
-            MyPrintf("ReadPosition: before SetBoard\n");
-        }
         SetBoard(Board, board, legal, ep_square, castle, half_move, full_move);
-        if (Verbose > 3) {
-            MyPrintf("ReadPosition: Board scanned\n");
-        }
     }
     return legal;
-}
-
-static void PrintPieceTypeCount(int types[2][KING], char *comment) {
-    int piece;
-
-    MyPrintf("W: ");
-    for (piece = KING - 1; piece >= PAWN; piece--)
-        MyPrintf("%c=%d  ", toupper(piece_char(piece)), types[0][piece]);
-    MyPrintf("\nB: ");
-    for (piece = KING - 1; piece >= PAWN; piece--)
-        MyPrintf("%c=%d  ", toupper(piece_char(piece)), types[1][piece]);
-    if (comment != NULL)
-        MyPrintf(" %s", comment);
-    MyPrintf("\n");
 }
 
 /*
@@ -10314,10 +9973,6 @@ static void InitTransforms() {
     int n_kings = 0;
     int n_kings_nopawns = 0;
 
-    if (Verbose > 3) {
-        MyPrintf("\nInitializing geometric transformation tables\n");
-    }
-
     for (int row = 0; row < NROWS; row++) {
         for (int col = 0; col < NCOLS; col++) {
             int sq = SquareMake(row, col);
@@ -10346,10 +10001,6 @@ static void InitTransforms() {
                 exit(-1);
             }
         }
-    }
-
-    if (Verbose > 3) {
-        MyPrintf("Initializing king position tables\n");
     }
 
 #if (NSQUARES > KK_TABLE_LIMIT)
@@ -10424,10 +10075,6 @@ static void InitTransforms() {
     assert(n_kings == N_KINGS);
 
 #if defined(NO_ATTACK_TABLES)
-    if (Verbose > 3) {
-        MyPrintf("Initializing tables for diagonals\n");
-    }
-
     memset(DiagA1_H8_Table, 0, sizeof(DiagA1_H8_Table));
 
     for (int d = 0; d < (NROWS + NCOLS - 1); d++) {
@@ -10485,10 +10132,6 @@ static void InitTransforms() {
     }
 #endif
 
-    if (Verbose > 3) {
-        MyPrintf("Initializing parity tables\n");
-    }
-
     int nw = 0, nb = 0;
     for (int row = 0; row < NROWS; row++) {
         for (int col = 0; col < NCOLS; col++) {
@@ -10543,9 +10186,6 @@ static void InitPieceStrengths() {
 
 static void InitParity() {
     int sq;
-
-    if (Verbose > 2)
-        MyPrintf("Initializing parity table\n");
 
     for (sq = 0; sq < NSQUARES; sq++) {
         ParityTable[sq] = (Row(sq) & 1) ^ (Column(sq) & 1);
@@ -10608,15 +10248,6 @@ static int GetMBPosition(BOARD *Board, int *mb_position, int *parity,
     } else if (Board->piece_type_count[WHITE][PAWN] == 2 &&
                Board->piece_type_count[BLACK][PAWN] == 2) {
         ZINDEX dp22 = IndexDP22(mb_position);
-        if (Verbose > 3) {
-            MyPrintf("GetMBPosition: wp1 = %c%d wp2 = %c%d bp1 = %c%d bp2 = "
-                     "%c%d, sp22 = " DEC_ZINDEX_FORMAT "\n",
-                     'a' + Column(mb_position[2]), 1 + Row(mb_position[2]),
-                     'a' + Column(mb_position[3]), 1 + Row(mb_position[3]),
-                     'a' + Column(mb_position[4]), 1 + Row(mb_position[4]),
-                     'a' + Column(mb_position[5]), 1 + Row(mb_position[5]),
-                     dp22);
-        }
         if (dp22 != ALL_ONES)
             *pawn_file_type = DP_22_PAWNS;
         else {
@@ -10789,12 +10420,7 @@ static int GetMBPosition(BOARD *Board, int *mb_position, int *parity,
               10 * bishops_on_white_squares[BLACK] +
               bishops_on_black_squares[BLACK];
 
-    if (loc != Board->num_pieces) {
-        MyPrintf("GetMBPosition: Bad number of pieces: %d, expected %d", loc,
-                 Board->num_pieces);
-        exit(1);
-    }
-
+    assert(loc == Board->num_pieces);
     return loc;
 }
 
@@ -10826,12 +10452,7 @@ static int GetYKPosition(BOARD *Board, int *yk_position) {
         }
     }
 
-    if (loc != Board->num_pieces) {
-        MyPrintf("Bad number of pieces in GetYKPosition: %d, expected %d", loc,
-                 Board->num_pieces);
-        exit(1);
-    }
-
+    assert(loc == Board->num_pieces);
     return loc;
 }
 
@@ -10853,13 +10474,6 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
     else
         sym = KK_Transform_NoPawns(wk, bk);
 
-    if (Verbose > 3) {
-        MyPrintf("GetMBIndex: For wk=%c%d bk=%c%d, pawns present=%d, transform "
-                 "needed (%d) = %s\n",
-                 'a' + Column(wk), 1 + Row(wk), 'a' + Column(bk), 1 + Row(bk),
-                 pawns_present, sym, SymmetryName[sym]);
-    }
-
     int *transform = Transforms[sym];
 
     for (int i = 0; i < npieces; i++) {
@@ -10870,10 +10484,6 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
     bk = mb_pos[1];
 
     *offset = (eptr->IndexFromPos)(mb_pos);
-
-    if (Verbose > 3) {
-        MyPrintf("GetMBIndex: index = " DEC_ZINDEX_FORMAT "\n", *offset);
-    }
 
     bool flipped = false;
 
@@ -10920,13 +10530,6 @@ static int GetYKIndex(int *yk_pos, int npieces, bool pawns_present,
     else
         sym = KK_Transform_NoPawns(wk, bk);
 
-    if (Verbose > 3) {
-        MyPrintf("GetYKIndex: For wk=%c%d bk=%c%d, pawns present=%d, transform "
-                 "needed (%d) = %s\n",
-                 'a' + Column(wk), 1 + Row(wk), 'a' + Column(bk), 1 + Row(bk),
-                 pawns_present, sym, SymmetryName[sym]);
-    }
-
     int *transform = Transforms[sym];
 
     for (int i = 0; i < npieces; i++) {
@@ -10937,10 +10540,6 @@ static int GetYKIndex(int *yk_pos, int npieces, bool pawns_present,
     bk = yk_pos[1];
 
     *offset = (eptr->IndexFromPos)(yk_pos);
-
-    if (Verbose > 3) {
-        MyPrintf("GetYKIndex: index before flip = %lu\n", *offset);
-    }
 
     bool flipped = false;
 
@@ -10961,19 +10560,10 @@ static int GetYKIndex(int *yk_pos, int npieces, bool pawns_present,
         }
     }
 
-    if (Verbose > 3) {
-        MyPrintf("GetYKIndex: index after flip = " DEC_ZINDEX_FORMAT "\n",
-                 *offset);
-    }
-
     if (pawns_present)
         *kindex = KK_Index(wk, bk);
     else
         *kindex = KK_Index_NoPawns(wk, bk);
-
-    if (Verbose > 3) {
-        MyPrintf("GetYKIndex: kk_index = %d\n", *kindex);
-    }
 
     return 0;
 }
@@ -11005,20 +10595,6 @@ static void GetYKBaseFileName(int count[2][KING], int side, char *fname) {
 static file OpenMBFile(char *ending, int kk_index, int bishop_parity[2],
                        int pawn_file_type, int side, bool high_dtz) {
     char path[1024];
-
-    if (Verbose > 3) {
-        MyPrintf(
-            "OpenMBFile: ending=%s, kk_index=%d, w_parity = %s, b_parity = %s, "
-            "pawn_file_type = %d, side = %s, NumPaths = %d, high_dtz = %d\n",
-            ending, kk_index,
-            ((bishop_parity[WHITE] == NONE)
-                 ? "none"
-                 : ((bishop_parity[WHITE] == EVEN) ? "even" : "odd")),
-            ((bishop_parity[BLACK] == NONE)
-                 ? "none"
-                 : ((bishop_parity[BLACK] == EVEN) ? "even" : "odd")),
-            pawn_file_type, ColorName(side), NumPaths, high_dtz);
-    }
 
     for (int i = 0; i < NumPaths; i++) {
         char dirname[65];
@@ -11075,19 +10651,9 @@ static file OpenMBFile(char *ending, int kk_index, int bishop_parity[2],
                  DELIMITER[0], dirname, DELIMITER[0], ending,
                  (side == WHITE ? 'w' : 'b'), kk_index,
                  (high_dtz ? "hi" : "mb"));
-        if (Verbose > 3) {
-            MyPrintf("File name for path %d: %s...", i, path);
-        }
         file fptr = f_open(path, "rb");
         if (fptr != NULL) {
-            if (Verbose > 3) {
-                MyPrintf("opened successfully\n");
-            }
             return fptr;
-        } else {
-            if (Verbose > 3) {
-                MyPrintf("not found\n");
-            }
         }
     }
     return NULL;
@@ -11096,26 +10662,12 @@ static file OpenMBFile(char *ending, int kk_index, int bishop_parity[2],
 static file OpenYKFile(char *base_name) {
     char path[1024];
 
-    if (Verbose > 3) {
-        MyPrintf("OpenYKFile: ending=%s\n", base_name);
-    }
-
     for (int i = 0; i < NumPaths; i++) {
         snprintf(path, sizeof(path) - 1, "%s%c%s", TbPaths[i], DELIMITER[0],
                  base_name);
-        if (Verbose > 3) {
-            MyPrintf("YK File name for path %d: %s...", i, path);
-        }
         file fptr = f_open(path, "rb");
         if (fptr != NULL) {
-            if (Verbose > 3) {
-                MyPrintf("opened successfully\n");
-            }
             return fptr;
-        } else {
-            if (Verbose > 3) {
-                MyPrintf("not found\n");
-            }
         }
     }
     return NULL;
@@ -11126,10 +10678,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
     mb_info->pawn_file_type = FREE_PAWNS;
 
     if (Board->num_pieces > MAX_PIECES_MB) {
-        if (Verbose > 4) {
-            MyPrintf("GetMBInfo: too many pieces for database %d\n",
-                     Board->num_pieces);
-        }
         return TOO_MANY_PIECES;
     }
 
@@ -11148,15 +10696,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
     int eindex = GetEndingType(Board->piece_type_count, mb_info->mb_piece_types,
                                bishop_parity, FREE_PAWNS);
 
-    if (Verbose > 4) {
-        MyPrintf("GetMBInfo: eindex without parities or blocked pawns = %d\n",
-                 eindex);
-        MyPrintf("GetMBInfo: etype = %d\n", IndexTable[eindex].etype);
-        MyPrintf("GetMBInfo: sub_type = %d\n", IndexTable[eindex].sub_type);
-        MyPrintf("GetMBInfo: pawn file type = %s\n",
-                 OpExtensionName[mb_info->pawn_file_type]);
-    }
-
     int kk_index_blocked = -1;
     if (eindex >= 0) {
         memcpy(mb_info->parity_index[0].bishop_parity, bishop_parity,
@@ -11170,19 +10709,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_11_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf(
-                        "GetMBInfo: eindex with 1 opposing pawn pair = %d\n",
-                        eindex);
-                }
                 mb_info->eptr_op_11 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_11, &kk_index_blocked,
                            &mb_info->index_op_11);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 1 opposing pawn pair\n");
-                }
                 mb_info->eptr_op_11 = NULL;
                 mb_info->index_op_11 = ALL_ONES;
             }
@@ -11192,19 +10723,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    BP_11_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 1 pair of blocking pawns "
-                             "= %d\n",
-                             eindex);
-                }
                 mb_info->eptr_bp_11 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_bp_11, &kk_index_blocked,
                            &mb_info->index_bp_11);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 1 blocking pawn pair\n");
-                }
                 mb_info->eptr_bp_11 = NULL;
                 mb_info->index_bp_11 = ALL_ONES;
             }
@@ -11214,20 +10737,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_21_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 2 vs 1 pawn, one opposing "
-                             "pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_21 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_21, &kk_index_blocked,
                            &mb_info->index_op_21);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 2 vs 1 pawn, 1 opposing "
-                             "pawn pair\n");
-                }
                 mb_info->eptr_op_21 = NULL;
                 mb_info->index_op_21 = ALL_ONES;
             }
@@ -11237,20 +10751,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_12_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 1 vs 2 pawns, one "
-                             "opposing pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_12 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_12, &kk_index_blocked,
                            &mb_info->index_op_12);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 1 vs 2 pawns, 1 "
-                             "opposing pawn pair\n");
-                }
                 mb_info->eptr_op_12 = NULL;
                 mb_info->index_op_12 = ALL_ONES;
             }
@@ -11261,20 +10766,10 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_22_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with pawn pairs, with 1 "
-                             "opposing pairs = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_22 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_22, &kk_index_blocked,
                            &mb_info->index_op_22);
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: kk_index_blocked = %d, index "
-                             "= " DEC_ZINDEX_FORMAT "\n",
-                             kk_index_blocked, mb_info->index_op_22);
-                }
             } else {
                 mb_info->eptr_op_22 = NULL;
                 mb_info->index_op_22 = ALL_ONES;
@@ -11285,20 +10780,10 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    DP_22_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf(
-                        "GetMBInfo: eindex with 2 opposing pawn pairs = %d\n",
-                        eindex);
-                }
                 mb_info->eptr_dp_22 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_dp_22, &kk_index_blocked,
                            &mb_info->index_dp_22);
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: kk_index_blocked = %d, index "
-                             "= " DEC_ZINDEX_FORMAT "\n",
-                             kk_index_blocked, mb_info->index_dp_22);
-                }
             } else {
                 mb_info->eptr_dp_22 = NULL;
                 mb_info->index_dp_22 = ALL_ONES;
@@ -11309,20 +10794,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_31_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 3 vs 1 pawn, one opposing "
-                             "pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_31 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_31, &kk_index_blocked,
                            &mb_info->index_op_31);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 3 vs 1 pawn, 1 opposing "
-                             "pawn pair\n");
-                }
                 mb_info->eptr_op_31 = NULL;
                 mb_info->index_op_31 = ALL_ONES;
             }
@@ -11332,20 +10808,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_13_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 1 vs 3 pawns, one "
-                             "opposing pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_13 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_13, &kk_index_blocked,
                            &mb_info->index_op_13);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 1 vs 3 pawns, 1 "
-                             "opposing pawn pair\n");
-                }
                 mb_info->eptr_op_13 = NULL;
                 mb_info->index_op_13 = ALL_ONES;
             }
@@ -11355,20 +10822,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_41_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 4 vs 1 pawn, one opposing "
-                             "pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_41 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_41, &kk_index_blocked,
                            &mb_info->index_op_41);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 4 vs 1 pawn, 1 opposing "
-                             "pawn pair\n");
-                }
                 mb_info->eptr_op_41 = NULL;
                 mb_info->index_op_41 = ALL_ONES;
             }
@@ -11378,20 +10836,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_14_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 1 vs 4 pawns, one "
-                             "opposing pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_14 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_14, &kk_index_blocked,
                            &mb_info->index_op_14);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 1 vs 4 pawns, 1 "
-                             "opposing pawn pair\n");
-                }
                 mb_info->eptr_op_14 = NULL;
                 mb_info->index_op_14 = ALL_ONES;
             }
@@ -11401,20 +10850,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_32_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 3 vs 2 pawn, one opposing "
-                             "pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_32 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_32, &kk_index_blocked,
                            &mb_info->index_op_32);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 3 vs 2 pawn, 1 opposing "
-                             "pawn pair\n");
-                }
                 mb_info->eptr_op_32 = NULL;
                 mb_info->index_op_32 = ALL_ONES;
             }
@@ -11424,20 +10864,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_23_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 2 vs 3 pawns, one "
-                             "opposing pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_23 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_23, &kk_index_blocked,
                            &mb_info->index_op_23);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 2 vs 3 pawns, 1 "
-                             "opposing pawn pair\n");
-                }
                 mb_info->eptr_op_23 = NULL;
                 mb_info->index_op_23 = ALL_ONES;
             }
@@ -11447,20 +10878,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_33_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 3 vs 3 pawn, one opposing "
-                             "pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_33 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_33, &kk_index_blocked,
                            &mb_info->index_op_33);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 3 vs 3 pawn, 1 opposing "
-                             "pawn pair\n");
-                }
                 mb_info->eptr_op_33 = NULL;
                 mb_info->index_op_33 = ALL_ONES;
             }
@@ -11470,20 +10892,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_42_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 4 vs 2 pawn, one opposing "
-                             "pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_42 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_42, &kk_index_blocked,
                            &mb_info->index_op_42);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 4 vs 2 pawn, 1 opposing "
-                             "pawn pair\n");
-                }
                 mb_info->eptr_op_42 = NULL;
                 mb_info->index_op_42 = ALL_ONES;
             }
@@ -11493,20 +10906,11 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
                                    OP_24_PAWNS);
             if (eindex >= 0) {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: eindex with 2 vs 4 pawn, one opposing "
-                             "pair = %d\n",
-                             eindex);
-                }
                 mb_info->eptr_op_24 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
                            mb_info->eptr_op_24, &kk_index_blocked,
                            &mb_info->index_op_24);
             } else {
-                if (Verbose > 4) {
-                    MyPrintf("GetMBInfo: no eindex for 2 vs 4 pawn, 1 opposing "
-                             "pawn pair\n");
-                }
                 mb_info->eptr_op_24 = NULL;
                 mb_info->index_op_24 = ALL_ONES;
             }
@@ -11575,18 +10979,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
     eindex =
         GetEndingType(Board->piece_type_count, NULL, bishop_parity, FREE_PAWNS);
 
-    if (Verbose > 4) {
-        MyPrintf("GetMBInfo: eindex %d with white bishop parity %s, black "
-                 "bishop parity %s\n",
-                 eindex,
-                 ((bishop_parity[WHITE] == NONE)
-                      ? "none"
-                      : ((bishop_parity[WHITE] == EVEN) ? "even" : "odd")),
-                 ((bishop_parity[BLACK] == NONE)
-                      ? "none"
-                      : ((bishop_parity[BLACK] == EVEN) ? "even" : "odd")));
-    }
-
     if (eindex >= 0) {
         memcpy(mb_info->parity_index[mb_info->num_parities].bishop_parity,
                bishop_parity, sizeof(bishop_parity));
@@ -11605,11 +10997,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
         eindex = GetEndingType(Board->piece_type_count, NULL, sub_bishop_parity,
                                FREE_PAWNS);
 
-        if (Verbose > 4) {
-            MyPrintf("GetMBInfo: eindex %d with white bishop parity %s\n",
-                     eindex, (bishop_parity[WHITE] == EVEN) ? "even" : "odd");
-        }
-
         if (eindex >= 0) {
             memcpy(mb_info->parity_index[mb_info->num_parities].bishop_parity,
                    sub_bishop_parity, sizeof(sub_bishop_parity));
@@ -11624,11 +11011,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
         eindex = GetEndingType(Board->piece_type_count, NULL, sub_bishop_parity,
                                FREE_PAWNS);
 
-        if (Verbose > 4) {
-            MyPrintf("GetMBInfo: eindex %d with black bishop parity %s\n",
-                     eindex, (bishop_parity[BLACK] == EVEN) ? "even" : "odd");
-        }
-
         if (eindex >= 0) {
             memcpy(mb_info->parity_index[mb_info->num_parities].bishop_parity,
                    sub_bishop_parity, sizeof(sub_bishop_parity));
@@ -11639,11 +11021,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
     }
 
     if (mb_info->num_parities == 0) {
-        if (Verbose > 4) {
-            MyPrintf("GetMBInfo: Could not map to index type, for piece type "
-                     "counts:\n");
-            PrintPieceTypeCount(Board->piece_type_count, NULL);
-        }
         return ETYPE_NOT_MAPPED;
     }
 
@@ -11664,10 +11041,6 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
 
 static int GetYKInfo(BOARD *Board, YK_INFO *yk_info) {
     if (Board->num_pieces > MAX_PIECES_YK) {
-        if (Verbose > 3) {
-            MyPrintf("GetYKInfo: too many pieces for database %d\n",
-                     Board->num_pieces);
-        }
         return TOO_MANY_PIECES;
     }
 
@@ -11682,10 +11055,6 @@ static int GetYKInfo(BOARD *Board, YK_INFO *yk_info) {
 
     int eindex =
         GetEndingTypeYK(Board->piece_type_count, yk_info->yk_piece_types);
-
-    if (Verbose > 3) {
-        MyPrintf("GetYKInfo: eindex = %d\n", eindex);
-    }
 
     if (eindex < 0)
         return ETYPE_NOT_MAPPED;
@@ -11722,30 +11091,13 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
     FILE_CACHE_YK *fcache = NULL;
     bool cache_hit = true;
 
-    if (Verbose > 3) {
-        MyPrintf("GetYKResult: Entering with number of pieces: %d\n",
-                 Board->num_pieces);
-    }
-
     if (Board->num_pieces > MAX_PIECES_YK) {
         return TOO_MANY_PIECES;
     }
 
     int result = GetYKInfo(Board, &yk_info);
 
-    if (Verbose > 3) {
-        MyPrintf("GetYKResult: from GetYKInfo\n");
-        MyPrintf("  result: %d\n", result);
-        MyPrintf("  kk_index: %d\n", yk_info.kk_index);
-        MyPrintf("  offset: " DEC_ZINDEX_FORMAT "\n", yk_info.index);
-    }
-
     if (yk_info.index > 0xefffffff) {
-        if (Verbose > 3) {
-            MyPrintf("GetYKResult: offset " DEC_ZINDEX_FORMAT
-                     " larger than 64^5\n",
-                     yk_info.index);
-        }
         return BAD_ZONE_SIZE;
     }
 
@@ -11758,11 +11110,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
     int side = Board->side;
 
     // check whether file for ending is already opened
-
-    if (Verbose > 3) {
-        MyPrintf("GetYKResult: scanning %d cached files\n",
-                 num_cached_files_yk[side]);
-    }
 
     int file_index = -1;
     for (int n = 0; n < num_cached_files_yk[side]; n++) {
@@ -11784,19 +11131,12 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
         break;
     }
 
-    if (Verbose > 3) {
-        MyPrintf("GetYKResult: file_index from scan: %d\n", file_index);
-    }
-
     // if file pointer is not cached, need to open new file
 
     if (file_index == -1) {
         cache_hit = false;
         char ending[64];
         GetEndingName(yk_info.piece_type_count, ending);
-        if (Verbose > 3) {
-            MyPrintf("GetYKResult: Ending Name: %s\n", ending);
-        }
 
         char base_name[64];
         GetYKBaseFileName(yk_info.piece_type_count, side, base_name);
@@ -11805,9 +11145,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
         file file_yk = OpenYKFile(base_name);
 
         if (file_yk == NULL) {
-            if (Verbose > 2) {
-                MyPrintf("Could not open YK file %s\n", base_name);
-            }
             return YK_FILE_MISSING;
         }
 
@@ -11820,9 +11157,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
         fcache = &FileCacheYK[file_index][side];
 
         if (fcache->fp != NULL) {
-            if (Verbose > 2) {
-                MyPrintf("Closing previous file\n");
-            }
             f_close(fcache->fp);
         }
 
@@ -11830,10 +11164,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
 
         uint8_t header[YK_HEADER_SIZE];
         if (f_read(&header, YK_HEADER_SIZE, file_yk, 0) != YK_HEADER_SIZE) {
-            if (Verbose > 2) {
-                MyPrintf("Could not read %zu header bytes for yk file %s\n",
-                         sizeof(header), base_name);
-            }
             f_close(file_yk);
             return HEADER_READ_ERROR;
         }
@@ -11845,17 +11175,12 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
 
         if (num_blocks > fcache->max_num_blocks) {
             if (fcache->max_num_blocks > 0) {
-                MyFree(fcache->offsets,
-                       (fcache->max_num_blocks + 1) * sizeof(INDEX));
+                MyFree(fcache->offsets);
             }
             fcache->max_num_blocks = num_blocks;
             fcache->offsets =
                 (INDEX *)MyMalloc((fcache->max_num_blocks + 1) * sizeof(INDEX));
             if (fcache->offsets == NULL) {
-                if (Verbose > 2) {
-                    MyPrintf("Could not allocate %" PRIu32 " offsets\n",
-                             fcache->max_num_blocks + 1);
-                }
                 return OFFSET_ALLOC_ERROR;
             }
         }
@@ -11864,10 +11189,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
 
         if (f_read(fcache->offsets, (num_blocks + 1) * sizeof(INDEX), file_yk,
                    YK_HEADER_SIZE) != (num_blocks + 1) * sizeof(INDEX)) {
-            if (Verbose > 2) {
-                MyPrintf("Could not read %d offsets from %s\n", num_blocks + 1,
-                         base_name);
-            }
             f_close(file_yk);
             return OFFSET_READ_ERROR;
         }
@@ -11926,13 +11247,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
         cached_file_lru_yk[0][side] = file_index;
     }
 
-    if (Verbose > 4) {
-        MyPrintf(
-            "Searching YK index %lu block index %d, header block size %" PRIu32
-            "\n",
-            ind->index, fcache->block_index, fcache->block_size);
-    }
-
     bool pawns_present = yk_info.piece_type_count[WHITE][PAWN] ||
                          yk_info.piece_type_count[BLACK][PAWN];
 
@@ -11950,14 +11264,9 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
         cache_hit = false;
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
-        if (Verbose > 4) {
-            MyPrintf("Reading compressed block size %" PRIu32
-                     " at offset " DEC_INDEX_FORMAT " block index %d\n",
-                     length, fcache->offsets[b_index], b_index);
-        }
         if (length > CompressionBufferSize) {
             if (CompressionBuffer != NULL) {
-                MyFree(CompressionBuffer, CompressionBufferSize);
+                MyFree(CompressionBuffer);
             }
             CompressionBufferSize = length;
             CompressionBuffer = (uint8_t *)MyMalloc(CompressionBufferSize);
@@ -11973,7 +11282,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
         uint32_t tmp_zone_size = fcache->block_size;
         if (tmp_zone_size > fcache->max_block_size) {
             if (fcache->block != NULL) {
-                MyFree(fcache->block, fcache->max_block_size);
+                MyFree(fcache->block);
             }
             fcache->max_block_size = tmp_zone_size;
             fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
@@ -11991,10 +11300,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
     }
 
     result = fcache->block[ind->index % fcache->block_size];
-
-    if (Verbose > 4) {
-        MyPrintf("YK result from database: %d\n", result);
-    }
 
     if (cache_hit)
         CacheHits++;
@@ -12014,9 +11319,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
                 file file_yk = OpenYKFile(base_name);
 
                 if (file_yk == NULL) {
-                    if (Verbose > 2) {
-                        MyPrintf("Could not open YK file %s\n", base_name);
-                    }
                     return HIGH_DTZ_MISSING;
                 }
 
@@ -12026,23 +11328,12 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->block_high =
                     (HDATA *)MyMalloc(fcache->num_high_dtc * sizeof(HDATA));
                 if (fcache->block_high == NULL) {
-                    if (Verbose > 2) {
-                        MyPrintf("Could not allocate " DEC_INDEX_FORMAT
-                                 " high DTC scores\n",
-                                 fcache->num_high_dtc);
-                    }
                     return HIGH_DTZ_MISSING;
                 }
                 INDEX nread = f_read(fcache->block_high,
                                      fcache->num_high_dtc * sizeof(HDATA),
                                      fcache->fp_high, 0);
                 if (nread != fcache->num_high_dtc * sizeof(HDATA)) {
-                    if (Verbose > 2) {
-                        MyPrintf("Read " DEC_INDEX_FORMAT
-                                 " bytes from high DTC file, "
-                                 "expected " DEC_INDEX_FORMAT "\n",
-                                 nread, fcache->num_high_dtc * sizeof(HDATA));
-                    }
                     return HIGH_DTZ_MISSING;
                 }
                 qsort(fcache->block_high, fcache->num_high_dtc, sizeof(HDATA),
@@ -12069,121 +11360,22 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
 }
 
 static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
-    if (Verbose > 3) {
-        MyPrintf("Entering GetMBResult with number of pieces: %d\n",
-                 Board->num_pieces);
-    }
-
     MB_INFO mb_info = {0};
     FILE_CACHE *fcache;
     bool cache_hit = true;
 
     int result = GetMBInfo(Board, &mb_info);
 
-    if (Verbose > 3) {
-        MyPrintf("GetMBResult: from GetMBInfo\n");
-        MyPrintf("  result: %d\n", result);
-        MyPrintf("  kk_index: %d\n", mb_info.kk_index);
-        MyPrintf("  parity: %d\n", mb_info.parity);
-        MyPrintf("  n_parities: %d\n", mb_info.num_parities);
-        MyPrintf("  number of pieces: %d\n", mb_info.num_pieces);
-        MyPrintf("  pawn_file_type: %s\n",
-                 OpExtensionName[mb_info.pawn_file_type]);
-        if (mb_info.pawn_file_type == OP_11_PAWNS ||
-            mb_info.pawn_file_type == BP_11_PAWNS)
-            MyPrintf("  index 1 opposing pair: " DEC_ZINDEX_FORMAT "\n",
-                     mb_info.index_op_11);
-        if (mb_info.pawn_file_type == BP_11_PAWNS)
-            MyPrintf("  index 1 blocking pair: " DEC_ZINDEX_FORMAT "\n",
-                     mb_info.index_bp_11);
-        if (mb_info.pawn_file_type == OP_21_PAWNS)
-            MyPrintf(
-                "   index 2 vs 1 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_21);
-        if (mb_info.pawn_file_type == OP_12_PAWNS)
-            MyPrintf(
-                "   index 1 vs 2 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_12);
-        if (mb_info.pawn_file_type == OP_22_PAWNS ||
-            mb_info.pawn_file_type == DP_22_PAWNS)
-            MyPrintf("  index 2 pawn pairs, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                     "\n",
-                     mb_info.index_op_22);
-        if (mb_info.pawn_file_type == DP_22_PAWNS)
-            MyPrintf("  index 2 opposing pairs: " DEC_ZINDEX_FORMAT "\n",
-                     mb_info.index_dp_22);
-        if (mb_info.pawn_file_type == OP_31_PAWNS)
-            MyPrintf(
-                "   index 3 vs 1 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_31);
-        if (mb_info.pawn_file_type == OP_13_PAWNS)
-            MyPrintf(
-                "   index 1 vs 3 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_13);
-        if (mb_info.pawn_file_type == OP_41_PAWNS)
-            MyPrintf(
-                "   index 4 vs 1 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_41);
-        if (mb_info.pawn_file_type == OP_14_PAWNS)
-            MyPrintf(
-                "   index 1 vs 4 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_14);
-        if (mb_info.pawn_file_type == OP_32_PAWNS)
-            MyPrintf(
-                "   index 3 vs 2 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_32);
-        if (mb_info.pawn_file_type == OP_23_PAWNS)
-            MyPrintf(
-                "   index 2 vs 3 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_23);
-        if (mb_info.pawn_file_type == OP_33_PAWNS)
-            MyPrintf(
-                "   index 3 vs 3 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_33);
-        if (mb_info.pawn_file_type == OP_42_PAWNS)
-            MyPrintf(
-                "   index 4 vs 2 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_42);
-        if (mb_info.pawn_file_type == OP_24_PAWNS)
-            MyPrintf(
-                "   index 2 vs 4 pawns, 1 opposing pair: " DEC_ZINDEX_FORMAT
-                "\n",
-                mb_info.index_op_24);
-        for (int i = 0; i < mb_info.num_parities; i++) {
-            MyPrintf("  index %d: " DEC_ZINDEX_FORMAT "\n", i,
-                     mb_info.parity_index[i].index);
-        }
-    }
-
     ind->kk_index = mb_info.kk_index;
     ind->index = mb_info.parity_index[0].index;
 
     if (result < 0) {
-        if (Verbose > 3) {
-            MyPrintf("GetMBResult: returning with negative results %d\n",
-                     result);
-        }
         return result;
     }
 
     int side = Board->side;
 
     // check whether file for ending is already opened
-
-    if (Verbose > 3) {
-        MyPrintf("GetMBResult: scanning %d cached files\n",
-                 num_cached_files[side]);
-    }
 
     int file_index = -1;
     for (int n = 0; n < num_cached_files[side]; n++) {
@@ -12206,11 +11398,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                   mb_info.parity_index[i].bishop_parity[BLACK]))) {
                 found_parity = true;
                 ind->index = mb_info.parity_index[i].index;
-                if (Verbose > 4) {
-                    MyPrintf("Found index " DEC_ZINDEX_FORMAT
-                             " parity index %d\n",
-                             ind->index, i);
-                }
                 break;
             }
         }
@@ -12226,11 +11413,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_11_PAWNS) {
                 if (mb_info.index_op_11 != ALL_ONES) {
                     ind->index = mb_info.index_op_11;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12239,11 +11421,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == BP_11_PAWNS) {
                 if (mb_info.index_bp_11 != ALL_ONES) {
                     ind->index = mb_info.index_bp_11;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 1 blocking pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12252,11 +11429,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_21_PAWNS) {
                 if (mb_info.index_op_21 != ALL_ONES) {
                     ind->index = mb_info.index_op_21;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 2 vs 1 pawn, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12265,11 +11437,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_12_PAWNS) {
                 if (mb_info.index_op_12 != ALL_ONES) {
                     ind->index = mb_info.index_op_12;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 1 vs 2 pawns, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12280,11 +11447,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_22_PAWNS) {
                 if (mb_info.index_op_22 != ALL_ONES) {
                     ind->index = mb_info.index_op_22;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 2 pawn pairs, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12293,11 +11455,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == DP_22_PAWNS) {
                 if (mb_info.index_dp_22 != ALL_ONES) {
                     ind->index = mb_info.index_dp_22;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 2 opposing pawn pairs\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12306,11 +11463,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_31_PAWNS) {
                 if (mb_info.index_op_31 != ALL_ONES) {
                     ind->index = mb_info.index_op_31;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 3 vs 1 pawn, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12319,11 +11471,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_13_PAWNS) {
                 if (mb_info.index_op_13 != ALL_ONES) {
                     ind->index = mb_info.index_op_13;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 1 vs 3 pawns, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12332,11 +11479,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_41_PAWNS) {
                 if (mb_info.index_op_41 != ALL_ONES) {
                     ind->index = mb_info.index_op_41;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 4 vs 1 pawn, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12345,11 +11487,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_14_PAWNS) {
                 if (mb_info.index_op_14 != ALL_ONES) {
                     ind->index = mb_info.index_op_14;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 1 vs 4 pawns, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12358,11 +11495,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_32_PAWNS) {
                 if (mb_info.index_op_32 != ALL_ONES) {
                     ind->index = mb_info.index_op_32;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 3 vs 2 pawn, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12371,11 +11503,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_23_PAWNS) {
                 if (mb_info.index_op_23 != ALL_ONES) {
                     ind->index = mb_info.index_op_23;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 2 vs 3 pawns, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12384,11 +11511,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_33_PAWNS) {
                 if (mb_info.index_op_33 != ALL_ONES) {
                     ind->index = mb_info.index_op_33;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 3 vs 3 pawn, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12397,11 +11519,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_42_PAWNS) {
                 if (mb_info.index_op_42 != ALL_ONES) {
                     ind->index = mb_info.index_op_42;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 4 vs 2 pawn, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
@@ -12410,25 +11527,13 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache->pawn_file_type == OP_24_PAWNS) {
                 if (mb_info.index_op_24 != ALL_ONES) {
                     ind->index = mb_info.index_op_24;
-                    if (Verbose > 4) {
-                        MyPrintf("GetMBResult: Found index " DEC_ZINDEX_FORMAT
-                                 " for 2 vs 4 pawn, 1 opposing pawn pair\n",
-                                 ind->index);
-                    }
                     found_pawn_file = true;
                 }
             }
         }
 
         if (!found_pawn_file) {
-            if (Verbose > 3) {
-                MyPrintf("GetMBResult: Could not find pawn file in cache\n");
-            }
             continue;
-        } else {
-            if (Verbose > 3) {
-                MyPrintf("GetMBResult: Found pawn file in cache\n");
-            }
         }
 
         file_index = np;
@@ -12444,25 +11549,10 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
 
     // if file pointer is not cached, need to open new file
 
-    if (Verbose > 3) {
-        if (file_index == -1)
-            MyPrintf("GetMBResult: file_index from scan: %d so need to open "
-                     "new one\n",
-                     file_index);
-        else
-            MyPrintf("GetMBResult: file_index from scan: %d so can use "
-                     "existing one\n",
-                     file_index);
-    }
-
     if (file_index == -1) {
         cache_hit = false;
         char ending[64];
         GetEndingName(mb_info.piece_type_count, ending);
-        if (Verbose > 3) {
-            MyPrintf("GetMBResult: Ending Name when searching for file: %s\n",
-                     ending);
-        }
 
         file file_mb = NULL;
         int bishop_parity[2] = {NONE, NONE};
@@ -12480,19 +11570,9 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
 
         // now try any blocked pawn files
 
-        if (file_mb == NULL) {
-            if (Verbose > 3)
-                MyPrintf("GetMBResult: could not find file in bishop parity "
-                         "search\n");
-        }
-
         int pawn_file_type = FREE_PAWNS;
 
         if (file_mb == NULL) {
-            if (Verbose > 3) {
-                MyPrintf("GetMBResult: Searching file with pawn file type %s\n",
-                         OpExtensionName[mb_info.pawn_file_type]);
-            }
             if ((mb_info.pawn_file_type == OP_11_PAWNS ||
                  mb_info.pawn_file_type == BP_11_PAWNS) &&
                 mb_info.index_op_11 != ALL_ONES) {
@@ -12602,17 +11682,8 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 pawn_file_type = OP_24_PAWNS;
             }
             if (file_mb == NULL) {
-                if (Verbose > 3) {
-                    MyPrintf("GetMBResult: Did not find file for %s, returning "
-                             "file missing\n",
-                             OpExtensionName[mb_info.pawn_file_type]);
-                }
                 INDEX_DATA ind_yk;
                 return GetYKResult(Board, &ind_yk);
-            } else {
-                if (Verbose > 3)
-                    MyPrintf("GetMBResult: Found file for %s\n",
-                             OpExtensionName[mb_info.pawn_file_type]);
             }
         }
 
@@ -12633,8 +11704,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
 
         if (fcache->header.num_blocks > fcache->max_num_blocks) {
             if (fcache->max_num_blocks > 0) {
-                MyFree(fcache->offsets,
-                       (fcache->max_num_blocks + 1) * sizeof(INDEX));
+                MyFree(fcache->offsets);
             }
             fcache->max_num_blocks = fcache->header.num_blocks;
             fcache->offsets =
@@ -12660,29 +11730,15 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         cached_file_lru[0][side] = file_index;
     }
 
-    if (Verbose > 3) {
-        MyPrintf(
-            "GetMBResult: Searching result for %s, index " DEC_ZINDEX_FORMAT
-            " block index %d, header block size %" PRIu32 "\n",
-            fcache->header.basename, ind->index, fcache->block_index,
-            fcache->header.block_size);
-    }
-
     int b_index = ind->index / fcache->header.block_size;
 
     if (b_index != fcache->block_index) {
         cache_hit = false;
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
-        if (Verbose > 4) {
-            MyPrintf("GetMBResult: Reading compressed block size %" PRIu32
-                     " at "
-                     "offset " DEC_INDEX_FORMAT " block index %d\n",
-                     length, fcache->offsets[b_index], b_index);
-        }
         if (length > CompressionBufferSize) {
             if (CompressionBuffer != NULL) {
-                MyFree(CompressionBuffer, CompressionBufferSize);
+                MyFree(CompressionBuffer);
             }
             CompressionBufferSize = length;
             CompressionBuffer = (uint8_t *)MyMalloc(CompressionBufferSize);
@@ -12691,7 +11747,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         uint32_t tmp_zone_size = fcache->header.block_size;
         if (tmp_zone_size > fcache->max_block_size) {
             if (fcache->block != NULL) {
-                MyFree(fcache->block, fcache->max_block_size);
+                MyFree(fcache->block);
             }
             fcache->max_block_size = tmp_zone_size;
             fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
@@ -12703,10 +11759,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
     }
 
     result = fcache->block[ind->index % fcache->header.block_size];
-
-    if (Verbose > 3) {
-        MyPrintf("GetMBResult: Result from database: %d\n", result);
-    }
 
     // check for results with > 254 moves if possible
 
@@ -12883,11 +11935,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
             break;
         }
 
-        if (Verbose > 3) {
-            MyPrintf("GetMBResult: file_index for high dtz from scan: %d\n",
-                     file_index);
-        }
-
         // if file pointer is not cached, need to open new file
 
         if (file_index == -1) {
@@ -13044,23 +12091,14 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                    fcache_high_dtz->fp, 0);
 
             if (fcache_high_dtz->header.list_element_size != sizeof(HIGH_DTZ)) {
-                if (Verbose > 1) {
-                    MyPrintf("GetMBResult: High DTZ size for %s, side=%s, "
-                             "kk_index=%d not consistent; not read\n",
-                             ending, ColorName(side), mb_info.kk_index);
-                }
                 return HIGH_DTZ_MISSING;
             }
 
             if (fcache_high_dtz->header.num_blocks >
                 fcache_high_dtz->max_num_blocks) {
                 if (fcache_high_dtz->max_num_blocks > 0) {
-                    MyFree(fcache_high_dtz->offsets,
-                           (fcache_high_dtz->max_num_blocks + 1) *
-                               sizeof(INDEX));
-                    MyFree(fcache_high_dtz->starting_index,
-                           (fcache_high_dtz->max_num_blocks + 1) *
-                               sizeof(ZINDEX));
+                    MyFree(fcache_high_dtz->offsets);
+                    MyFree(fcache_high_dtz->starting_index);
                 }
                 fcache_high_dtz->max_num_blocks =
                     fcache_high_dtz->header.num_blocks;
@@ -13082,8 +12120,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
             uint32_t block_size = fcache_high_dtz->header.block_size;
             if (block_size > fcache_high_dtz->max_block_size) {
                 if (fcache_high_dtz->max_block_size > 0) {
-                    MyFree(fcache_high_dtz->block,
-                           fcache_high_dtz->max_block_size);
+                    MyFree(fcache_high_dtz->block);
                 }
                 fcache_high_dtz->max_block_size = block_size;
                 fcache_high_dtz->block = (uint8_t *)MyMalloc(block_size);
@@ -13159,7 +12196,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                 fcache_high_dtz->offsets[fcache_high_dtz->block_index];
             if (length > CompressionBufferSize) {
                 if (CompressionBuffer != NULL) {
-                    MyFree(CompressionBuffer, CompressionBufferSize);
+                    MyFree(CompressionBuffer);
                 }
                 CompressionBufferSize = length;
                 CompressionBuffer = (uint8_t *)MyMalloc(CompressionBufferSize);
@@ -13216,10 +12253,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         result = GetYKResult(Board, &ind_yk);
     }
 
-    if (Verbose > 3) {
-        MyPrintf("GetMBResult: Returning with final result %d\n", result);
-    }
-
     return result;
 }
 
@@ -13235,10 +12268,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
  * The input position is assumed to be legal.
  */
 static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
-    if (Verbose > 4) {
-        MyPrintf("Entering ScorePosition\n");
-    }
-
     if (BoardIn->num_pieces == 2)
         return DRAW;
 
@@ -13268,23 +12297,12 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
 
     int result = GetMBResult(&Board, index);
 
-    if (Verbose > 3) {
-        char label[64];
-        sprintf(label, "ScorePosition: MB result: %d", result);
-    }
-
     // if we have definite result, can return right away
 
     if (!(result < 0 || result == UNRESOLVED)) {
         if ((Board.side == WHITE) || result == LOST || result == WON ||
             result == HIGH_DTZ_MISSING) {
-            if (Verbose > 3) {
-                MyPrintf("ScorePosition: Returning %d\n", result);
-            }
             return result;
-        }
-        if (Verbose > 3) {
-            MyPrintf("ScorePosition: Returning %d\n", -result);
         }
         return -result;
     }
@@ -13297,11 +12315,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
             return UNKNOWN;
         else if (result == UNRESOLVED) {
             return DRAW;
-        } else {
-            if (Verbose > 1) {
-                char label[64];
-                sprintf(label, "Unexpected result %d", result);
-            }
         }
     }
 
@@ -13310,12 +12323,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
     INDEX_DATA index2;
 
     int result_flipped = GetMBResult(&Board, &index2);
-
-    if (Verbose > 3) {
-        char label[64];
-        sprintf(label, "ScorePosition: result=%d result_flipped=%d", result,
-                result_flipped);
-    }
 
     if (result_flipped == WON || result_flipped == LOST ||
         result_flipped == HIGH_DTZ_MISSING)
@@ -13339,14 +12346,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
             return NOT_WON;
         else
             return NOT_LOST;
-    } else {
-        if (Verbose > 1) {
-            char label[78];
-            sprintf(
-                label,
-                "ScorePosition: Unexpected result=%d, flipped=%d combination",
-                result, result_flipped);
-        }
     }
 
     return UNKNOWN;
