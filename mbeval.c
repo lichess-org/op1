@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -624,6 +625,8 @@ static size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     size_t total = 0;
     while (total < cb) {
         ssize_t result = pread(fp->fd, pv, cb - total, indStart + total);
+        if (result < 0 && errno == EINTR)
+            continue;
         if (result < 0) {
             perror("f_read");
             abort();
