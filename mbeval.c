@@ -1399,26 +1399,15 @@ static void InitN2Tables(int *tab, int *pos) {
                 if (pos != NULL)
                     pos[index] = p2 + NSQUARES * p1;
                 int g_index = N2_Index_Function(p2, p1);
-                if (index != g_index) {
-                    fprintf(stderr,
-                            "Bad pair index: index=%d computed index=%d p1=%d "
-                            "p2=%d\n",
-                            index, g_index, p1, p2);
-                    exit(1);
-                }
+                assert(index == g_index);
                 score = index++;
             }
-            if (tab != NULL) {
-                tab[p1 + NSQUARES * p2] = score;
-                tab[p2 + NSQUARES * p1] = score;
-            }
+            tab[p1 + NSQUARES * p2] = score;
+            tab[p2 + NSQUARES * p1] = score;
         }
     }
 
-    if (index != N2) {
-        fprintf(stderr, "Got %d doublets, expected %d\n", index, N2);
-        exit(1);
-    }
+    assert(index == N2);
 }
 
 static void InitN2OddTables(int *tab, int *pos) {
@@ -1438,22 +1427,14 @@ static void InitN2OddTables(int *tab, int *pos) {
             int parity2 = (row2 & 1) ^ (col2 & 1);
             if (parity1 == parity2)
                 continue;
-            if (pos != NULL) {
-                pos[index] = p2 + NSQUARES * p1;
-                score = index++;
-            }
-            if (tab != NULL) {
-                tab[p1 + NSQUARES * p2] = score;
-                tab[p2 + NSQUARES * p1] = score;
-            }
+            pos[index] = p2 + NSQUARES * p1;
+            score = index++;
+            tab[p1 + NSQUARES * p2] = score;
+            tab[p2 + NSQUARES * p1] = score;
         }
     }
 
-    if (index != N2_ODD_PARITY) {
-        fprintf(stderr, "Got %d odd doublets, expected %d\n", index,
-                N2_ODD_PARITY);
-        exit(1);
-    }
+    assert(index == N2_ODD_PARITY);
 }
 
 static void InitN2EvenTables(int *tab, int *pos) {
@@ -1473,22 +1454,14 @@ static void InitN2EvenTables(int *tab, int *pos) {
             int parity2 = (row2 & 1) ^ (col2 & 1);
             if (parity1 != parity2)
                 continue;
-            if (pos != NULL) {
-                pos[index] = p2 + NSQUARES * p1;
-                score = index++;
-            }
-            if (tab != NULL) {
-                tab[p1 + NSQUARES * p2] = score;
-                tab[p2 + NSQUARES * p1] = score;
-            }
+            pos[index] = p2 + NSQUARES * p1;
+            score = index++;
+            tab[p1 + NSQUARES * p2] = score;
+            tab[p2 + NSQUARES * p1] = score;
         }
     }
 
-    if (index != N2_EVEN_PARITY) {
-        fprintf(stderr, "Got %d even doublets, expected %d\n", index,
-                N2_EVEN_PARITY);
-        exit(1);
-    }
+    assert(index == N2_EVEN_PARITY);
 }
 
 static void InitN3EvenTables(int *tab, int *pos) {
@@ -1515,27 +1488,19 @@ static void InitN3EvenTables(int *tab, int *pos) {
                 int parity3 = (row3 & 1) ^ (col3 & 1);
                 if (parity3 != parity1)
                     continue;
-                if (pos != NULL) {
-                    pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
-                    score = index++;
-                }
-                if (tab != NULL) {
-                    tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
-                    tab[p1 + NSQUARES * (p3 + NSQUARES * p2)] = score;
-                    tab[p2 + NSQUARES * (p1 + NSQUARES * p3)] = score;
-                    tab[p2 + NSQUARES * (p3 + NSQUARES * p1)] = score;
-                    tab[p3 + NSQUARES * (p1 + NSQUARES * p2)] = score;
-                    tab[p3 + NSQUARES * (p2 + NSQUARES * p1)] = score;
-                }
+                pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
+                score = index++;
+                tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
+                tab[p1 + NSQUARES * (p3 + NSQUARES * p2)] = score;
+                tab[p2 + NSQUARES * (p1 + NSQUARES * p3)] = score;
+                tab[p2 + NSQUARES * (p3 + NSQUARES * p1)] = score;
+                tab[p3 + NSQUARES * (p1 + NSQUARES * p2)] = score;
+                tab[p3 + NSQUARES * (p2 + NSQUARES * p1)] = score;
             }
         }
     }
 
-    if (index != N3_EVEN_PARITY) {
-        fprintf(stderr, "Got %d even triplets, expected %d\n", index,
-                N3_EVEN_PARITY);
-        exit(1);
-    }
+    assert(index == N3_EVEN_PARITY);
 }
 
 static void InitN3OddTables(int *tab, int *pos) {
@@ -1560,27 +1525,19 @@ static void InitN3OddTables(int *tab, int *pos) {
                 int parity3 = (row3 & 1) ^ (col3 & 1);
                 if (parity1 == parity3 && parity1 == parity2)
                     continue;
-                if (pos != NULL) {
-                    pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
-                    score = index++;
-                }
-                if (tab != NULL) {
-                    tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
-                    tab[p1 + NSQUARES * (p3 + NSQUARES * p2)] = score;
-                    tab[p2 + NSQUARES * (p1 + NSQUARES * p3)] = score;
-                    tab[p2 + NSQUARES * (p3 + NSQUARES * p1)] = score;
-                    tab[p3 + NSQUARES * (p1 + NSQUARES * p2)] = score;
-                    tab[p3 + NSQUARES * (p2 + NSQUARES * p1)] = score;
-                }
+                pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
+                score = index++;
+                tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
+                tab[p1 + NSQUARES * (p3 + NSQUARES * p2)] = score;
+                tab[p2 + NSQUARES * (p1 + NSQUARES * p3)] = score;
+                tab[p2 + NSQUARES * (p3 + NSQUARES * p1)] = score;
+                tab[p3 + NSQUARES * (p1 + NSQUARES * p2)] = score;
+                tab[p3 + NSQUARES * (p2 + NSQUARES * p1)] = score;
             }
         }
     }
 
-    if (index != N3_ODD_PARITY) {
-        fprintf(stderr, "Got %d odd triplets, expected %d\n", index,
-                N3_ODD_PARITY);
-        exit(1);
-    }
+    assert(index == N3_ODD_PARITY);
 }
 
 static void InitN2OpposingTables(int *tab, int *pos) {
@@ -1601,21 +1558,13 @@ static void InitN2OpposingTables(int *tab, int *pos) {
                 fprintf(stderr, "Too many positions for opposing pawns\n");
                 exit(1);
             }
-            if (tab != NULL) {
-                tab[sq2 + NSQUARES * sq1] = index;
-            }
-            if (pos != NULL) {
-                pos[index] = sq2 + NSQUARES * sq1;
-            }
+            tab[sq2 + NSQUARES * sq1] = index;
+            pos[index] = sq2 + NSQUARES * sq1;
             index++;
         }
     }
 
-    if (index != NCOLS * (NROWS - 2) * (NROWS - 3) / 2) {
-        fprintf(stderr, "Got %d opposing pawn positions, expected %d\n", index,
-                NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-        exit(1);
-    }
+    assert(index == NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
 }
 
 static void InitN2_1_OpposingTables(int *tab, int *pos) {
@@ -1718,12 +1667,7 @@ static void InitN2_1_OpposingTables(int *tab, int *pos) {
         board[wp1_physical] = 0;
     }
 
-    if (index != N2_1_OPPOSING) {
-        fprintf(stderr,
-                "Saw %d 2 vs 1 pawns with one opposing pairs, expected %d\n",
-                index, N2_1_OPPOSING);
-        exit(1);
-    }
+    assert(index == N2_1_OPPOSING);
 }
 
 static void InitN1_2_OpposingTables(int *tab, int *pos) {
@@ -1827,12 +1771,7 @@ static void InitN1_2_OpposingTables(int *tab, int *pos) {
         board[wp1_physical] = 0;
     }
 
-    if (index != N1_2_OPPOSING) {
-        fprintf(stderr,
-                "Saw %d 1 vs 2 pawns with one opposing pairs, expected %d\n",
-                index, N1_2_OPPOSING);
-        exit(1);
-    }
+    assert(index == N1_2_OPPOSING);
 }
 
 static void InitN2_2_OpposingTables(int *tab, int *pos) {
@@ -2003,13 +1942,7 @@ static void InitN2_2_OpposingTables(int *tab, int *pos) {
         board[wp1_physical] = 0;
     }
 
-    if (index != N2_2_OPPOSING) {
-        fprintf(stderr,
-                "Saw %d 2 vs 2 pawns with at least one opposing pair, expected "
-                "%d\n",
-                index, N2_2_OPPOSING);
-        exit(1);
-    }
+    assert(index == N2_2_OPPOSING);
 }
 
 static void InitN3_1_OpposingTables(int *tab, int *pos) {
@@ -2164,13 +2097,7 @@ static void InitN3_1_OpposingTables(int *tab, int *pos) {
         board[wp1_physical] = 0;
     }
 
-    if (index != N3_1_OPPOSING) {
-        fprintf(stderr,
-                "Saw %d 3 vs 1 pawns with at least one opposing pair, expected "
-                "%d\n",
-                index, N3_1_OPPOSING);
-        exit(1);
-    }
+    assert(index == N3_1_OPPOSING);
 }
 
 static void InitN1_3_OpposingTables(int *tab, int *pos) {
@@ -2325,13 +2252,7 @@ static void InitN1_3_OpposingTables(int *tab, int *pos) {
         board[bp1] = 0;
     }
 
-    if (index != N1_3_OPPOSING) {
-        fprintf(stderr,
-                "Saw %d 1 vs 3 pawns with at least one opposing pair, expected "
-                "%d\n",
-                index, N1_3_OPPOSING);
-        exit(1);
-    }
+    assert(index == N1_3_OPPOSING);
 }
 
 enum { ONE_COLUMN = 0, ADJACENT, NON_ADJACENT, NO_DP22 };
@@ -2519,10 +2440,7 @@ static void InitN4OpposingTables(int *tab, int *pos) {
                     tpos[4] = b1;
                     tpos[5] = b2;
                     ZINDEX index = IndexDP22(tpos);
-                    if (index == ALL_ONES) {
-                        fprintf(stderr, "Bad w1 %o w2 %o b1 %o b2 %o\n", w1, w2,
-                                b1, b2);
-                    }
+                    assert(index != ALL_ONES);
                 }
             }
         }
@@ -2796,126 +2714,74 @@ static void InitPermutationTables(void) {
         MyPrintf("Initializing and checking permutation table for 2 "
                  "opposing pawns\n");
     }
-    if (k2_opposing_tab == NULL) {
-        k2_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
-    }
-    if (p2_opposing_tab == NULL) {
-        p2_opposing_tab = (int *)MyMalloc(NCOLS * (NROWS - 2) * (NROWS - 3) /
-                                          2 * sizeof(int));
-    }
+    k2_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
+    p2_opposing_tab =
+        (int *)MyMalloc(NCOLS * (NROWS - 2) * (NROWS - 3) / 2 * sizeof(int));
     InitN2OpposingTables(k2_opposing_tab, p2_opposing_tab);
 
     if (Verbose > 1) {
         MyPrintf("Initializing permutation tables for two vs one pawn, "
                  "with one opposing pair\n");
     }
-    if (k2_1_opposing_tab == NULL) {
-        k2_1_opposing_tab =
-            (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    }
-    if (p2_1_opposing_tab == NULL) {
-        p2_1_opposing_tab = (int *)MyMalloc(N2_1_OPPOSING * sizeof(int));
-    }
+    k2_1_opposing_tab =
+        (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
+    p2_1_opposing_tab = (int *)MyMalloc(N2_1_OPPOSING * sizeof(int));
     InitN2_1_OpposingTables(k2_1_opposing_tab, p2_1_opposing_tab);
 
     if (Verbose > 1) {
         MyPrintf("Initializing permutation tables for one vs two pawns, "
                  "with one opposing pair\n");
     }
-    if (k1_2_opposing_tab == NULL) {
-        k1_2_opposing_tab =
-            (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    }
-    if (p1_2_opposing_tab == NULL) {
-        p1_2_opposing_tab = (int *)MyMalloc(N1_2_OPPOSING * sizeof(int));
-    }
+    k1_2_opposing_tab =
+        (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
+    p1_2_opposing_tab = (int *)MyMalloc(N1_2_OPPOSING * sizeof(int));
     InitN1_2_OpposingTables(k1_2_opposing_tab, p1_2_opposing_tab);
 
     if (Verbose > 1) {
         MyPrintf("Initializing permutation tables for two vs two pawns, "
                  "with one opposing pair\n");
     }
-    if (k2_2_opposing_tab == NULL) {
-        k2_2_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
-                                            NSQUARES * sizeof(int));
-    }
-    if (p2_2_opposing_tab == NULL) {
-        p2_2_opposing_tab = (int *)MyMalloc(N2_2_OPPOSING * sizeof(int));
-    }
+    k2_2_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
+                                        NSQUARES * sizeof(int));
+    p2_2_opposing_tab = (int *)MyMalloc(N2_2_OPPOSING * sizeof(int));
     InitN2_2_OpposingTables(k2_2_opposing_tab, p2_2_opposing_tab);
 
     if (Verbose > 1) {
         MyPrintf("Initializing permutation tables for three vs one pawn, "
                  "with one opposing pair\n");
     }
-    if (k3_1_opposing_tab == NULL) {
-        k3_1_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
-                                            NSQUARES * sizeof(int));
-    }
-    if (p3_1_opposing_tab == NULL) {
-        p3_1_opposing_tab = (int *)MyMalloc(N3_1_OPPOSING * sizeof(int));
-    }
+    k3_1_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
+                                        NSQUARES * sizeof(int));
+    p3_1_opposing_tab = (int *)MyMalloc(N3_1_OPPOSING * sizeof(int));
     InitN3_1_OpposingTables(k3_1_opposing_tab, p3_1_opposing_tab);
 
     if (Verbose > 1) {
         MyPrintf("Initializing permutation tables for one vs three pawns, "
                  "with one opposing pair\n");
     }
-    if (k1_3_opposing_tab == NULL) {
-        k1_3_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
-                                            NSQUARES * sizeof(int));
-    }
-    if (p1_3_opposing_tab == NULL) {
-        p1_3_opposing_tab = (int *)MyMalloc(N1_3_OPPOSING * sizeof(int));
-    }
+    k1_3_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
+                                        NSQUARES * sizeof(int));
+    p1_3_opposing_tab = (int *)MyMalloc(N1_3_OPPOSING * sizeof(int));
     InitN1_3_OpposingTables(k1_3_opposing_tab, p1_3_opposing_tab);
 
     if (Verbose > 1) {
         MyPrintf("Initializing and checking permutation table for two "
                  "pairs of opposing pawns\n");
     }
-
-    if (k4_opposing_tab == NULL) {
-        k4_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
-                                          NSQUARES * sizeof(int));
-    }
-    if (p4_opposing_tab == NULL) {
-        p4_opposing_tab = (int *)MyMalloc(N4_OPPOSING * sizeof(int));
-    }
+    k4_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
+                                      NSQUARES * sizeof(int));
+    p4_opposing_tab = (int *)MyMalloc(N4_OPPOSING * sizeof(int));
     InitN4OpposingTables(k4_opposing_tab, p4_opposing_tab);
 
     if (Verbose > 1) {
         MyPrintf("Initializing and checking permutation table for "
                  "7 pieces\n");
     }
-    if (p4_tab_mb == NULL) {
-        p4_tab_mb = (int *)MyMalloc(N4 * sizeof(int));
-        InitN4TablesMB(p4_tab_mb);
-    }
+    p4_tab_mb = (int *)MyMalloc(N4 * sizeof(int));
+    InitN4TablesMB(p4_tab_mb);
     InitN5Tables();
     InitN6Tables();
     InitN7Tables();
-
-    if (Verbose > 1) {
-        MyPrintf("Initializing and checking permutation table for "
-                 "6 pieces\n");
-    }
-    if (p4_tab_mb == NULL) {
-        p4_tab_mb = (int *)MyMalloc(N4 * sizeof(int));
-        InitN4TablesMB(p4_tab_mb);
-    }
-    InitN5Tables();
-    InitN6Tables();
-
-    if (Verbose > 1) {
-        MyPrintf("Initializing and checking permutation table for "
-                 "5 pieces\n");
-    }
-    if (p4_tab_mb == NULL) {
-        p4_tab_mb = (int *)MyMalloc(N4 * sizeof(int));
-        InitN4TablesMB(p4_tab_mb);
-    }
-    InitN5Tables();
 
     if (Verbose > 1)
         MyPrintf("Initializing and checking permutation tables for "
@@ -2923,11 +2789,9 @@ static void InitPermutationTables(void) {
 #if defined(USE_PERMUTATION_FUNCTIONS)
     InitN4Tables(NULL, NULL);
 #else
-    if (k4_tab == NULL)
-        k4_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * NSQUARES *
-                                 sizeof(int));
-    if (p4_tab == NULL)
-        p4_tab = (int *)MyMalloc(N4 * sizeof(int));
+    k4_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * NSQUARES *
+                             sizeof(int));
+    p4_tab = (int *)MyMalloc(N4 * sizeof(int));
     InitN4Tables(k4_tab, p4_tab);
 #endif
 
@@ -2937,31 +2801,22 @@ static void InitPermutationTables(void) {
 #if defined(USE_PERMUTATION_FUNCTIONS)
     InitN3Tables(NULL, NULL);
 #else
-    if (k3_tab == NULL)
-        k3_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    if (p3_tab == NULL)
-        p3_tab = (int *)MyMalloc(N3 * sizeof(int));
+    k3_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
+    p3_tab = (int *)MyMalloc(N3 * sizeof(int));
     InitN3Tables(k3_tab, p3_tab);
 #endif
 
 #if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
-
     if (Verbose > 1)
         MyPrintf("Initializing tables for even triplets\n");
-    if (k3_even_tab == NULL)
-        k3_even_tab =
-            (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    if (p3_even_tab == NULL)
-        p3_even_tab = (int *)MyMalloc(N3_EVEN_PARITY * sizeof(int));
+    k3_even_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
+    p3_even_tab = (int *)MyMalloc(N3_EVEN_PARITY * sizeof(int));
     InitN3EvenTables(k3_even_tab, p3_even_tab);
 
     if (Verbose > 1)
         MyPrintf("Initializing tables for odd triplets\n");
-    if (k3_odd_tab == NULL)
-        k3_odd_tab =
-            (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    if (p3_odd_tab == NULL)
-        p3_odd_tab = (int *)MyMalloc(N3_ODD_PARITY * sizeof(int));
+    k3_odd_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
+    p3_odd_tab = (int *)MyMalloc(N3_ODD_PARITY * sizeof(int));
     InitN3OddTables(k3_odd_tab, p3_odd_tab);
 #endif
 
@@ -2971,33 +2826,27 @@ static void InitPermutationTables(void) {
 #if defined(USE_PERMUTATION_FUNCTIONS)
     InitN2Tables(NULL, NULL);
 #else
-    if (k2_tab == NULL)
-        k2_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
-    if (p2_tab == NULL)
-        p2_tab = (int *)MyMalloc(N2 * sizeof(int));
+    k2_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
+    p2_tab = (int *)MyMalloc(N2 * sizeof(int));
     InitN2Tables(k2_tab, p2_tab);
 #endif
 
 #if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
     if (Verbose > 1)
         MyPrintf("Initializing tables for even doublets\n");
-    if (k2_even_tab == NULL)
-        k2_even_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
-    if (p2_even_tab == NULL)
-        p2_even_tab = (int *)MyMalloc(N2_EVEN_PARITY * sizeof(int));
+    k2_even_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
+    p2_even_tab = (int *)MyMalloc(N2_EVEN_PARITY * sizeof(int));
     InitN2EvenTables(k2_even_tab, p2_even_tab);
 
 #endif
     if (Verbose > 1)
         MyPrintf("Initializing tables for odd doublets\n");
-    if (k2_odd_tab == NULL)
-        k2_odd_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
-    if (p2_odd_tab == NULL)
-        p2_odd_tab = (int *)MyMalloc(N2_ODD_PARITY * sizeof(int));
+    k2_odd_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
+    p2_odd_tab = (int *)MyMalloc(N2_ODD_PARITY * sizeof(int));
     InitN2OddTables(k2_odd_tab, p2_odd_tab);
 }
 
-int BinarySearchLeftmost(ZINDEX *arr, int n, ZINDEX x) {
+static int BinarySearchLeftmost(ZINDEX *arr, int n, ZINDEX x) {
     int l = 0, r = n;
     while (l < r) {
         int m = (l + r) / 2;
@@ -10523,7 +10372,7 @@ static int CastleRights(int *board, int proposed_castle) {
 
 static int ScanPosition(char *pos_string, int *board, int *ep_square,
                         int *castle, char *title) {
-    int i = 0, side, row, col, pi, sq, n, wk, bk;
+    int i = 0, side = NEUTRAL, row, col, pi, sq, n, wk = -1, bk = -1;
     char ccol, ptype, *pptr;
 
     memset(board, 0, NSQUARES * sizeof(board[0]));
@@ -10627,9 +10476,6 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
             return NEUTRAL;
         }
     }
-
-    wk = -1;
-    bk = -1;
 
     for (i = 0; i < NSQUARES; i++) {
         if (board[i] == KING) {
@@ -10792,7 +10638,7 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
     char pos_str[128], side_str[128], castle_str[128], ep_str[128];
     char half_move_str[128], full_move_str[128];
     char *pptr, save_char;
-    int kings[2], n, row, col, side, wk, bk;
+    int kings[2], n, row, col, side, wk = -1, bk = -1;
 
     if (fen_string[0] == '#' || strlen(fen_string) < 6)
         return NEUTRAL;
@@ -11182,10 +11028,14 @@ static bool KK_Canonical(int *wk_in, int *bk_in, int *sym) {
         int *transform = Transforms[isym];
         int wk_trans = transform[wk];
         int bk_trans = transform[bk];
+#if (NCOLS % 2)
         int wk_trans_row = Row(wk_trans);
+#endif
         int wk_trans_col = Column(wk_trans);
+#if (NCOLS % 2)
         int bk_trans_row = Row(bk_trans);
         int bk_trans_col = Column(bk_trans);
+#endif
         bool sym_found = false;
 
         if (wk_trans_col < (NCOLS + 1) / 2) {
@@ -13088,7 +12938,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         return GetYKResult(Board, &ind_yk);
     }
 
-    MB_INFO mb_info;
+    MB_INFO mb_info = {0};
     FILE_CACHE *fcache;
     bool cache_hit = true;
 
@@ -14450,10 +14300,6 @@ static void AssertScore(const char *fen, int expected_score) {
 }
 
 int main(int argc, char *argv[]) {
-#if (NROWS != 8) || (NCOLS != 8)
-#error Only works on 8x8 board
-#endif
-
     InitTransforms();
     InitParity();
     InitPieceStrengths();
