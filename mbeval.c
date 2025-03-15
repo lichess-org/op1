@@ -56,7 +56,9 @@ enum {
 enum { NO_COMPRESSION = 0, ZLIB, ZSTD, NUM_COMPRESSION_METHODS };
 enum { ZLIB_YK = 0, BZIP_YK, LZMA_YK, ZSTD_YK, NO_COMPRESSION_YK };
 
-static ZSTD_DCtx *ZSTD_DecompressionContext = NULL;
+typedef struct {
+    ZSTD_DCtx *zstd_decompression;
+} CONTEXT;
 
 #define COMPRESS_OK Z_OK
 #define COMPRESS_NOT_OK ((COMPRESS_OK) + 1)
@@ -8526,7 +8528,7 @@ static void InitCaches() {
     }
 }
 
-static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
+static int MyUncompress(CONTEXT* ctx, uint8_t *dest, uint32_t *dest_size,
                         const uint8_t *source, uint32_t source_size,
                         int method) {
     if (method == NO_COMPRESSION) {
@@ -8534,12 +8536,8 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
         memcpy(dest, source, source_size);
     } else if (method == ZSTD) {
         size_t destCapacity = *dest_size;
-        if (ZSTD_DecompressionContext == NULL)
             destCapacity =
-                ZSTD_decompress(dest, destCapacity, source, source_size);
-        else
-            destCapacity =
-                ZSTD_decompressDCtx(ZSTD_DecompressionContext, dest,
+                ZSTD_decompressDCtx(ctx->zstd_decompression, dest,
                                     destCapacity, source, source_size);
         if (ZSTD_isError(destCapacity)) {
             return COMPRESS_NOT_OK;
@@ -10834,7 +10832,7 @@ static int GetYKInfo(const BOARD *Board, YK_INFO *yk_info) {
  * A checkmate is loss in 0
  */
 
-static int GetYKResult(const BOARD *Board, INDEX_DATA *ind) {
+static int GetYKResult(CONTEXT* ctx, const BOARD *Board, INDEX_DATA *ind) {
     YK_INFO yk_info;
     FILE_CACHE_YK *fcache = NULL;
 
@@ -11022,7 +11020,7 @@ static int GetYKResult(const BOARD *Board, INDEX_DATA *ind) {
             fcache->max_block_size = tmp_zone_size;
             fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
         }
-        MyUncompress(fcache->block, &tmp_zone_size, CompressionBuffer, length,
+        MyUncompress(ctx, fcache->block, &tmp_zone_size, CompressionBuffer, length,
                      fcache->compression_method);
         assert(tmp_zone_size == fcache->block_size);
         fcache->block_index = b_index;
@@ -11079,7 +11077,7 @@ static int GetYKResult(const BOARD *Board, INDEX_DATA *ind) {
     return result;
 }
 
-static int GetMBResult(const BOARD *Board, INDEX_DATA *ind) {
+static int GetMBResult(CONTEXT*ctx, const BOARD *Board, INDEX_DATA *ind) {
     MB_INFO mb_info = {0};
     FILE_CACHE *fcache;
 
@@ -11401,7 +11399,7 @@ static int GetMBResult(const BOARD *Board, INDEX_DATA *ind) {
             }
             if (file_mb == NULL) {
                 INDEX_DATA ind_yk;
-                return GetYKResult(Board, &ind_yk);
+                return GetYKResult(ctx, Board, &ind_yk);
             }
         }
 
@@ -11469,7 +11467,7 @@ static int GetMBResult(const BOARD *Board, INDEX_DATA *ind) {
             fcache->max_block_size = tmp_zone_size;
             fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
         }
-        MyUncompress(fcache->block, &tmp_zone_size, CompressionBuffer, length,
+        MyUncompress(ctx, fcache->block, &tmp_zone_size, CompressionBuffer, length,
                      fcache->header.compression_method);
         assert(tmp_zone_size == fcache->header.block_size);
         fcache->block_index = b_index;
@@ -11922,7 +11920,7 @@ static int GetMBResult(const BOARD *Board, INDEX_DATA *ind) {
                     n_per_block_cached = rem;
             }
             uint32_t tmp_zone_size = n_per_block_cached * sizeof(HIGH_DTZ);
-            MyUncompress((uint8_t *)fcache_high_dtz->block, &tmp_zone_size,
+            MyUncompress(ctx, (uint8_t *)fcache_high_dtz->block, &tmp_zone_size,
                          CompressionBuffer, length,
                          fcache_high_dtz->header.compression_method);
             assert(tmp_zone_size == n_per_block_cached * sizeof(HIGH_DTZ));
@@ -11956,7 +11954,7 @@ static int GetMBResult(const BOARD *Board, INDEX_DATA *ind) {
 
     if (result == UNKNOWN) {
         INDEX_DATA ind_yk;
-        result = GetYKResult(Board, &ind_yk);
+        result = GetYKResult(ctx, Board, &ind_yk);
     }
 
     return result;
@@ -11973,7 +11971,7 @@ static int GetMBResult(const BOARD *Board, INDEX_DATA *ind) {
  *
  * The input position is assumed to be legal.
  */
-static int ScorePosition(const BOARD *BoardIn, INDEX_DATA *index) {
+static int ScorePosition(CONTEXT* ctx, const BOARD *BoardIn, INDEX_DATA *index) {
     if (BoardIn->num_pieces == 2)
         return DRAW;
 
@@ -11998,7 +11996,7 @@ static int ScorePosition(const BOARD *BoardIn, INDEX_DATA *index) {
         FlipBoard(&Board);
     }
 
-    int result = GetMBResult(&Board, index);
+    int result = GetMBResult(ctx, &Board, index);
 
     // if we have definite result, can return right away
     if (!(result < 0 || result == UNRESOLVED)) {
@@ -12022,7 +12020,7 @@ static int ScorePosition(const BOARD *BoardIn, INDEX_DATA *index) {
     FlipBoard(&Board);
 
     INDEX_DATA index2;
-    int result_flipped = GetMBResult(&Board, &index2);
+    int result_flipped = GetMBResult(ctx, &Board, &index2);
 
     if (result_flipped == WON || result_flipped == LOST ||
         result_flipped == HIGH_DTZ_MISSING)
@@ -12105,7 +12103,7 @@ static int InitPaths() {
     return num_paths;
 }
 
-static void AssertScore(const char *fen, int expected_score) {
+static void AssertScore(CONTEXT* ctx, const char *fen, int expected_score) {
     char mutable_fen[256] = {0};
     strncpy(mutable_fen, fen, sizeof(mutable_fen) - 1);
 
@@ -12114,7 +12112,7 @@ static void AssertScore(const char *fen, int expected_score) {
     assert(side != NEUTRAL);
 
     INDEX_DATA index;
-    int score = ScorePosition(&Board, &index);
+    int score = ScorePosition(ctx, &Board, &index);
     if (score != expected_score) {
         printf("FEN: %s - expected score: %d, actual score: %d\n", fen,
                expected_score, score);
@@ -12122,26 +12120,51 @@ static void AssertScore(const char *fen, int expected_score) {
     }
 }
 
-int main(int argc, char *argv[]) {
+void ykmb_init(void) {
     InitTransforms();
     InitParity();
     InitPieceStrengths();
     NumPaths = InitPaths();
     InitCaches();
     InitPermutationTables();
+}
+
+CONTEXT* ykmb_context_create() {
+    CONTEXT* context = (CONTEXT*)MyMalloc(sizeof(CONTEXT));
+    memset(context, 0, sizeof(CONTEXT));
+
+    context->zstd_decompression = ZSTD_createDCtx();
+    assert(context->zstd_decompression != NULL);
+
+    return context;
+}
+
+void ykmb_context_destroy(CONTEXT* context) {
+    assert(context != NULL);
+
+    ZSTD_freeDCtx(context->zstd_decompression);
+    MyFree(context);
+}
+
+int main(int argc, char *argv[]) {
+    ykmb_init();
 
     assert(IsWinningScore(1));
     assert(IsLosingScore(-1));
     assert(ScoreCompare(1, 2) < 0);
 
-    AssertScore("8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", -3);
-    AssertScore("8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1", -1);
-    AssertScore("8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1", -2);
-    AssertScore("8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1", -7);
-    AssertScore("8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", 6);
-    AssertScore("8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", 4);
-    AssertScore("8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1", DRAW);
-    AssertScore("8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", UNKNOWN);
+    CONTEXT* ctx = ykmb_context_create();
+
+    AssertScore(ctx, "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", -3);
+    AssertScore(ctx, "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1", -1);
+    AssertScore(ctx, "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1", -2);
+    AssertScore(ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1", -7);
+    AssertScore(ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", 6);
+    AssertScore(ctx, "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", 4);
+    AssertScore(ctx, "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1", DRAW);
+    AssertScore(ctx, "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", UNKNOWN);
+
+    ykmb_context_destroy(ctx);
 
     return 0;
 }
