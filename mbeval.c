@@ -23582,6 +23582,7 @@ int main(int argc, char *argv[]) {
     InitParity();
     InitPieceStrengths();
     NumPaths = InitPaths();
+    InitCaches();
 
     AssertScore("8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", -3);
     AssertScore("8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1", -1);
