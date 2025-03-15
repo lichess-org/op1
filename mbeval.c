@@ -8,6 +8,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 static char *Version = "7.9";
 
