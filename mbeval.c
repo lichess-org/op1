@@ -821,7 +821,7 @@ static void f_close(file f) {
     if (f == NULL)
         return;
     close(f->fd);
-    MyFree(f);
+    MyFree(f, sizeof(FD_WRAPPER));
     FilesClosed++;
 }
 
