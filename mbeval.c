@@ -12101,6 +12101,30 @@ void ykmb_context_destroy(CONTEXT *context) {
     MyFree(context);
 }
 
+BOARD* ykmb_board_create() {
+    BOARD *board = (BOARD *)MyMalloc(sizeof(BOARD));
+    memset(board, 0, sizeof(BOARD));
+    return board;
+}
+
+void ykmb_board_set(BOARD *board, const int pieces[NSQUARES], int side, int ep_square, int castle, int half_move, int full_move) {
+    assert(board != NULL);
+    SetBoard(board, pieces, side, ep_square, castle, half_move, full_move);
+}
+
+void ykmb_board_destroy(BOARD *board) {
+    assert(board != NULL);
+    MyFree(board);
+}
+
+int ykmb_probe(CONTEXT* ctx, const BOARD* board) {
+    assert(ctx != NULL);
+    assert(board != NULL);
+
+    INDEX_DATA index = {0};
+    return ScorePosition(ctx, board, &index);
+}
+
 int main(int argc, char *argv[]) {
     ykmb_init();
     ykmb_add_path(".");
