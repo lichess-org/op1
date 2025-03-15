@@ -813,7 +813,6 @@ static void f_write(void *pv, size_t cb, file fp, INDEX indStart) {
 }
 
 typedef unsigned char BYTE;
-typedef unsigned long uint32_t;
 
 static FILE *flog = NULL;
 
