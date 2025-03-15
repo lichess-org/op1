@@ -695,12 +695,11 @@ static bool FileExists(char *fname) {
     return access(fname, F_OK) == 0;
 }
 
-#if defined(_WIN32) || defined(_WIN64)
 #define strtok_r strtok_s
 typedef unsigned __int64 INDEX;
 #define DEC_INDEX_FORMAT "%I64u"
-#define SEPARATOR "/"
-#define DELIMITER "\\"
+#define SEPARATOR ":"
+#define DELIMITER "/"
 
 #if defined(USE_64_BIT)
 typedef unsigned __int64 ZINDEX;
@@ -777,229 +776,50 @@ typedef struct {
 static INDEX FileReads = 0;
 static INDEX FileWrites = 0;
 
-typedef HANDLE file;
+typedef struct {
+    int fd;
+} FD_WRAPPER;
+
+typedef FD_WRAPPER* file;
 
 file f_open(const char *szFile, const char *szMode) {
-    HANDLE h;
-    h = CreateFile(
-        szFile,
-        GENERIC_READ |
-            ((('w' == szMode[0]) || ('w' == szMode[1])) ? GENERIC_WRITE : 0),
-        (('r' == szMode[0]) && ('w' != szMode[1])) ? FILE_SHARE_READ : 0, NULL,
-        ('r' == szMode[0]) ? (('w' == szMode[1]) ? OPEN_ALWAYS : OPEN_EXISTING)
-                           : CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL, NULL);
-    if (INVALID_HANDLE_VALUE == h) {
+    int fd = open(szFile, O_RDONLY);
+    if (fd < 0) {
         return NULL;
     }
+
+    FD_WRAPPER* h = MyMalloc(sizeof(FD_WRAPPER));
+    h->fd = fd;
     FilesOpened++;
     return h;
 }
 
 static void f_close(file f) {
-    if (f == 0)
+    if (f == NULL)
         return;
-    if (0 == CloseHandle(f)) {
-        printf("*** Close failed\n");
-        fflush(stdout);
-        exit(1);
-    }
+    close(f->fd);
+    MyFree(f);
     FilesClosed++;
 }
 
 size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
-    bool bResult;
-    uint32_t cbRead;
-
-#if defined(USE_64_BIT)
-    LARGE_INTEGER s;
-    s.QuadPart = indStart;
-    bResult = SetFilePointerEx(fp, s, NULL, FILE_BEGIN);
-    if (bResult == 0 && GetLastError() != NO_ERROR) {
-        fprintf(
-            stderr,
-            "*** SetFilePointerEx failed in f_read: pos is %I64u code is %lx\n",
-            indStart, GetLastError());
-        exit(1);
-        return 0;
+    size_t total = 0;
+    while (total < cb) {
+        ssize_t result = pread(fp->fd, pv, cb - total, indStart + total);
+        if (result < 0) {
+            fprintf(stderr, "*** pread failed: pos is %lu code is %d\n", indStart + total, errno);
+            exit(1);
+            return 0;
+        }
+        total += result;
     }
-#else
-    LONG lHiPos;
-    uint32_t dwPtr;
-
-    if (sizeof(INDEX) == 4)
-        lHiPos = 0;
-    else
-        lHiPos = (LONG)(indStart >> 32);
-    dwPtr = SetFilePointer(fp, (LONG)indStart, &lHiPos, FILE_BEGIN);
-    if (0xFFFFFFFF == dwPtr && NO_ERROR != GetLastError()) {
-        printf("*** Seek failed: pos is %I64x code is %lx\n", indStart,
-               GetLastError());
-        fflush(stdout);
-        exit(1);
-        return 0;
-    }
-#endif
-    bResult = ReadFile(fp, pv, cb, &cbRead, NULL);
-    if (0 == bResult) {
-        printf("*** Read failed\n");
-        fflush(stdout);
-        exit(1);
-        return 0;
-    }
-    FileReads += cbRead;
-    return cbRead;
+    return total;
 }
 
 static void f_write(void *pv, size_t cb, file fp, INDEX indStart) {
-    bool bResult;
-    uint32_t cbWritten;
-#if defined(USE_64_BIT)
-    LARGE_INTEGER s;
-    s.QuadPart = indStart;
-    bResult = SetFilePointerEx(fp, s, NULL, FILE_BEGIN);
-    if (bResult == 0 && GetLastError() != NO_ERROR) {
-        fprintf(stderr,
-                "*** SetFilePointerEx failed in f_write: pos is %I64u code is "
-                "%lx\n",
-                indStart, GetLastError());
-        exit(1);
-    }
-#else
-    LONG lHiPos;
-    uint32_t dwPtr;
-
-    if (sizeof(INDEX) == 4)
-        lHiPos = 0;
-    else
-        lHiPos = (LONG)(indStart >> 32);
-    if (lHiPos == 0)
-        dwPtr = SetFilePointer(fp, (LONG)indStart, NULL, FILE_BEGIN);
-    else
-        dwPtr = SetFilePointer(fp, (LONG)indStart, &lHiPos, FILE_BEGIN);
-    if (0xFFFFFFFF == dwPtr && NO_ERROR != GetLastError()) {
-        printf("*** Seek failed in f_write\n");
-        printf("indStart " DEC_INDEX_FORMAT
-               " indStart shifted 32 bits to the right %lx, lHiPos = %lx, "
-               "low_pos = %ld\n",
-               indStart, (uint32_t)(indStart >> 32), lHiPos, (LONG)indStart);
-        fflush(stdout);
-        exit(1);
-        return;
-    }
-#endif
-    bResult = WriteFile(fp, pv, cb, &cbWritten, NULL);
-    if (0 == bResult || cbWritten != cb) {
-        printf("*** Write failed\n");
-        printf("Tried to write " DEC_INDEX_FORMAT
-               " actually wrote " DEC_INDEX_FORMAT "\n",
-               (INDEX)cb, (INDEX)cbWritten);
-        fflush(stdout);
-        exit(1);
-        return;
-    }
-    FileWrites += cbWritten;
+    fprintf(stderr, "*** f_write not implemented\n");
+    exit(1);
 }
-
-#else // not Windows
-
-typedef unsigned long long INDEX;
-#define DEC_INDEX_FORMAT "%llu"
-#define SEPARATOR "\\"
-#if defined(__MWERKS__)
-#define DELIMITER ":"
-#else
-#define DELIMITER "/"
-#endif
-
-static INDEX FileReads = 0;
-static INDEX FileWrites = 0;
-
-typedef FILE *file;
-
-file f_open(const char *szFile, const char *szMode) {
-    FILE *fp;
-
-    fp = fopen(szFile, szMode);
-    if (NULL == fp) {
-        return NULL;
-    }
-    FilesOpened++;
-    return fp;
-}
-
-static void f_close(file f) {
-    if (f == 0)
-        return;
-    if (0 != fclose(f)) {
-        printf("*** Close failed\n");
-        fflush(stdout);
-        exit(1);
-    }
-    FilesClosed++;
-}
-
-size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
-    bool bResult;
-    uint32_t cbRead;
-
-#if defined(USE_64_BIT)
-    LARGE_INTEGER s;
-    s.QuadPart = indStart;
-    bResult = SetFilePointerEx(fp, s, NULL, FILE_BEGIN);
-    if (bResult == 0 && GetLastError() != NO_ERROR) {
-        fprintf(
-            stderr,
-            "*** SetFilePointerEx failed in f_read: pos is %I64u code is %lx\n",
-            indStart, GetLastError());
-        exit(1);
-        return 0;
-    }
-#else
-    LONG lHiPos;
-    uint32_t dwPtr;
-
-    if (sizeof(INDEX) == 4)
-        lHiPos = 0;
-    else
-        lHiPos = (LONG)(indStart >> 32);
-    dwPtr = SetFilePointer(fp, (LONG)indStart, &lHiPos, FILE_BEGIN);
-    if (0xFFFFFFFF == dwPtr && NO_ERROR != GetLastError()) {
-        printf("*** Seek failed: pos is %I64x code is %lx\n", indStart,
-               GetLastError());
-        fflush(stdout);
-        exit(1);
-        return 0;
-    }
-#endif
-    bResult = ReadFile(fp, pv, cb, &cbRead, NULL);
-    if (0 == bResult) {
-        printf("*** Read failed\n");
-        fflush(stdout);
-        exit(1);
-        return 0;
-    }
-    FileReads += cbRead;
-    return cbRead;
-}
-
-static void f_write(void *pv, INDEX cb, file fp, INDEX indStart) {
-    if (0 != fseek(fp, (long)indStart, SEEK_SET)) {
-        printf("*** Seek failed\n");
-        fflush(stdout);
-        exit(1);
-        return;
-    }
-    if (cb != fwrite(pv, 1, cb, fp)) {
-        printf("*** Write failed\n");
-        fflush(stdout);
-        exit(1);
-        return;
-    }
-    FileWrites += cb;
-}
-
-#endif // Windows
 
 typedef unsigned char BYTE;
 typedef unsigned long uint32_t;
