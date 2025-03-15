@@ -289,10 +289,6 @@ static ZSTD_DCtx *ZSTD_DecompressionContext = NULL;
 #define CROOK_ORIG_COL_TRADITIONAL (0)
 #define GROOK_ORIG_COL_TRADITIONAL ((NCOLS)-1)
 
-static int king_orig_col = KING_ORIG_COL_TRADITIONAL;
-static int crook_orig_col = CROOK_ORIG_COL_TRADITIONAL;
-static int grook_orig_col = GROOK_ORIG_COL_TRADITIONAL;
-
 #define KING_GCASTLE_DEST_COL ((NCOLS)-1 - ((NCOLS)-1 - (NCOLS) / 2) / 2)
 #define ROOK_GCASTLE_DEST_COL ((KING_GCASTLE_DEST_COL)-1)
 
@@ -8380,7 +8376,7 @@ static char PieceChar(int type) {
     return ' ';
 }
 
-static int GetEndingName(int type_count[2][KING], char *ending) {
+static int GetEndingName(const int type_count[2][KING], char *ending) {
     int len = 0, piece;
 
     ending[len++] = 'k';
@@ -9073,6 +9069,10 @@ static int ScoreCompare(int score1, int score2) {
 }
 
 static int CastleRights(int *board, int proposed_castle) {
+    int king_orig_col = KING_ORIG_COL_TRADITIONAL;
+    int crook_orig_col = CROOK_ORIG_COL_TRADITIONAL;
+    int grook_orig_col = GROOK_ORIG_COL_TRADITIONAL;
+
     int castle = 0;
 
     if ((proposed_castle & WK_CASTLE) || (proposed_castle & WQ_CASTLE)) {
