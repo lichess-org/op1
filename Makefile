@@ -1,2 +1,2 @@
-mbeval_uci: mbeval.cpp
-	g++ mbeval.cpp -o mbeval_uci -O2 -Wfatal-errors -DUCI -lzstd -lz
+mbeval_uci: mbeval.c
+	gcc mbeval.c -o mbeval_uci -O2 -Wfatal-errors -DUCI -lzstd -lz
