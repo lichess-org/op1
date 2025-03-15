@@ -8644,7 +8644,7 @@ static void FlipBoard(BOARD *Board) {
              Board->half_move, Board->full_move);
 }
 
-static int GetEndingType(int count[2][KING], int *piece_types,
+static int GetEndingType(const int count[2][KING], int *piece_types,
                          int bishop_parity[2], int pawn_file_type) {
     int etype = 0, sub_type = 0;
     int ptypes[MAX_PIECES], npieces = 2, eindex = -1;
@@ -8943,7 +8943,7 @@ static int GetEndingType(int count[2][KING], int *piece_types,
     return eindex;
 }
 
-static int GetEndingTypeYK(int count[2][KING], int *piece_types) {
+static int GetEndingTypeYK(const int count[2][KING], int *piece_types) {
     int etype = 0, ptypes[MAX_PIECES], npieces = 2, eindex = -1;
 
     ptypes[0] = KING;
@@ -10000,7 +10000,7 @@ static void InitParity() {
     }
 }
 
-static int GetMBPosition(BOARD *Board, int *mb_position, int *parity,
+static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
                          int *pawn_file_type) {
     int loc = 0, color, type, i;
     int bishops_on_white_squares[2] = {0, 0};
@@ -10010,7 +10010,7 @@ static int GetMBPosition(BOARD *Board, int *mb_position, int *parity,
     mb_position[loc++] = Board->bkpos;
 
     for (color = WHITE; color <= BLACK; color++) {
-        int *pos = Board->piece_locations[color][PAWN];
+        const int *pos = Board->piece_locations[color][PAWN];
         for (int i = 0; i < Board->piece_type_count[color][PAWN]; i++) {
             mb_position[loc] = pos[i];
             if (Board->ep_square > 0) {
@@ -10193,7 +10193,7 @@ static int GetMBPosition(BOARD *Board, int *mb_position, int *parity,
     }
     for (color = WHITE; color <= BLACK; color++) {
         for (type = KING - 1; type >= KNIGHT; type--) {
-            int *pos = Board->piece_locations[color][type];
+            const int *pos = Board->piece_locations[color][type];
             for (i = 0; i < Board->piece_type_count[color][type]; i++) {
                 mb_position[loc] = pos[i];
                 if (type == BISHOP) {
@@ -10228,7 +10228,7 @@ static int GetMBPosition(BOARD *Board, int *mb_position, int *parity,
     return loc;
 }
 
-static int GetYKPosition(BOARD *Board, int *yk_position) {
+static int GetYKPosition(const BOARD *Board, int *yk_position) {
     int loc = 0;
 
     yk_position[loc++] = Board->wkpos;
@@ -10236,7 +10236,7 @@ static int GetYKPosition(BOARD *Board, int *yk_position) {
 
     for (int color = WHITE; color <= BLACK; color++) {
         for (int type = KING - 1; type >= PAWN; type--) {
-            int *pos = Board->piece_locations[color][type];
+            const int *pos = Board->piece_locations[color][type];
             for (int i = 0; i < Board->piece_type_count[color][type]; i++) {
                 yk_position[loc] = pos[i];
                 if (type == PAWN && Board->ep_square > 0) {
@@ -10477,7 +10477,7 @@ static file OpenYKFile(char *base_name) {
     return NULL;
 }
 
-static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
+static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     mb_info->num_parities = 0;
     mb_info->pawn_file_type = FREE_PAWNS;
 
@@ -10836,7 +10836,7 @@ static int GetMBInfo(BOARD *Board, MB_INFO *mb_info) {
     return 0;
 }
 
-static int GetYKInfo(BOARD *Board, YK_INFO *yk_info) {
+static int GetYKInfo(const BOARD *Board, YK_INFO *yk_info) {
     if (Board->num_pieces > MAX_PIECES_YK) {
         return TOO_MANY_PIECES;
     }
@@ -10883,7 +10883,7 @@ static int GetYKInfo(BOARD *Board, YK_INFO *yk_info) {
  * A checkmate is loss in 0
  */
 
-static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
+static int GetYKResult(const BOARD *Board, INDEX_DATA *ind) {
     YK_INFO yk_info;
     FILE_CACHE_YK *fcache = NULL;
 
@@ -11128,7 +11128,7 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
     return result;
 }
 
-static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
+static int GetMBResult(const BOARD *Board, INDEX_DATA *ind) {
     MB_INFO mb_info = {0};
     FILE_CACHE *fcache;
 
@@ -12022,7 +12022,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
  *
  * The input position is assumed to be legal.
  */
-static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
+static int ScorePosition(const BOARD *BoardIn, INDEX_DATA *index) {
     if (BoardIn->num_pieces == 2)
         return DRAW;
 
@@ -12039,12 +12039,10 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
         return UNKNOWN;
 
     BOARD Board;
-
     memcpy(&Board, BoardIn, sizeof(Board));
 
     // make the stronger side white to reduce chance of having
     // to probe "flipped" position
-
     if (Board.strength_w < Board.strength_b) {
         FlipBoard(&Board);
     }
@@ -12052,7 +12050,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
     int result = GetMBResult(&Board, index);
 
     // if we have definite result, can return right away
-
     if (!(result < 0 || result == UNRESOLVED)) {
         if ((Board.side == WHITE) || result == LOST || result == WON ||
             result == HIGH_DTZ_MISSING) {
@@ -12063,7 +12060,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
 
     // if one side has no pieces, there is no flipped database,
     // so UNRESOLVED becomes draw
-
     if (Board.nblack == 0) {
         if (result < 0)
             return UNKNOWN;
@@ -12075,7 +12071,6 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
     FlipBoard(&Board);
 
     INDEX_DATA index2;
-
     int result_flipped = GetMBResult(&Board, &index2);
 
     if (result_flipped == WON || result_flipped == LOST ||
