@@ -8550,7 +8550,7 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
             return COMPRESS_NOT_OK;
         }
     } else {
-        fprintf(stderr, "MyUnompress: unknown de-compression method\n");
+        fprintf(stderr, "MyUncompress: unknown de-compression method\n");
         abort();
     }
 
