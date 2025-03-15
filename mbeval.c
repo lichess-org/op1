@@ -624,8 +624,6 @@ typedef struct {
 
 #define MyPrintf(...) printf(__VA_ARGS__)
 
-void MyFlush() { fflush(stdout); }
-
 static size_t MemoryAllocated = 0;
 static size_t MemoryFreed = 0;
 
@@ -637,7 +635,6 @@ static void *MyMalloc(size_t cb) {
     pv = malloc(cb);
     if (pv == NULL) {
         MyPrintf("Could not allocate %lu bytes of memory\n", cb);
-        MyFlush();
         exit(1);
     }
     MemoryAllocated += cb;
@@ -790,11 +787,6 @@ enum {
 };
 
 typedef ZINDEX (*pt2index)(int *);
-
-typedef struct {
-    int itype;
-    pt2index IndexFromPos;
-} IType;
 
 typedef struct {
     unsigned int material;
@@ -8714,7 +8706,6 @@ static void DisplayRawBoard(int *board, char *label) {
     for (col = 0; col < NCOLS; col++)
         MyPrintf(" %c", 'a' + col);
     MyPrintf("\n\n");
-    MyFlush();
 }
 
 static void DisplayBoard(BOARD *Board, char *label) {
@@ -8767,7 +8758,6 @@ static void DisplayBoard(BOARD *Board, char *label) {
     for (col = 0; col < NCOLS; col++)
         MyPrintf(" %c", 'a' + col);
     MyPrintf("\n\n");
-    MyFlush();
 }
 
 static int GetPiece(char p) {
@@ -8944,7 +8934,6 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
                     MyPrintf("ZLIB uncompress: version error\n");
                 else
                     MyPrintf("ZLIB uncompress: error code %d\n", err_code);
-                MyFlush();
             }
             return COMPRESS_NOT_OK;
         }
@@ -10248,7 +10237,6 @@ static void PrintPieceTypeCount(int types[2][KING], char *comment) {
     if (comment != NULL)
         MyPrintf(" %s", comment);
     MyPrintf("\n");
-    MyFlush();
 }
 
 /*
@@ -10419,7 +10407,6 @@ static void InitTransforms() {
 
     if (Verbose > 3) {
         MyPrintf("\nInitializing geometric transformation tables\n");
-        MyFlush();
     }
 
     for (int row = 0; row < NROWS; row++) {
@@ -10454,7 +10441,6 @@ static void InitTransforms() {
 
     if (Verbose > 3) {
         MyPrintf("Initializing king position tables\n");
-        MyFlush();
     }
 
 #if (NSQUARES > KK_TABLE_LIMIT)
@@ -10531,7 +10517,6 @@ static void InitTransforms() {
 #if defined(NO_ATTACK_TABLES)
     if (Verbose > 3) {
         MyPrintf("Initializing tables for diagonals\n");
-        MyFlush();
     }
 
     memset(DiagA1_H8_Table, 0, sizeof(DiagA1_H8_Table));
@@ -10593,7 +10578,6 @@ static void InitTransforms() {
 
     if (Verbose > 3) {
         MyPrintf("Initializing parity tables\n");
-        MyFlush();
     }
 
     int nw = 0, nb = 0;
