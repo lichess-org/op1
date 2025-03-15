@@ -11,65 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 
-static char *Version = "7.9";
-
-/*
- * 1.0  First version, based on ykeval version 3.23 (20191213)
- * 1.1  Include dtz > 254 (20191227)
- * 1.2  Slight format changes for PGN output to work with SCID (20200117)
- * 1.3  Fix some high DTZ behavior (20200123)
- * 1.4  Added global ZSTD decompression context for efficiency (20200208)
- * 2.0  Added 9-man endings (20200328)
- * 2.1  Small bug fixes; 7 identical pieces (20200428)
- * 2.2  Small bug fix (20200505)
- * 2.3  Explicit bishop-parity handling for odd-dimensioned boards (20200518)
- * 2.4  Fix interactive play (20200620)
- * 2.5  Add 133, 313, 331 configuration (20200726)
- * 2.6  Include databases restricted to certain bishop parities (20201025)
- * 3.0  Include pawns (20201025)
- * 3.1  Some fixes for parity handling; optionally compile without double pawn
- * steps (20201107) 3.2  Some more parity constrained endings (20210105) 3.3
- * Better en passant handling (20210223) 3.4  Fixed score output when parsing
- * PGN files (20210313) 3.5  Better display of bishop parities in PGN (20210316)
- * 3.6  Extract bad study moves directly from position file even if not merging
- * with PGN (20210328) 3.7  Note number of positions processed unless commenting
- * games or finding best line (20210421) 3.8  Slight output changes (20210509)
- * 3.9  Support reading of databases with blocked pawns (20210605)
- * 3.10 Support reading of databases for opposing pawns (20210709)
- * 4.0  Option to convert indices from MB to YK format and vice versa (20210725)
- * 4.1  Support reading of databases with pair of opposing pawns (20210822)
- * 4.2  Fix some 960 castling issues (20210825)
- * 4.3  Support reading database with 2 vs 1 pawn, with 1 opposing pair
- * (20210910) 5.0  Support YK files (20210925) 5.1  Add high DTC for YK files;
- * bug fix on YK <-> MB conversion (20211005) 5.2  Ability to insert scores
- * directly into PGN move list, including variations (20211110) 5.3  Add 2 vs 2,
- * with 1 opposing pair (20211111) 5.4  Add 3 vs 1, and 1 vs 3 with 1 opposing
- * pair (20211114) 5.5  Bug fixes; add number of pieces to EGTB comments
- * (20211130) 5.6  Add max number of pieces to EGTB in annotator field
- * (20211210) 5.7  Bug fixes for number of pieces after a result changing
- * capture; zz designation (20220109) 5.8  Increased maximum line length in PGN
- * to 8192; more tolerance for dangling symbols (20220115) 5.9  Add 4 vs 1 and 1
- * vs 4 pawn configurations with 1 opposing pair (20220126) 5.10 Add 3 vs 2 and
- * 2 vs 3 pawn configurations with 1 opposing pair (20220126) 5.11 Add 3 vs 3
- * configurations with 1 opposing pair (20220126) 5.12 Add 4 vs 2 and 2 vs 4
- * configurations with 1 opposing pair (20220212) 6.0  Add UCI wrapper
- * (conditional compilation) (20220302) 6.1  Point out errors in comments in
- * annotator (20220501) 6.2  Print out EPD for incorrectly played positions
- * (20220508) 6.3  Enforce number of pieces constraint for all PGN parsing
- * (20220517) 6.4  Handle long lines in PGN input for Chessbase (20230427)
- *      Optionally read MB or YK databases only (20230428)
- * 6.5  Fixed PGN output for long strings; correct assessment of final position
- * (20230609) 7.0  DP_22 configurations (two opposing pawn pairs, where the
- * pawns can never capture each other) (20230707) 7.1  Bug fix for large number
- * of pieces (20230708) 7.2  More info in verbose mode (20230711) 7.3 Additional
- * statistic output (20230718) 7.4  Better handling of 9-man endings (20230805)
- * 7.5  Output adjustments for chessbase (20230903)
- * 7.6  In PGN output, optionally only include games with at least one TB
- * evaluation (20231115) 7.7  Optionally always tag positions with castling as
- * unknown from EGTB (20240519) 7.8  Some chessbase PGN file bug work-arounds
- * (20240523) 7.9  Tag endings where promotions are restricted (queen only,
- * etc.) (20240529)
- */
+/* Based on mbeval.cpp 7.9 */
 
 #define NROWS 8
 #define NCOLS 8
@@ -626,16 +568,6 @@ static int grook_orig_col = GROOK_ORIG_COL_TRADITIONAL;
 #define N3_ODD_PARITY_Offset N3_ODD_PARITY
 #endif
 
-static char *HighDTCList[] = {
-    "krrnkrr",  "kbbbnkrb", "kbbbnkrn", "kbbnnkrn", "kbnnpkqp", "knnnpkqp",
-    "kqnnkqn",  "kqnnkqb",  "kqbnkqn",  "kqbnkqb",  "kqnkrbn",  "krnpkrb",
-    "krbnnkqn", "krbbpkq",  "krbppkqp", "krbpkbbp", "krbpkbnp", "krnpkbbp",
-    "krnppkq",  "krnnkbbn", "krakrbn",  "kcbkrnn",  "kankbnn",  "kabnkan",
-    "krbnnkcb", "krbnnkqb", "krrbkcn",  "krrbnkqr", "krrnkrbb", "krrnnkqr",
-    "krrpkrbp"};
-
-#define NumHighDTC (sizeof(HighDTCList) / sizeof(HighDTCList[0]))
-
 #define MAX_PATHS 16
 
 static char TbPaths[MAX_PATHS][1024];
@@ -653,12 +585,9 @@ static bool UseEnPassant = true;
 static bool IgnoreCastle = true;
 static bool Chess960 = true;
 static bool Chess960Game = false;
-static bool SummaryStats = false;
 static bool StrictPGN = false;
 static bool EGFormat = false;
 static bool GermanKnight = false;
-static bool StopAtTransition = false;
-static bool StopAtPawnMove = false;
 
 static bool AnnotateVariations = false;
 static bool CheckSyntaxOnly = false;
@@ -667,26 +596,16 @@ static bool PrintBadlyPlayedPositions = false;
 static bool TBGamesOnly = false;
 static bool FlagRestrictedPromotions = false;
 static int NumRestrictedPromotionEndings = 0;
-static char *RestrictedPromotionFile = NULL;
-static bool OutputPGNFormat = false;
-static bool UniqueMovesOnly = false;
 static bool AddAnnotator = false;
 static char *Annotator = "EGTB";
 static bool AddEGTBDepthComments = false;
 static bool AddEGTBComments = false;
 static bool InsertComments = false;
 static int DepthDelta = -1;
-static char *ScoreFile = NULL;
-static char *DBFile = NULL;
 static int NumDBPositions = 0;
-static int NumBadMoves = 0;
-static int NumBadMovesDelta = 0;
-static int NumZZPositions = 0;
-static bool OverwriteAnnotations = false;
 static int MinimumNumberOfPieces = 3;
 static int MaximumNumberOfPieces = 9;
 
-static int MaxLineLength = 1000;
 static int LineWidth = 80;
 
 static uint32_t CacheHits = 0;
@@ -788,9 +707,6 @@ static void MyFree(void *pv, size_t cb) {
     MemoryFreed += cb;
     free(pv);
 }
-
-static INDEX FileReads = 0;
-static INDEX FileWrites = 0;
 
 typedef struct {
     int fd;
@@ -939,10 +855,6 @@ typedef struct {
     pt2index IndexFromPos;
 } IType;
 
-#define NUM_ENDINGS 5250
-
-static int num_endings = 0;
-
 typedef struct {
     unsigned int material;
     int piece_type_count[2][KING];
@@ -962,8 +874,6 @@ typedef struct {
     char fname[16];
     char fname_h[16];
 } Ending;
-
-static Ending EndingTable[NUM_ENDINGS];
 
 typedef struct {
     int board[NSQUARES];
@@ -1010,44 +920,6 @@ typedef enum {
     NULL_MOVE,
     UNKNOWN_MOVE
 } MoveClass;
-
-typedef enum {
-    /* The first section of tokens contains those that are
-     * returned to the parser as complete token identifications.
-     */
-    EOF_TOKEN,
-    TAG,
-    STRING,
-    COMMENT,
-    NAG,
-    CHECK_SYMBOL,
-    MOVE_NUMBER,
-    RAV_START,
-    RAV_END,
-    MOVE,
-    TERMINATING_RESULT,
-    /* The remaining tokens are those that are used to
-     * perform the identification.  They are not handled by
-     * the parser.
-     */
-    WHITESPACE,
-    TAG_START,
-    TAG_END,
-    DOUBLE_QUOTE,
-    COMMENT_START,
-    COMMENT_END,
-    ANNOTATE,
-    DOT,
-    PERCENT,
-    ESCAPE,
-    ALPHA,
-    DIGIT,
-    STAR,
-    EOS,
-    OPERATOR,
-    NO_TOKEN,
-    ERROR_TOKEN
-} PGNToken;
 
 /* List the tags so that the strings that they represent
  * would be in alphabetical order. E.g. note that EVENT_TAG and
@@ -1117,7 +989,6 @@ typedef enum {
 #define MAX_TAGS 100
 
 static char *TagList[MAX_TAGS];
-static char *TagValues[MAX_TAGS];
 static int tag_list_length = 0;
 
 typedef struct {
@@ -1125,15 +996,6 @@ typedef struct {
     int move_number;
     int tag_index;
 } ParseType;
-
-typedef struct {
-    /* start of line */
-    char *line;
-    /* next char to access in line, if line is not NULL */
-    unsigned char *linep;
-    /* what token resulted */
-    PGNToken token;
-} LinePair;
 
 /* Define a character that may be used to comment a line in, e.g.
  * the variations files.
@@ -1159,10 +1021,6 @@ typedef struct {
     int game_num, move_no, side, result, score, zz_type;
     char cz_type;
 } SCORE;
-
-static SCORE *ScoreList = NULL;
-static SCORE *ScoreListDelta = NULL;
-static SCORE *ZZList = NULL;
 
 typedef struct {
     char ending[MAX_PIECES_MB + 1];
@@ -1423,7 +1281,6 @@ static int *k2_even_tab = NULL, *p2_even_tab = NULL;
 static int *k2_odd_tab = NULL, *p2_odd_tab = NULL;
 static int *k3_even_tab = NULL, *p3_even_tab = NULL;
 static int *k3_odd_tab = NULL, *p3_odd_tab = NULL;
-static int *k2_same_color_tab = NULL, *p2_same_color_tab = NULL;
 
 static int *k2_opposing_tab = NULL, *p2_opposing_tab = NULL;
 static int *k2_1_opposing_tab = NULL, *p2_1_opposing_tab = NULL;
@@ -1519,9 +1376,6 @@ const char *SymmetryName[] = {"Identity",   "Reflect_V",  "Reflect_H",
 
 static int *InverseTransforms[] = {Identity, ReflectV,  ReflectH,  ReflectVH,
                                    ReflectD, ReflectDH, ReflectDV, ReflectDVH};
-
-static int InverseTable[] = {IDENTITY,  REFLECT_V,  REFLECT_H,  REFLECT_VH,
-                             REFLECT_D, REFLECT_DH, REFLECT_DV, REFLECT_DVH};
 
 static void GetFlipFunctionNoPawns(int wk, int bk, bool *flipped,
                                    int **transform) {
@@ -9162,7 +9016,6 @@ static int CompareHigh(const void *a, const void *b) {
 
 static unsigned int Promotions =
     (1 << KNIGHT) | (1 << BISHOP) | (1 << ROOK) | (1 << QUEEN);
-static bool SearchAllPromotions = true;
 static bool SearchSubgamePromotions = true;
 static int PromoteRow[] = {(NROWS)-1, 0};
 static int StartRow[] = {1, (NROWS)-2};
@@ -9317,7 +9170,6 @@ void MoveScoreToString(int move_score, char *score_string) {
 }
 
 static unsigned int *EndingStats = NULL;
-static int num_total_endings = 0;
 
 typedef struct {
     int types[KING];
@@ -9326,8 +9178,6 @@ typedef struct {
 
 static ENDING_INDEX *SingleSideCount = NULL;
 static int num_side_endings = 0;
-
-static int single_piece_side[KING];
 
 static int side_compare(const void *a, const void *b) {
     const ENDING_INDEX *x = (ENDING_INDEX *)a;
@@ -9975,14 +9825,12 @@ static void DisplayBoard(BOARD *Board, char *label) {
 }
 
 static bool skipping_game = false;
-static bool output_pgn = true;
 static unsigned int RAV_level = 0;
 
 static unsigned int num_positions = 0;
 static unsigned int max_rav_game = 0;
 static unsigned int max_rav_level = 0;
 
-static PGNToken ChTab[MAX_CHAR];
 static short MoveChars[MAX_CHAR];
 
 /* Return TRUE if line contains a non-space character, but
@@ -10030,284 +9878,6 @@ static char *NextInputLine(FILE *fp) {
         exit(1);
     }
     return linep;
-}
-
-/* Initialise ChTab[], the classification of the initial characters
- * of symbols.
- * Initialise MoveChars, the classification of secondary characters
- * of moves.
- */
-void InitLexTables(void) {
-    int i;
-
-    /* Initialise ChTab[]. */
-    for (i = 0; i < MAX_CHAR; i++) {
-        ChTab[i] = ERROR_TOKEN;
-    }
-    ChTab[' '] = WHITESPACE;
-    ChTab['\t'] = WHITESPACE;
-    /* Take account of DOS line-ends. */
-    ChTab['\r'] = WHITESPACE;
-    ChTab['\n'] = WHITESPACE;
-    ChTab['['] = TAG_START;
-    ChTab[']'] = TAG_END;
-    ChTab['"'] = DOUBLE_QUOTE;
-    ChTab['{'] = COMMENT_START;
-    ChTab['}'] = COMMENT_END;
-    ChTab['$'] = NAG;
-    ChTab['!'] = ANNOTATE;
-    ChTab['?'] = ANNOTATE;
-    ChTab['+'] = CHECK_SYMBOL;
-    ChTab['#'] = CHECK_SYMBOL;
-    ChTab['.'] = DOT;
-    ChTab['('] = RAV_START;
-    ChTab[')'] = RAV_END;
-    ChTab['%'] = PERCENT;
-    ChTab['\\'] = ESCAPE;
-    ChTab['\0'] = EOS;
-    ChTab['*'] = STAR;
-    ChTab['-'] = ALPHA;
-
-    /* Operators allowed only in the tag file. */
-    ChTab['<'] = OPERATOR;
-    ChTab['>'] = OPERATOR;
-    ChTab['='] = OPERATOR; /* Overloaded in MoveChars. */
-
-    for (i = '0'; i <= '9'; i++) {
-        ChTab[i] = DIGIT;
-    }
-    for (i = 'A'; i <= 'Z'; i++) {
-        ChTab[i] = ALPHA;
-        ChTab[i + ALPHA_DIST] = ALPHA;
-    }
-    ChTab['_'] = ALPHA;
-
-    /* Initialise MoveChars[]. */
-    for (i = 0; i < MAX_CHAR; i++) {
-        MoveChars[i] = 0;
-    }
-    /* Files. */
-    for (i = 'a'; i <= 'a' + NCOLS - 1; i++) {
-        MoveChars[i] = 1;
-    }
-    /* Ranks. */
-    for (i = '1'; i <= '1' + NROWS - 1; i++) {
-        MoveChars[i] = 1;
-    }
-    /* Upper-case pieces. */
-    MoveChars['K'] = 1;
-    MoveChars['Q'] = 1;
-    MoveChars['R'] = 1;
-    MoveChars['N'] = 1;
-    MoveChars['B'] = 1;
-    MoveChars['C'] = 1; /* chancellor or cardinal */
-    MoveChars['A'] = 1; /* archbishop */
-    MoveChars['S'] = 1; /* German knight */
-    /* Lower-case pieces. */
-    MoveChars['k'] = 1;
-    MoveChars['q'] = 1;
-    MoveChars['r'] = 1;
-    MoveChars['n'] = 1;
-    MoveChars['b'] = 1;
-
-    /* Capture and square separators. */
-    MoveChars['x'] = 1;
-    MoveChars['X'] = 1;
-    MoveChars[':'] = 1;
-    MoveChars['-'] = 1;
-    /* Promotion character. */
-    MoveChars['='] = 1;
-    /* Castling. */
-    MoveChars['O'] = 1;
-    MoveChars['o'] = 1;
-    MoveChars['0'] = 1;
-    /* Allow a trailing p for ep. */
-    MoveChars['p'] = 1;
-    /* Allow a null move to start with Z */
-    MoveChars['Z'] = 1;
-}
-
-static LinePair GatherSimpleString(char *line, unsigned char *linep,
-                                   char *string) {
-    LinePair resulting_line;
-    unsigned len = 0;
-    char *str_end;
-
-    str_end = strrchr((char *)linep, '"');
-
-    if (str_end != NULL) {
-        while ((char *)linep != str_end) {
-            string[len++] = *linep++;
-        }
-        linep++;
-        string[len] = '\0';
-    } else {
-        if (!skipping_game) {
-            if (Verbose > 1 || CheckSyntaxOnly)
-                MyPrintf("Missing closing quote in %s\n", line);
-        }
-        while (*linep != '\0') {
-            string[len++] = *linep++;
-        }
-        string[len] = '\0';
-    }
-
-    resulting_line.line = line;
-    resulting_line.linep = linep;
-    resulting_line.token = STRING;
-    return resulting_line;
-}
-
-/* Starting from linep in line, gather up a comment until
- * the END_COMMENT.  Skip over the END_COMMENT.
- */
-static LinePair GatherComment(char *line, unsigned char *linep, FILE *fp,
-                              char *comment) {
-    LinePair resulting_line;
-    char ch;
-    unsigned len = 0, tot_len = 0;
-
-    comment[0] = '\0';
-
-    if (Verbose > 7) {
-        MyPrintf("comment: %s\n", linep);
-    }
-    do {
-        /* Restart a new segment. */
-        len = 0;
-        do {
-            ch = *linep++;
-            len++;
-        } while ((ch != '}') && (ch != '\0'));
-        /* The last one doesn't belong in the comment. */
-        len--;
-        tot_len += len;
-        if (tot_len >= MAX_STRING) {
-            fflush(stdout);
-            fprintf(stderr, "Comment too long %s\n", line);
-            char myout[2 * MAX_STRING];
-            strcpy(myout, comment);
-            strncat(myout, (const char *)(linep - len - 1), len);
-            fprintf(stderr, "Comment seen so far:\n");
-            fprintf(stderr, "%s\n", myout);
-            exit(1);
-        }
-        strncat(comment, (const char *)(linep - len - 1), len);
-        comment[tot_len] = '\0';
-        if (ch == '\0') {
-            line = NextInputLine(fp);
-            linep = (unsigned char *)line;
-            if (Verbose > 7) {
-                MyPrintf("next comment line: %s\n", linep);
-            }
-        }
-    } while ((ch != '}') && (line != NULL));
-
-    resulting_line.line = line;
-    resulting_line.linep = linep;
-    resulting_line.token = COMMENT;
-    return resulting_line;
-}
-
-/* Extend TagList to accomodate a new tag string.
- * Return the current value of tag_list_length as its
- * index, having incremented its value.
- */
-
-static int MakeNewTag(const char *tag) {
-    int tag_index = tag_list_length;
-
-    tag_list_length++;
-    if (tag_list_length >= MAX_TAGS) {
-        fprintf(stderr, "Maximum number of tags %d exceeded\n", MAX_TAGS);
-        exit(1);
-    }
-    if (TagList[tag_index] != NULL)
-        free(TagList[tag_index]);
-    /*
-    char *d = (char *)malloc(strlen(tag)+1);
-    if(d != NULL) {
-       strcpy(d, tag);
-    }
-    TagList[tag_index] = d;
-    */
-    TagList[tag_index] = strdup(tag);
-    return tag_index;
-}
-
-static int IdentifyTag(const char *tag_string) {
-    int tag_index;
-
-    for (tag_index = 0; tag_index < tag_list_length; tag_index++) {
-        if (strcmp(tag_string, TagList[tag_index]) == 0) {
-            return tag_index;
-        }
-    }
-    return -1;
-}
-
-/* Starting from linep in line, gather up the tag name.
- * Skip over any preceding white space.
- */
-static LinePair GatherTag(char *line, unsigned char *linep, FILE *fp,
-                          int *tag_index) {
-    LinePair resulting_line;
-    char ch;
-    unsigned len = 0;
-    char tag_string[256];
-
-    do {
-        /* Check for end of line whilst skipping white space. */
-        if (*linep == '\0') {
-            line = NextInputLine(fp);
-            linep = (unsigned char *)line;
-        }
-        if (line != NULL) {
-            while (ChTab[(unsigned)*linep] == WHITESPACE) {
-                linep++;
-            }
-        }
-    } while ((line != NULL) && (ChTab[(unsigned)*linep] == '\0'));
-
-    if (line != NULL) {
-        ch = *linep++;
-        while (isalpha((unsigned)ch) || isdigit((unsigned)ch) || (ch == '_')) {
-            len++;
-            ch = *linep++;
-        }
-        /* The last one wasn't part of the tag. */
-        linep--;
-        if (len > 0) {
-            int tag_item;
-
-            if (len > sizeof(tag_string) / sizeof(char)) {
-                fprintf(stderr, "Tag too long %s\n", linep);
-                exit(1);
-            }
-            strncpy(tag_string, (const char *)(linep - len), len);
-            tag_string[len] = '\0';
-            tag_item = IdentifyTag(tag_string);
-            if (tag_item < 0) {
-                tag_item = MakeNewTag(tag_string);
-            }
-            if (tag_item >= 0 && tag_item < tag_list_length) {
-                *tag_index = tag_item;
-                resulting_line.token = TAG;
-            } else {
-                fprintf(stderr,
-                        "Internal error: invalid tag index %d in GatherTag.\n",
-                        tag_item);
-                exit(1);
-            }
-        } else {
-            resulting_line.token = NO_TOKEN;
-        }
-    } else {
-        resulting_line.token = NO_TOKEN;
-    }
-    resulting_line.line = line;
-    resulting_line.linep = linep;
-    return resulting_line;
 }
 
 /* Does the character represent a column of the board? */
@@ -11006,358 +10576,6 @@ bool MoveSeemsValid(char *move_string) {
     return Ok;
 }
 
-/* Remember that 0 can start 0-1 and 0-0.
- * Remember that 1 can start 1-0 and 1/2.
- */
-static LinePair GatherPossibleNumeric(char *line, unsigned char *linep,
-                                      char initial_digit, ParseType *yylval) {
-    LinePair resulting_line;
-    PGNToken token = MOVE_NUMBER;
-    /* Keep a record of where this token started. */
-    const unsigned char *symbol_start = linep - 1;
-
-    if (initial_digit == '0') {
-        /* Could be castling or a result. */
-        if (strncmp((const char *)linep, "-1", 2) == 0) {
-            token = TERMINATING_RESULT;
-            strcpy(yylval->string_info, "0-1");
-            linep += 2;
-        } else if (strncmp((const char *)linep, "-0-0", 4) == 0) {
-            token = MOVE;
-            strcpy(yylval->string_info, "0-0-0");
-            linep += 4;
-        } else if (strncmp((const char *)linep, "-0", 2) == 0) {
-            token = MOVE;
-            strcpy(yylval->string_info, "0-0");
-            linep += 2;
-        } else {
-            /* MOVE_NUMBER */
-        }
-    } else if (initial_digit == '1') {
-        if (strncmp((const char *)linep, "-0", 2) == 0) {
-            token = TERMINATING_RESULT;
-            strcpy(yylval->string_info, "1-0");
-            linep += 2;
-        } else if (strncmp((const char *)linep, "/2", 2) == 0) {
-            token = TERMINATING_RESULT;
-            linep += 2;
-            /* Check for the full form. */
-            if (strncmp((const char *)linep, "-1/2", 4) == 0) {
-                token = TERMINATING_RESULT;
-                linep += 4;
-            }
-            /* Make sure that the full form of the draw result
-             * is saved.
-             */
-            strcpy(yylval->string_info, "1/2-1/2");
-        } else {
-            /* MOVE_NUMBER */
-        }
-    } else {
-        /* MOVE_NUMBER */
-    }
-    if (token == MOVE_NUMBER) {
-        /* Gather the remaining digits. */
-        while (isdigit((unsigned)*linep)) {
-            linep++;
-        }
-    }
-    if (token == MOVE_NUMBER) {
-        int move_len = linep - symbol_start;
-        if (move_len > MAX_PGN_LINE)
-            move_len = MAX_PGN_LINE;
-        strncpy(yylval->string_info, (const char *)symbol_start, move_len);
-        yylval->string_info[move_len] = '\0';
-        yylval->move_number = 0;
-        (void)sscanf((const char *)yylval->string_info, "%d",
-                     &yylval->move_number);
-        /* Skip any trailing dots. */
-        while (*linep == '.') {
-            linep++;
-        }
-    } else {
-        /* TERMINATING_RESULT and MOVE have already been dealt with. */
-    }
-    resulting_line.line = line;
-    resulting_line.linep = linep;
-    resulting_line.token = token;
-    return resulting_line;
-}
-
-/* Identify the next symbol.
- * Don't take any action on EOF -- leave that to next_token.
- */
-static PGNToken GetNextToken(FILE *fp, ParseType *yylval) {
-    static char *line = NULL;
-    static unsigned char *linep = NULL;
-    /* The token to be returned. */
-    PGNToken token;
-    LinePair resulting_line;
-
-    do {
-        /* Remember where in line the current symbol starts. */
-        const unsigned char *symbol_start;
-
-        /* Clear any remaining symbol. */
-        yylval->string_info[0] = '\0';
-        if (line == NULL) {
-            line = NextInputLine(fp);
-            linep = (unsigned char *)line;
-            if (line != NULL) {
-                token = NO_TOKEN;
-            } else {
-                token = EOF_TOKEN;
-            }
-        } else {
-            int next_char = *linep & 0x0ff;
-
-            /* Remember where we start. */
-            symbol_start = linep;
-            linep++;
-            token = ChTab[next_char];
-
-            if (token == WHITESPACE) {
-                while (ChTab[(unsigned)*linep] == WHITESPACE)
-                    linep++;
-                token = NO_TOKEN;
-            } else if (token == TAG_START) {
-                resulting_line = GatherTag(line, linep, fp, &yylval->tag_index);
-                /* Pick up where we are now. */
-                line = resulting_line.line;
-                linep = resulting_line.linep;
-                token = resulting_line.token;
-            } else if (token == TAG_END) {
-                token = NO_TOKEN;
-            } else if (token == DOUBLE_QUOTE) {
-                resulting_line =
-                    GatherSimpleString(line, linep, yylval->string_info);
-                /* Pick up where we are now. */
-                line = resulting_line.line;
-                linep = resulting_line.linep;
-                token = resulting_line.token;
-            } else if (token == COMMENT_START) {
-                resulting_line =
-                    GatherComment(line, linep, fp, yylval->string_info);
-                /* Pick up where we are now. */
-                line = resulting_line.line;
-                linep = resulting_line.linep;
-                token = resulting_line.token;
-            } else if (token == COMMENT_END) {
-                /* look for unmatched braces ??? */
-                token = NO_TOKEN;
-            } else if (token == NAG) {
-                int nag_size = 0;
-                yylval->string_info[nag_size++] = *symbol_start;
-                while (isdigit((unsigned)*linep)) {
-                    if (nag_size >= MAX_STRING) {
-                        fprintf(stderr, "NAG value too big %s\n", line);
-                        exit(1);
-                    }
-                    yylval->string_info[nag_size++] = *linep;
-                    linep++;
-                }
-                yylval->string_info[nag_size] = '\0';
-                if (nag_size == 1) {
-                    token = NO_TOKEN;
-                }
-            } else if (token == ANNOTATE) {
-                int annot_size = 0;
-                /* Don't return anything in case of error. */
-                token = NO_TOKEN;
-                yylval->string_info[annot_size++] = *symbol_start;
-                while (ChTab[(unsigned)*linep] == ANNOTATE) {
-                    if (annot_size > MAX_STRING) {
-                        fprintf(stderr, "Annotation too big %s\n", line);
-                        exit(1);
-                    }
-                    yylval->string_info[annot_size++] = *linep;
-                    linep++;
-                }
-                if (yylval->string_info[0] == '!') {
-                    if (yylval->string_info[1] == '!')
-                        strcpy(yylval->string_info, "$3");
-                    else if (yylval->string_info[1] == '?')
-                        strcpy(yylval->string_info, "$5");
-                    else
-                        strcpy(yylval->string_info, "$1");
-                    token = NAG;
-                } else if (yylval->string_info[0] == '?') {
-                    if (yylval->string_info[1] == '!')
-                        strcpy(yylval->string_info, "$6");
-                    else if (yylval->string_info[1] == '?')
-                        strcpy(yylval->string_info, "$4");
-                    else
-                        strcpy(yylval->string_info, "$2");
-                    token = NAG;
-                }
-            } else if (token == CHECK_SYMBOL) {
-                /* Allow ++ */
-                int check_size = 0;
-                yylval->string_info[check_size++] = *symbol_start;
-                while (ChTab[(unsigned)*linep] == CHECK_SYMBOL) {
-                    yylval->string_info[check_size++] = *linep;
-                    linep++;
-                }
-                yylval->string_info[check_size] = '\0';
-            } else if (token == DOT) {
-                while (ChTab[(unsigned)*linep] == DOT) {
-                    linep++;
-                }
-                token = NO_TOKEN;
-            } else if (token == PERCENT) {
-                /* Trash the rest of the line. */
-                line = NextInputLine(fp);
-                linep = (unsigned char *)line;
-                token = NO_TOKEN;
-            } else if (token == ESCAPE) {
-                /* @@@ What to do about this? */
-                if (*linep != '\0') {
-                    linep++;
-                }
-                token = NO_TOKEN;
-            } else if (token == ALPHA) {
-                /* Not all ALPHAs are move characters. */
-                if (MoveChars[next_char]) {
-                    int move_len = 0;
-                    /* Scan through the possible move characters. */
-                    yylval->string_info[move_len++] = *symbol_start;
-                    while (MoveChars[*linep & 0x0ff]) {
-                        if (move_len >= MAX_STRING) {
-                            fprintf(stderr, "Move length too large %s\n", line);
-                            exit(1);
-                        }
-                        yylval->string_info[move_len++] = *linep;
-                        linep++;
-                    }
-                    yylval->string_info[move_len] = '\0';
-                    /* Only classify it as a move if it
-                     * seems to be a complete move.
-                     */
-                    if (MoveSeemsValid(yylval->string_info)) {
-                        token = MOVE;
-                    } else {
-                        if (Verbose > 1 || CheckSyntaxOnly) {
-                            MyPrintf("Unknown move text %s.\n",
-                                     yylval->string_info);
-                        }
-                        token = NO_TOKEN;
-                    }
-                } else {
-                    if (!skipping_game) {
-                        if (Verbose > 1 || CheckSyntaxOnly)
-                            MyPrintf("Unknown character %c (Hex: %x).\n",
-                                     next_char, next_char);
-                    }
-                    /* Skip any sequence of them. */
-                    while (ChTab[(unsigned)*linep] == ERROR_TOKEN)
-                        linep++;
-                }
-            } else if (token == DIGIT) {
-                /* Remember that 0 can start 0-1 and 0-0.
-                 * Remember that 1 can start 1-0 and 1/2.
-                 */
-                resulting_line =
-                    GatherPossibleNumeric(line, linep, next_char, yylval);
-                /* Pick up where we are now. */
-                line = resulting_line.line;
-                linep = resulting_line.linep;
-                token = resulting_line.token;
-            } else if (token == EOF_TOKEN) {
-                /* do nothing */
-            } else if (token == RAV_START) {
-                /* leave handling of RAV_level to processing */
-            } else if (token == RAV_END) {
-                if (RAV_level > 0) {
-                    /* leave handling of RAV_level to processing */
-                } else {
-                    if (!skipping_game) {
-                        if (Verbose > 1 || CheckSyntaxOnly)
-                            MyPrintf("Too many ')' found in game %u.\n",
-                                     num_games);
-                    }
-                    token = NO_TOKEN;
-                }
-            } else if (token == STAR) {
-                strcpy(yylval->string_info, "*");
-                token = TERMINATING_RESULT;
-            } else if (token == EOS) {
-                /* End of the string. */
-                line = NextInputLine(fp);
-                linep = (unsigned char *)line;
-                token = NO_TOKEN;
-            } else if (token == ERROR_TOKEN) {
-                if (!skipping_game) {
-                    if (Verbose > 1 || CheckSyntaxOnly)
-                        MyPrintf("Unknown character %c (Hex: %x).\n", next_char,
-                                 next_char);
-                }
-                /* Skip any sequence of them. */
-                while (ChTab[(unsigned)*linep] == ERROR_TOKEN)
-                    linep++;
-            } else if (token == OPERATOR) {
-                if (Verbose > 1 || CheckSyntaxOnly)
-                    MyPrintf("Operator in illegal context: %c.\n",
-                             *symbol_start);
-                /* Skip any sequence of them. */
-                while (ChTab[(unsigned)*linep] == OPERATOR) {
-                    linep++;
-                }
-                token = NO_TOKEN;
-            } else {
-                if (!skipping_game) {
-                    if (Verbose > 1 || CheckSyntaxOnly)
-                        MyPrintf(
-                            "Internal error: Missing case for %d on char %x.\n",
-                            token, next_char);
-                }
-                token = NO_TOKEN;
-            }
-        }
-    } while (token == NO_TOKEN);
-    return token;
-}
-
-static bool SkipToken(PGNToken token) {
-    switch (token) {
-    case TERMINATING_RESULT:
-    case TAG:
-    case MOVE:
-    case EOF_TOKEN:
-        return false;
-    default:
-        return true;
-    }
-    return true;
-}
-
-PGNToken SkipToNextGame(PGNToken token, FILE *fp, ParseType *yylval) {
-    if (SkipToken(token)) {
-        skipping_game = true;
-        do {
-            token = GetNextToken(fp, yylval);
-        } while (SkipToken(token));
-        skipping_game = false;
-    }
-    return token;
-}
-
-PGNToken ParseGamePrefix(PGNToken symbol, FILE *fp, ParseType *yylval) {
-    while (symbol != TAG && symbol != EOF_TOKEN) {
-        symbol = GetNextToken(fp, yylval);
-        if (symbol == COMMENT && !CheckSyntaxOnly && !PositionDatabase &&
-            !PrintBadlyPlayedPositions) {
-            if (Verbose > 3)
-                MyPrintf("Writing pre-game comment %s\n", yylval->string_info);
-            OutputPGNCommentCashed(yylval->string_info);
-            FlushPGNOutputCashed();
-        }
-    }
-
-    if (Verbose > 3)
-        MyPrintf("Line number after parsing game prefix: %d\n", NumOutputLines);
-    return symbol;
-}
-
 typedef struct {
     int piece_type_count[2][KING];
     int kk_index;
@@ -11445,17 +10663,6 @@ static void InitCaches() {
         FileCacheHighDTZ[i][0].block = FileCacheHighDTZ[i][1].block = NULL;
     }
 }
-
-static INDEX MaxCount = (INDEX)(-1);
-
-static char *SymmetryNames[] = {"Identity",
-                                "Reflect columns",
-                                "Reflect rows",
-                                "Rotate 180",
-                                "Reflect diag (a1-h8)",
-                                "Rotate 90 clockwise",
-                                "Rotate 90 anti-clockwise",
-                                "Reflect diag (h1-a8)"};
 
 #if (NROWS > NCOLS)
 static int RookMoves[NSQUARES][4][NROWS];
@@ -19560,14 +18767,10 @@ static int ScorePosition(BOARD *BoardIn, INDEX_DATA *index) {
     return UNKNOWN;
 }
 
-static bool Dynamic = false;
-
 typedef struct {
     int piece_types[2][KING];
     unsigned int count;
 } FREQ_TABLE;
-
-static FREQ_TABLE *EndingFreqTable = NULL;
 
 static void AddEndingToStats(BOARD *Board) {
     int piece_types[2][KING];
@@ -19590,145 +18793,11 @@ static bool EGTBWritten = false;
 static bool PrevEGTBWritten = false;
 static bool ContainsEGTBEvaluation = false;
 
-static int max_tag_line = 0;
-
-PGNToken ParseTagList(PGNToken symbol, FILE *fp, ParseType *yylval,
-                      BOARD *start_pos) {
-    bool setup_seen = false;
-    bool fen_seen = false;
-    bool tag_seen = false;
-    int result = UNKNOWN;
-
-    if (Verbose > 3)
-        MyPrintf("Starting to parse tags\n");
-
-    // for TAG lines, don't limit line length
-
-    int save_line_width = LineWidth;
-    LineWidth = MAX_PGN_OUTPUT;
-
-    while (symbol == TAG) {
-        int tag_index = yylval->tag_index;
-        if (Verbose > 3)
-            MyPrintf("Saw tag index %d\n", tag_index);
-        tag_seen = true;
-        symbol = GetNextToken(fp, yylval);
-        if (symbol == STRING) {
-            if (tag_index == VARIANT_TAG) {
-                if (strstr(yylval->string_info, "960")) {
-                    Chess960Game = true;
-                }
-            }
-            if (tag_index == SETUP_TAG) {
-                int setup_value = 0;
-                if (sscanf(yylval->string_info, "%d", &setup_value) == 1) {
-                    if (setup_value != 0) {
-                        setup_seen = true;
-                    }
-                }
-            }
-            if (tag_index == FEN_TAG) {
-                BOARD tmp_board;
-                int legal;
-                if (!setup_seen) {
-                    if (Verbose > 1 || CheckSyntaxOnly) {
-                        MyPrintf("Saw FEN tag without SetUp tag, game %u\n",
-                                 num_games);
-                    }
-                }
-                legal = ReadPosition(yylval->string_info, &tmp_board, NULL);
-                if (legal != NEUTRAL) {
-                    memcpy(start_pos, &tmp_board, sizeof(BOARD));
-                    if (Verbose > 3)
-                        DisplayBoard(start_pos, "Board in TagList");
-                    fen_seen = true;
-                } else {
-                    if (CheckSyntaxOnly || Verbose > 1) {
-                        MyPrintf("Could not scan FEN from %s, game %u\n",
-                                 yylval->string_info, num_games);
-                    }
-                }
-            }
-            if (tag_index == RESULT_TAG) {
-                if (!strcmp(yylval->string_info, "1-0"))
-                    result = WON;
-                else if (!strcmp(yylval->string_info, "1/2-1/2"))
-                    result = DRAW;
-                else if (!strcmp(yylval->string_info, "0-1"))
-                    result = LOST;
-                if (Verbose > 3)
-                    MyPrintf("Saw result integer %d\n", result);
-            }
-            /*
-            if(tag_index == WHITE_TAG) {
-                printf("%s - ",yylval->string_info);
-                }
-            if(tag_index == BLACK_TAG) {
-            printf("%s\n", yylval->string_info);
-            }
-            */
-            /*
-            if(tag_index == ANNOTATOR_TAG) {
-                AnnotatorSeen = true;
-                AnnotatorLine = NumOutputLines;
-            }
-            */
-            if ((!CheckSyntaxOnly && !PositionDatabase &&
-                 !PrintBadlyPlayedPositions) ||
-                Verbose > 3) {
-                char output[512];
-                if (tag_index == ANNOTATOR_TAG) {
-                    AnnotatorSeen = true;
-                    AnnotatorLine = NumOutputLines;
-                }
-                sprintf(output, "[%s \"%s\"]", TagList[tag_index],
-                        yylval->string_info);
-                if (Verbose > 3)
-                    MyPrintf("Sending %s to output cache\n", output);
-                OutputPGNStringCashed(output);
-                FlushPGNOutputCashed();
-            }
-        } else {
-            if (CheckSyntaxOnly || Verbose > 1) {
-                MyPrintf("Expected STRING tag %d, got %d for %s game %u\n",
-                         STRING, symbol, yylval->string_info, num_games);
-            }
-        }
-        symbol = GetNextToken(fp, yylval);
-        while (symbol == STRING)
-            symbol = GetNextToken(fp, yylval);
-    }
-
-    LastTagLine = NumOutputLines;
-
-    // restore maximum line length
-    LineWidth = save_line_width;
-
-    if (Verbose > 3)
-        MyPrintf("Last line with tags: %d\n", LastTagLine);
-
-    start_pos->result = result;
-
-    while (symbol == COMMENT) {
-        if (!CheckSyntaxOnly && !PositionDatabase &&
-            !PrintBadlyPlayedPositions) {
-            if (Verbose > 3)
-                MyPrintf("Comment before moves: %s\n", yylval->string_info);
-            OutputPGNCommentCashed(yylval->string_info);
-            FlushPGNOutputCashed();
-        }
-        symbol = GetNextToken(fp, yylval);
-    }
-
-    return symbol;
-}
-
 static int ProcessPosition(BOARD *pos, bool evaluate, bool best_capture,
                            bool mark_mzugs) {
     MB_INFO mb_info;
     char ending[16];
     int changed = 0;
-    char score_string[64], zz_string[64];
     INDEX_DATA idata;
 
     if (!IgnoreCastle && pos->castle)
@@ -19755,7 +18824,6 @@ static int ProcessPosition(BOARD *pos, bool evaluate, bool best_capture,
     int result = pos->result;
 
     if (evaluate) {
-        int game_num = pos->game_num;
         int score = pos->score;
         if (score == UNKNOWN || score == NOT_WON || score == NOT_LOST) {
             int score_new = UNKNOWN;
@@ -19801,7 +18869,6 @@ static int ProcessPosition(BOARD *pos, bool evaluate, bool best_capture,
     }
 
     if (mark_mzugs) {
-        int game_num = pos->game_num;
         int score = pos->score;
         int zz_type = pos->zz_type;
 
@@ -19875,563 +18942,6 @@ static int ProcessPosition(BOARD *pos, bool evaluate, bool best_capture,
     WritePositionData(&pos_data, 9);
 
     return changed;
-}
-
-PGNToken ParseMoveList(PGNToken symbol, FILE *fin, ParseType *yylval,
-                       BOARD *prev_pos, BOARD *curr_pos) {
-    while (symbol == MOVE_NUMBER || symbol == MOVE) {
-        if (symbol == MOVE_NUMBER) {
-            if (Verbose > 4) {
-                MyPrintf("\n");
-                for (int i = 0; i < 3 * RAV_level; i++)
-                    MyPrintf(" ");
-                MyPrintf("Saw move number: %d\n", yylval->move_number);
-            }
-            symbol = GetNextToken(fin, yylval);
-        }
-
-        if (symbol == MOVE) {
-            Move move_list[MAX_MOVES], pseudo_move_list[MAX_MOVES], move;
-            int nmoves, npseudo_moves;
-
-            if (Verbose > 4) {
-                MyPrintf("\n");
-                for (int i = 0; i < 3 * RAV_level; i++)
-                    MyPrintf(" ");
-                MyPrintf("Saw move: %s\n", yylval->string_info);
-            }
-
-            npseudo_moves =
-                GenPseudoLegalMoves(curr_pos, pseudo_move_list, true);
-            nmoves = GenLegalFromPseudoMoves(curr_pos, move_list,
-                                             pseudo_move_list, npseudo_moves);
-
-            if (Verbose > 5) {
-                MyPrintf("# pseudo-legal: %d,  legal: %d\n", npseudo_moves,
-                         nmoves);
-            }
-
-            if (!DecodeMove(yylval->string_info, &move, move_list, nmoves)) {
-                fprintf(stderr, "Could not match move %s, game %u\n",
-                        yylval->string_info, num_games);
-                fprintf(stderr, "Candidate moves (%d):\n", nmoves);
-                for (int i = 0; i < nmoves; i++) {
-                    char move_string[64];
-                    GetMoveString(&move_list[i], move_string, true);
-                    fprintf(stderr, "%d: %s\n", i, move_string);
-                }
-                exit(1);
-            }
-
-            memcpy(prev_pos, curr_pos, sizeof(BOARD));
-
-            if (Verbose > 5) {
-                char comment[64];
-                sprintf(comment, "Before move %s", yylval->string_info);
-                DisplayBoard(prev_pos, comment);
-            }
-
-            if (!CheckSyntaxOnly && !PositionDatabase &&
-                !PrintBadlyPlayedPositions) {
-                char move_string[64];
-                if (curr_pos->side == WHITE || FirstMove) {
-                    sprintf(move_string, "%d%s", curr_pos->full_move,
-                            (curr_pos->side == WHITE) ? "." : "...");
-                    OutputPGNStringCashed(move_string);
-                }
-            }
-
-#if 0
-	    /* check for null move */
-	    if(move.from == 0 && move.to == 0) {
-		if(IsInCheck(curr_pos, curr_pos->side)) {
-		    DisplayBoard(curr_pos, "null move not possible");
-		    exit(1);
-		}
-		if(curr_pos->side == BLACK)
-		   curr_pos->full_move++;
-		curr_pos->side = OtherSide(curr_pos->side);
-	    }
-	    else {
-#endif
-            if (Verbose > 6) {
-                MyPrintf("move from: %d to: %d flag: %d pieve_moved: %d\n",
-                         move.from, move.to, move.flag, move.piece_moved);
-            }
-            MakeMove(curr_pos, &move);
-#if 0
-	    }
-#endif
-
-            curr_pos->score = UNKNOWN;
-            curr_pos->zz_type = UNKNOWN;
-
-            if (InsertComments || AddEGTBComments ||
-                PrintBadlyPlayedPositions) {
-                LookupScoreInDatabase(curr_pos);
-            }
-
-            if (PositionDatabase) {
-                if (AnnotateVariations || RAV_level == 0) {
-                    ProcessPosition(curr_pos, false, false, false);
-                }
-            }
-
-            bool is_right_number_of_pieces =
-                (curr_pos->num_pieces >= MinimumNumberOfPieces) &&
-                (curr_pos->num_pieces <= MaximumNumberOfPieces);
-
-            if (!CheckSyntaxOnly && !PositionDatabase &&
-                !PrintBadlyPlayedPositions) {
-                if (IsInCheck(curr_pos, curr_pos->side))
-                    move.flag |= CHECK;
-                char move_string[64];
-                if (move.flag & CHECK) {
-                    Move reply_list[MAX_MOVES];
-                    int nreplies;
-                    nreplies = GenLegalMoves(curr_pos, reply_list, true, true);
-                    if (nreplies == 0)
-                        move.flag |= MATE;
-                }
-                GetShortMoveString(&move, pseudo_move_list, npseudo_moves,
-                                   move_string);
-                OutputPGNStringCashed(move_string);
-                if (InsertComments && is_right_number_of_pieces) {
-                    if (curr_pos->zz_type != UNKNOWN &&
-                        curr_pos->zz_type != NO_MZUG) {
-                        OutputPGNCommentCashed("zz");
-                    }
-                }
-            }
-
-            FirstMove = false;
-
-            if (CheckSyntaxOnly && (RAV_level == 0 || AnnotateVariations) &&
-                is_right_number_of_pieces) {
-                num_positions++;
-                if (curr_pos->num_pieces <= 8) {
-                    AddEndingToStats(curr_pos);
-                }
-            }
-
-            if (Verbose > 5) {
-                char comment[64];
-                strncpy(comment, yylval->string_info, 64);
-                sprintf(comment, "After move %s", yylval->string_info);
-                DisplayBoard(curr_pos, comment);
-            }
-
-            symbol = GetNextToken(fin, yylval);
-
-            while (symbol == CHECK_SYMBOL) {
-                symbol = GetNextToken(fin, yylval);
-            }
-
-            while (symbol == COMMENT) {
-                if (!CheckSyntaxOnly && !PositionDatabase &&
-                    !PrintBadlyPlayedPositions)
-                    OutputPGNCommentCashed(yylval->string_info);
-                symbol = GetNextToken(fin, yylval);
-            }
-
-            while (symbol == NAG) {
-                if (Verbose > 4) {
-                    MyPrintf("\n");
-                    for (int i = 0; i < 3 * RAV_level; i++)
-                        MyPrintf(" ");
-                    MyPrintf("Saw NAG: %s\n", yylval->string_info);
-                }
-                if (!CheckSyntaxOnly && !PositionDatabase &&
-                    !PrintBadlyPlayedPositions) {
-                    OutputPGNStringCashed(yylval->string_info);
-                }
-                symbol = GetNextToken(fin, yylval);
-            }
-
-            while (symbol == COMMENT) {
-                if (!CheckSyntaxOnly && !PositionDatabase &&
-                    !PrintBadlyPlayedPositions)
-                    OutputPGNCommentCashed(yylval->string_info);
-                symbol = GetNextToken(fin, yylval);
-            }
-
-            bool is_prior_right_number_of_pieces =
-                (prev_pos->num_pieces >= MinimumNumberOfPieces) &&
-                (prev_pos->num_pieces <= MaximumNumberOfPieces);
-
-            if ((InsertComments || AddEGTBComments ||
-                 PrintBadlyPlayedPositions) &&
-                (RAV_level == 0 || AnnotateVariations)) {
-                bool phase_change = false;
-                if (memcmp(curr_pos->piece_type_count,
-                           prev_pos->piece_type_count,
-                           sizeof(curr_pos->piece_type_count)))
-                    phase_change = true;
-                int move_score = EvaluateMove(prev_pos->score, curr_pos->score,
-                                              phase_change);
-                if ((phase_change || !EGTBWritten) &&
-                    curr_pos->score != UNKNOWN) {
-                    if (InsertComments && is_right_number_of_pieces) {
-                        char score_string[16];
-                        ScoreToString(curr_pos->score, score_string);
-                        char comment[64];
-                        if (curr_pos->promos != QRBN_PROMOTIONS &&
-                            curr_pos->promos != 0) {
-                            char promos[5];
-                            int n = 0;
-                            if (curr_pos->promos & (1 << (QUEEN)))
-                                promos[n++] = 'q';
-                            if (curr_pos->promos & (1 << (ROOK)))
-                                promos[n++] = 'r';
-                            if (curr_pos->promos & (1 << (BISHOP)))
-                                promos[n++] = 'b';
-                            if (curr_pos->promos & (1 << (KNIGHT)))
-                                promos[n++] = 'n';
-                            promos[n] = '\0';
-                            sprintf(comment, "%s_%s_%d (%s)", Annotator, promos,
-                                    curr_pos->num_pieces, score_string);
-                        } else
-                            sprintf(comment, "%s_%d (%s)", Annotator,
-                                    curr_pos->num_pieces, score_string);
-                        OutputPGNCommentCashed(comment);
-                        EGTBWritten = true;
-                        ContainsEGTBEvaluation = true;
-                    }
-                }
-                if (IsResultChangingMove(move_score) ||
-                    (DepthDelta > 0 && ABS(move_score) >= DepthDelta)) {
-                    if (InsertComments && is_prior_right_number_of_pieces) {
-                        char move_string[16];
-                        MoveScoreToString(move_score, move_string);
-                        char score_string[16];
-                        ScoreToString(curr_pos->score, score_string);
-                        char comment[64];
-                        if (curr_pos->promos != QRBN_PROMOTIONS &&
-                            curr_pos->promos != 0) {
-                            char promos[5];
-                            int n = 0;
-                            if (curr_pos->promos & (1 << (QUEEN)))
-                                promos[n++] = 'q';
-                            if (curr_pos->promos & (1 << (ROOK)))
-                                promos[n++] = 'r';
-                            if (curr_pos->promos & (1 << (BISHOP)))
-                                promos[n++] = 'b';
-                            if (curr_pos->promos & (1 << (KNIGHT)))
-                                promos[n++] = 'n';
-                            promos[n] = '\0';
-                            sprintf(comment, "%s_%s_%d %s (%s)", Annotator,
-                                    promos, prev_pos->num_pieces, move_string,
-                                    score_string);
-                        } else
-                            sprintf(comment, "%s_%d %s (%s)", Annotator,
-                                    prev_pos->num_pieces, move_string,
-                                    score_string);
-                        OutputPGNCommentCashed(comment);
-                    }
-                    if (PrintBadlyPlayedPositions)
-                        PrintEPD(curr_pos, NULL);
-                    if (RAV_level == 0 && is_prior_right_number_of_pieces) {
-                        if (IsResultChangingMove(move_score)) {
-                            if (prev_pos->num_pieces > MaxBadEnding)
-                                MaxBadEnding = prev_pos->num_pieces;
-                            if (NumBadMovesPGN < MAX_GAME_MOVES) {
-                                ScoreListPGN[NumBadMovesPGN].score = move_score;
-                                ScoreListPGN[NumBadMovesPGN].move_no =
-                                    prev_pos->full_move;
-                                ScoreListPGN[NumBadMovesPGN].side =
-                                    prev_pos->side;
-                                NumBadMovesPGN++;
-                            }
-                        } else {
-                            if (NumDeltaMovesPGN < MAX_GAME_MOVES) {
-                                ScoreListDeltaPGN[NumDeltaMovesPGN].score =
-                                    move_score;
-                                ScoreListDeltaPGN[NumDeltaMovesPGN].move_no =
-                                    prev_pos->full_move;
-                                ScoreListDeltaPGN[NumDeltaMovesPGN].side =
-                                    prev_pos->side;
-                                NumDeltaMovesPGN++;
-                            }
-                        }
-                    } else {
-                        if (IsResultChangingMove(move_score) &&
-                            is_prior_right_number_of_pieces) {
-                            if (prev_pos->num_pieces > MaxBadVariation) {
-                                MaxBadVariation = prev_pos->num_pieces;
-                            }
-                        }
-                    }
-                }
-            }
-
-            while (symbol == RAV_START) {
-                FirstMove = true;
-                PrevEGTBWritten = EGTBWritten;
-                EGTBWritten = false;
-
-                RAV_level++;
-
-                symbol = GetNextToken(fin, yylval);
-
-                if (!CheckSyntaxOnly && !PositionDatabase &&
-                    !PrintBadlyPlayedPositions)
-                    OutputPGNStringCashed("(");
-
-                while (symbol == COMMENT) {
-                    if (!CheckSyntaxOnly && !PositionDatabase &&
-                        !PrintBadlyPlayedPositions)
-                        OutputPGNCommentCashed(yylval->string_info);
-                    symbol = GetNextToken(fin, yylval);
-                }
-
-                if (symbol == RAV_END) {
-                    if (!CheckSyntaxOnly && !PositionDatabase &&
-                        !PrintBadlyPlayedPositions)
-                        OutputPGNStringCashed(")");
-                    symbol = GetNextToken(fin, yylval);
-                    RAV_level--;
-                    EGTBWritten = PrevEGTBWritten;
-                    continue;
-                }
-
-                if (symbol == MOVE || symbol == MOVE_NUMBER) {
-                    BOARD new_prev_pos, new_curr_pos;
-                    if (Verbose > 4) {
-                        MyPrintf("\n");
-                        for (int i = 0; i < 3 * RAV_level; i++)
-                            MyPrintf(" ");
-                        MyPrintf("Saw start of variation\n");
-                    }
-
-                    memcpy(&new_curr_pos, prev_pos, sizeof(BOARD));
-
-                    if (RAV_level > max_rav_level) {
-                        max_rav_level = RAV_level;
-                        max_rav_game = num_games;
-                    }
-
-                    symbol = ParseMoveList(symbol, fin, yylval, &new_prev_pos,
-                                           &new_curr_pos);
-                } else {
-                    fprintf(stderr,
-                            "Variation not followed by move in game %u\n",
-                            num_games);
-                    FlushPGNOutputCashed();
-                    exit(1);
-                }
-
-                while (symbol != RAV_END) {
-                    fprintf(
-                        stderr,
-                        "Unexpected  %s in input, expected end of variation\n",
-                        yylval->string_info);
-                    symbol = GetNextToken(fin, yylval);
-                    FlushPGNOutputCashed();
-                }
-
-                if (symbol != RAV_END) {
-                    fprintf(stderr, "Unmatched variation in game %u\n",
-                            num_games);
-                    FlushPGNOutputCashed();
-                    exit(1);
-                } else {
-                    FirstMove = true;
-                    EGTBWritten = PrevEGTBWritten;
-                    if (!CheckSyntaxOnly && !PositionDatabase &&
-                        !PrintBadlyPlayedPositions)
-                        OutputPGNStringCashed(")");
-                }
-
-                RAV_level--;
-                symbol = GetNextToken(fin, yylval);
-                while (symbol == COMMENT) {
-                    if (!CheckSyntaxOnly && !PositionDatabase &&
-                        !PrintBadlyPlayedPositions)
-                        OutputPGNCommentCashed(yylval->string_info);
-                    symbol = GetNextToken(fin, yylval);
-                }
-            }
-        }
-    }
-    return symbol;
-}
-
-PGNToken ParseGame(PGNToken symbol, FILE *fin, ParseType *yylval,
-                   BOARD *curr_pos, bool best_capture) {
-    BOARD start_pos, prev_pos;
-    int legal;
-
-    RAV_level = 0;
-    EGTBWritten = false;
-    ContainsEGTBEvaluation = false;
-
-#if 0
-    if(!CheckSyntaxOnly && !PositionDatabase)
-#endif
-    InitCashedPGNOutput();
-
-    legal =
-        ReadPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-                     curr_pos, NULL);
-
-    if (legal == NEUTRAL) {
-        fprintf(stderr, "Could not initialize starting position\n");
-        exit(1);
-    }
-
-    memcpy(&start_pos, curr_pos, sizeof(start_pos));
-
-    king_orig_col = KING_ORIG_COL_TRADITIONAL;
-    crook_orig_col = CROOK_ORIG_COL_TRADITIONAL;
-    grook_orig_col = GROOK_ORIG_COL_TRADITIONAL;
-
-    Chess960Game = false;
-
-    symbol = ParseGamePrefix(symbol, fin, yylval);
-    symbol = ParseTagList(symbol, fin, yylval, curr_pos);
-
-    if (Chess960Game && !Chess960) {
-        if (Verbose > 1)
-            MyPrintf("Skipping Chess 960 game %d\n", num_games);
-        symbol = SkipToNextGame(symbol, fin, yylval);
-        return symbol;
-    }
-
-    if (Verbose > 3)
-        MyPrintf("Line number for pre-game score comments: %d\n",
-                 NumOutputLines);
-
-    bool is_right_number_of_pieces =
-        (curr_pos->num_pieces >= MinimumNumberOfPieces) &&
-        (curr_pos->num_pieces <= MaximumNumberOfPieces);
-
-    if (CheckSyntaxOnly) {
-        if (is_right_number_of_pieces) {
-            num_positions++;
-        }
-    }
-
-    curr_pos->score = UNKNOWN;
-    curr_pos->zz_type = UNKNOWN;
-
-    if (InsertComments || AddEGTBComments || PrintBadlyPlayedPositions) {
-        LookupScoreInDatabase(curr_pos);
-    }
-
-    if (PositionDatabase) {
-        ProcessPosition(curr_pos, false, best_capture, false);
-    }
-
-    if (Verbose > 3) {
-        char comment[64];
-        sprintf(comment, "Board after Tags, game %u", num_games);
-        DisplayBoard(curr_pos, comment);
-    }
-
-    FirstMove = true;
-
-    if (InsertComments && is_right_number_of_pieces) {
-        if (curr_pos->zz_type != UNKNOWN && curr_pos->zz_type != NO_MZUG) {
-            OutputPGNCommentCashed("zz");
-        }
-        // always evaluate starting position if possible
-        if (curr_pos->score != UNKNOWN) {
-            char score_string[16];
-            ScoreToString(curr_pos->score, score_string);
-            char comment[64];
-            if (curr_pos->promos != QRBN_PROMOTIONS && curr_pos->promos != 0) {
-                char promos[5];
-                int n = 0;
-                if (curr_pos->promos & (1 << (QUEEN)))
-                    promos[n++] = 'q';
-                if (curr_pos->promos & (1 << (ROOK)))
-                    promos[n++] = 'r';
-                if (curr_pos->promos & (1 << (BISHOP)))
-                    promos[n++] = 'b';
-                if (curr_pos->promos & (1 << (KNIGHT)))
-                    promos[n++] = 'n';
-                promos[n] = '\0';
-                sprintf(comment, "%s_%s_%d (%s)", Annotator, promos,
-                        curr_pos->num_pieces, score_string);
-            } else
-                sprintf(comment, "%s_%d (%s)", Annotator, curr_pos->num_pieces,
-                        score_string);
-            OutputPGNCommentCashed(comment);
-            EGTBWritten = true;
-            ContainsEGTBEvaluation = true;
-        }
-    }
-
-    symbol = ParseMoveList(symbol, fin, yylval, &prev_pos, curr_pos);
-
-    if (symbol == TERMINATING_RESULT) {
-        if (Verbose > 1) {
-            MyPrintf("\nSaw terminating result %s, game %u\n",
-                     yylval->string_info, num_games);
-        }
-        is_right_number_of_pieces =
-            (curr_pos->num_pieces >= MinimumNumberOfPieces) &&
-            (curr_pos->num_pieces <= MaximumNumberOfPieces);
-        if ((InsertComments || AddEGTBComments) && is_right_number_of_pieces) {
-            int sip1 = UNKNOWN;
-            if (curr_pos->result == DRAW)
-                sip1 = DRAW;
-            else if (curr_pos->result == WON) {
-                if (curr_pos->side == BLACK)
-                    sip1 = WON;
-                else
-                    sip1 = LOST;
-            } else if (curr_pos->result == LOST) {
-                if (curr_pos->side == WHITE)
-                    sip1 = WON;
-                else
-                    sip1 = LOST;
-            }
-            int move_score = EvaluateMove(curr_pos->score, sip1, false);
-            if (IsResultChangingMove(move_score)) {
-                if (InsertComments) {
-                    char move_string[16];
-                    MoveScoreToString(move_score, move_string);
-                    char comment[64];
-                    if (curr_pos->promos != QRBN_PROMOTIONS &&
-                        curr_pos->promos != 0) {
-                        char promos[5];
-                        int n = 0;
-                        if (curr_pos->promos & (1 << (QUEEN)))
-                            promos[n++] = 'q';
-                        if (curr_pos->promos & (1 << (ROOK)))
-                            promos[n++] = 'r';
-                        if (curr_pos->promos & (1 << (BISHOP)))
-                            promos[n++] = 'b';
-                        if (curr_pos->promos & (1 << (KNIGHT)))
-                            promos[n++] = 'n';
-                        promos[n] = '\0';
-                        sprintf(comment, "%s_%s_%d (%s)", Annotator, promos,
-                                curr_pos->num_pieces, move_string);
-                    } else
-                        sprintf(comment, "%s_%d (%s)", Annotator,
-                                curr_pos->num_pieces, move_string);
-                    OutputPGNCommentCashed(comment);
-                }
-                if (NumBadMovesPGN < MAX_GAME_MOVES) {
-                    ScoreListPGN[NumBadMovesPGN].move_no = 999;
-                    ScoreListPGN[NumBadMovesPGN].score = move_score;
-                    NumBadMovesPGN++;
-                }
-            }
-        }
-        if (!CheckSyntaxOnly && !PositionDatabase &&
-            !PrintBadlyPlayedPositions) {
-            OutputPGNStringCashed(yylval->string_info);
-            FlushPGNOutputCashed();
-        }
-    }
-
-    if (!CheckSyntaxOnly && !PositionDatabase && !PrintBadlyPlayedPositions &&
-        (ContainsEGTBEvaluation || !TBGamesOnly))
-        OutputCashedPGN();
-
-    return symbol;
 }
 
 /*

@@ -1,5 +1,5 @@
 mbeval_uci: mbeval.c
-	gcc mbeval.c -o mbeval_uci -Wunused-function -O2 -lzstd -lz
+	gcc mbeval.c -o mbeval_uci -Wall -O2 -lzstd -lz
 
 .PHONY: format
 format:
