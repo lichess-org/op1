@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <inttypes.h>
 
 static char *Version = "7.9";
 
