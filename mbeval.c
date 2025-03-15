@@ -58,6 +58,8 @@ enum { ZLIB_YK = 0, BZIP_YK, LZMA_YK, ZSTD_YK, NO_COMPRESSION_YK };
 
 typedef struct {
     ZSTD_DCtx *zstd_decompression;
+    uint8_t *compressed_buffer;
+    uint32_t compressed_buffer_size;
 } CONTEXT;
 
 #define COMPRESS_OK Z_OK
@@ -591,6 +593,14 @@ static int high_dtz_compar(const void *a, const void *b) {
 
 static void *MyMalloc(size_t cb) {
     void *pv = malloc(cb);
+    assert(pv != NULL);
+    if (pv == NULL)
+        abort();
+    return pv;
+}
+
+static void *MyRealloc(void *pv, size_t cb) {
+    pv = realloc(pv, cb);
     assert(pv != NULL);
     if (pv == NULL)
         abort();
@@ -8497,9 +8507,6 @@ static FILE_CACHE_HIGH_DTZ FileCacheHighDTZ[MAX_FILES_HIGH_DTZ][2];
 static int num_cached_files_high_dtz[2] = {0, 0};
 static int cached_file_high_dtz_lru[MAX_FILES_HIGH_DTZ][2];
 
-static uint8_t *CompressionBuffer = NULL;
-static uint32_t CompressionBufferSize = 0;
-
 static void InitCaches() {
     memset(FileCache, 0, sizeof(FileCache));
     memset(FileCacheYK, 0, sizeof(FileCacheYK));
@@ -8528,7 +8535,7 @@ static void InitCaches() {
     }
 }
 
-static int MyUncompress(CONTEXT* ctx, uint8_t *dest, uint32_t *dest_size,
+static int MyUncompress(CONTEXT *ctx, uint8_t *dest, uint32_t *dest_size,
                         const uint8_t *source, uint32_t source_size,
                         int method) {
     if (method == NO_COMPRESSION) {
@@ -8536,9 +8543,8 @@ static int MyUncompress(CONTEXT* ctx, uint8_t *dest, uint32_t *dest_size,
         memcpy(dest, source, source_size);
     } else if (method == ZSTD) {
         size_t destCapacity = *dest_size;
-            destCapacity =
-                ZSTD_decompressDCtx(ctx->zstd_decompression, dest,
-                                    destCapacity, source, source_size);
+        destCapacity = ZSTD_decompressDCtx(ctx->zstd_decompression, dest,
+                                           destCapacity, source, source_size);
         if (ZSTD_isError(destCapacity)) {
             return COMPRESS_NOT_OK;
         }
@@ -10832,7 +10838,7 @@ static int GetYKInfo(const BOARD *Board, YK_INFO *yk_info) {
  * A checkmate is loss in 0
  */
 
-static int GetYKResult(CONTEXT* ctx, const BOARD *Board, INDEX_DATA *ind) {
+static int GetYKResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
     YK_INFO yk_info;
     FILE_CACHE_YK *fcache = NULL;
 
@@ -11004,14 +11010,13 @@ static int GetYKResult(CONTEXT* ctx, const BOARD *Board, INDEX_DATA *ind) {
     if (b_index != fcache->block_index) {
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
-        if (length > CompressionBufferSize) {
-            if (CompressionBuffer != NULL) {
-                MyFree(CompressionBuffer);
-            }
-            CompressionBufferSize = length;
-            CompressionBuffer = (uint8_t *)MyMalloc(CompressionBufferSize);
+        if (length > ctx->compressed_buffer_size) {
+            ctx->compressed_buffer =
+                (uint8_t *)MyRealloc(ctx->compressed_buffer, length);
+            ctx->compressed_buffer_size = length;
         }
-        f_read(CompressionBuffer, length, fcache->fp, fcache->offsets[b_index]);
+        f_read(ctx->compressed_buffer, length, fcache->fp,
+               fcache->offsets[b_index]);
         uint32_t tmp_zone_size = fcache->block_size;
         if (tmp_zone_size > fcache->max_block_size) {
             if (fcache->block != NULL) {
@@ -11020,8 +11025,8 @@ static int GetYKResult(CONTEXT* ctx, const BOARD *Board, INDEX_DATA *ind) {
             fcache->max_block_size = tmp_zone_size;
             fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
         }
-        MyUncompress(ctx, fcache->block, &tmp_zone_size, CompressionBuffer, length,
-                     fcache->compression_method);
+        MyUncompress(ctx, fcache->block, &tmp_zone_size, ctx->compressed_buffer,
+                     length, fcache->compression_method);
         assert(tmp_zone_size == fcache->block_size);
         fcache->block_index = b_index;
     }
@@ -11077,7 +11082,7 @@ static int GetYKResult(CONTEXT* ctx, const BOARD *Board, INDEX_DATA *ind) {
     return result;
 }
 
-static int GetMBResult(CONTEXT*ctx, const BOARD *Board, INDEX_DATA *ind) {
+static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
     MB_INFO mb_info = {0};
     FILE_CACHE *fcache;
 
@@ -11451,14 +11456,13 @@ static int GetMBResult(CONTEXT*ctx, const BOARD *Board, INDEX_DATA *ind) {
     if (b_index != fcache->block_index) {
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
-        if (length > CompressionBufferSize) {
-            if (CompressionBuffer != NULL) {
-                MyFree(CompressionBuffer);
-            }
-            CompressionBufferSize = length;
-            CompressionBuffer = (uint8_t *)MyMalloc(CompressionBufferSize);
+        if (length > ctx->compressed_buffer_size) {
+            ctx->compressed_buffer =
+                (uint8_t *)MyRealloc(ctx->compressed_buffer, length);
+            ctx->compressed_buffer_size = length;
         }
-        f_read(CompressionBuffer, length, fcache->fp, fcache->offsets[b_index]);
+        f_read(ctx->compressed_buffer, length, fcache->fp,
+               fcache->offsets[b_index]);
         uint32_t tmp_zone_size = fcache->header.block_size;
         if (tmp_zone_size > fcache->max_block_size) {
             if (fcache->block != NULL) {
@@ -11467,8 +11471,8 @@ static int GetMBResult(CONTEXT*ctx, const BOARD *Board, INDEX_DATA *ind) {
             fcache->max_block_size = tmp_zone_size;
             fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
         }
-        MyUncompress(ctx, fcache->block, &tmp_zone_size, CompressionBuffer, length,
-                     fcache->header.compression_method);
+        MyUncompress(ctx, fcache->block, &tmp_zone_size, ctx->compressed_buffer,
+                     length, fcache->header.compression_method);
         assert(tmp_zone_size == fcache->header.block_size);
         fcache->block_index = b_index;
     }
@@ -11903,14 +11907,12 @@ static int GetMBResult(CONTEXT*ctx, const BOARD *Board, INDEX_DATA *ind) {
             uint32_t length =
                 fcache_high_dtz->offsets[fcache_high_dtz->block_index + 1] -
                 fcache_high_dtz->offsets[fcache_high_dtz->block_index];
-            if (length > CompressionBufferSize) {
-                if (CompressionBuffer != NULL) {
-                    MyFree(CompressionBuffer);
-                }
-                CompressionBufferSize = length;
-                CompressionBuffer = (uint8_t *)MyMalloc(CompressionBufferSize);
+            if (length > ctx->compressed_buffer_size) {
+                ctx->compressed_buffer =
+                    (uint8_t *)MyRealloc(ctx->compressed_buffer, length);
+                ctx->compressed_buffer_size = length;
             }
-            f_read(CompressionBuffer, length, fcache_high_dtz->fp,
+            f_read(ctx->compressed_buffer, length, fcache_high_dtz->fp,
                    fcache_high_dtz->offsets[fcache_high_dtz->block_index]);
             uint32_t n_per_block_cached = n_per_block;
             if (fcache_high_dtz->block_index ==
@@ -11921,7 +11923,7 @@ static int GetMBResult(CONTEXT*ctx, const BOARD *Board, INDEX_DATA *ind) {
             }
             uint32_t tmp_zone_size = n_per_block_cached * sizeof(HIGH_DTZ);
             MyUncompress(ctx, (uint8_t *)fcache_high_dtz->block, &tmp_zone_size,
-                         CompressionBuffer, length,
+                         ctx->compressed_buffer, length,
                          fcache_high_dtz->header.compression_method);
             assert(tmp_zone_size == n_per_block_cached * sizeof(HIGH_DTZ));
         }
@@ -11971,7 +11973,8 @@ static int GetMBResult(CONTEXT*ctx, const BOARD *Board, INDEX_DATA *ind) {
  *
  * The input position is assumed to be legal.
  */
-static int ScorePosition(CONTEXT* ctx, const BOARD *BoardIn, INDEX_DATA *index) {
+static int ScorePosition(CONTEXT *ctx, const BOARD *BoardIn,
+                         INDEX_DATA *index) {
     if (BoardIn->num_pieces == 2)
         return DRAW;
 
@@ -12103,7 +12106,7 @@ static int InitPaths() {
     return num_paths;
 }
 
-static void AssertScore(CONTEXT* ctx, const char *fen, int expected_score) {
+static void AssertScore(CONTEXT *ctx, const char *fen, int expected_score) {
     char mutable_fen[256] = {0};
     strncpy(mutable_fen, fen, sizeof(mutable_fen) - 1);
 
@@ -12129,8 +12132,8 @@ void ykmb_init(void) {
     InitPermutationTables();
 }
 
-CONTEXT* ykmb_context_create() {
-    CONTEXT* context = (CONTEXT*)MyMalloc(sizeof(CONTEXT));
+CONTEXT *ykmb_context_create() {
+    CONTEXT *context = (CONTEXT *)MyMalloc(sizeof(CONTEXT));
     memset(context, 0, sizeof(CONTEXT));
 
     context->zstd_decompression = ZSTD_createDCtx();
@@ -12139,8 +12142,10 @@ CONTEXT* ykmb_context_create() {
     return context;
 }
 
-void ykmb_context_destroy(CONTEXT* context) {
+void ykmb_context_destroy(CONTEXT *context) {
     assert(context != NULL);
+
+    MyFree(context->compressed_buffer);
 
     ZSTD_freeDCtx(context->zstd_decompression);
     MyFree(context);
@@ -12153,7 +12158,7 @@ int main(int argc, char *argv[]) {
     assert(IsLosingScore(-1));
     assert(ScoreCompare(1, 2) < 0);
 
-    CONTEXT* ctx = ykmb_context_create();
+    CONTEXT *ctx = ykmb_context_create();
 
     AssertScore(ctx, "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", -3);
     AssertScore(ctx, "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1", -1);
