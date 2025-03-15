@@ -808,7 +808,7 @@ static void f_close(file f) {
 }
 
 size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
-    BOOL bResult;
+    bool bResult;
     DWORD cbRead;
 
 #if defined(USE_64_BIT)
@@ -852,7 +852,7 @@ size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
 }
 
 static void f_write(void *pv, size_t cb, file fp, INDEX indStart) {
-    BOOL bResult;
+    bool bResult;
     DWORD cbWritten;
 #if defined(USE_64_BIT)
     LARGE_INTEGER s;
@@ -940,7 +940,7 @@ static void f_close(file f) {
 }
 
 size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
-    BOOL bResult;
+    bool bResult;
     DWORD cbRead;
 
 #if defined(USE_64_BIT)
