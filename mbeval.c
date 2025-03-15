@@ -24184,6 +24184,13 @@ int main(int argc, char *argv[]) {
     InitPieceStrengths();
     NumPaths = InitPaths();
 
+    side = ReadPosition("8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", &Board, NULL);
+    assert(side != NEUTRAL);
+
+    INDEX_DATA index;
+    int score = ScorePosition(&Board, &index);
+    assert(score == -3);
+
 #if defined(UCI_LOG)
     FILE *fout = fopen("f:\\baseykmb\\new_mb\\uci_ykmb.txt", "w");
 #endif
