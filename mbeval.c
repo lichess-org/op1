@@ -731,26 +731,6 @@ enum {
 typedef ZINDEX (*pt2index)(int *);
 
 typedef struct {
-    unsigned int material;
-    int piece_type_count[2][KING];
-    bool pawns_present;
-    int side;
-    int npieces;
-    bool checked;
-    bool available;
-    unsigned int promotions;
-    int parity;
-    bool bitbase;
-    uint8_t metric;
-    int high_dtz;
-    uint32_t (*IndexFromPos)(int *pos);
-    uint32_t zone_size;
-    char *path;
-    char fname[16];
-    char fname_h[16];
-} Ending;
-
-typedef struct {
     int board[NSQUARES];
     int ep_square;
     int castle;
@@ -775,39 +755,6 @@ typedef struct {
     bool (*PosFromIndex)(ZINDEX index, int *pos);
     ZINDEX (*IndexFromPos)(int *pos);
 } IndexType;
-
-typedef struct {
-    char ending[MAX_PIECES_MB + 1];
-    int game_num, move_no, side, result, score, zz_type;
-    char cz_type;
-} SCORE;
-
-typedef struct {
-    char ending[MAX_PIECES_MB + 1];
-    unsigned int num_total;
-    unsigned int num_bad;
-} ENDING_LIST;
-
-typedef struct {
-    char ending[16];
-    INDEX offset;
-    int kk_index;
-    int promos;
-    int score;
-    int side;
-    int zz_type;
-} POSITION_DB;
-
-typedef struct {
-    int piece_type_count[2][KING];
-    int kk_index;
-    INDEX offset;
-    int promos;
-    int game_num, move_no;
-    int side, result, score, zz_type, cz_depth;
-    char cz_type;
-    bool flipped;
-} POSITION;
 
 #if defined(MB_INDEX)
 
@@ -8395,7 +8342,7 @@ static int GetEndingName(const int type_count[2][KING], char *ending) {
     return len;
 }
 
-static int SetBoard(BOARD *Board, int *board, int side, int ep_square,
+static int SetBoard(BOARD *Board, const int *board, int side, int ep_square,
                     int castle, int half_move, int full_move) {
     int npieces = 0, nwhite = 0, nblack = 0, strength_w = 0, strength_b = 0, i;
 
