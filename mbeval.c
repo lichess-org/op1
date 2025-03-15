@@ -146,9 +146,9 @@ static ZSTD_DCtx *ZSTD_DecompressionContext = NULL;
 
 #define COMPRESS_NOT_OK ((COMPRESS_OK) + 1)
 
-#ifndef abs
-#define abs(a) ((a) < 0 ? -(a) : (a))
-#endif
+#define ABS(a) ((a) < 0 ? -(a) : (a))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 /*
  * Determine the number of distinct canonical positions of the two kings, given
@@ -2759,7 +2759,7 @@ int IsValidDP22(int w1, int w2, int b1, int b2) {
 
     if (w1_col == w2_col) {
         if (w1_col == b1_col && b1_col == b2_col &&
-            w1_row < min(b1_row, b2_row) && w2_row < max(b1_row, b2_row))
+            w1_row < MIN(b1_row, b2_row) && w2_row < MAX(b1_row, b2_row))
             return ONE_COLUMN;
         return NO_DP22;
     }
@@ -11411,11 +11411,11 @@ bool DecodeMove(char *move_string, Move *move_details, Move *move_list,
         if (mclass == PAWN_MOVE_WITH_PROMOTION) {
             if (!(move_list[i].flag & PROMOTION))
                 continue;
-            if (piece_promoted != abs(move_list[i].piece_promoted))
+            if (piece_promoted != ABS(move_list[i].piece_promoted))
                 continue;
         }
 
-        if (piece_to_move != abs(move_list[i].piece_moved))
+        if (piece_to_move != ABS(move_list[i].piece_moved))
             continue;
 
         // Because of chess 960, don't want to match castling because a king
@@ -12845,16 +12845,16 @@ static int MoveCompare(const void *v1, const void *v2) {
         return score_diff;
 
     if (m1->flag & CAPTURE)
-        material1 += abs(m1->piece_captured);
+        material1 += ABS(m1->piece_captured);
 
     if (m2->flag & CAPTURE)
-        material2 += abs(m2->piece_captured);
+        material2 += ABS(m2->piece_captured);
 
     if (m1->flag & PROMOTION)
-        material1 += abs(m1->piece_promoted);
+        material1 += ABS(m1->piece_promoted);
 
     if (m2->flag & PROMOTION)
-        material2 += abs(m2->piece_promoted);
+        material2 += ABS(m2->piece_promoted);
 
     if (material1 > 0 || material2 > 0) {
         if (material1 > material2)
@@ -12863,9 +12863,9 @@ static int MoveCompare(const void *v1, const void *v2) {
             return 1;
     }
 
-    if (abs(m1->piece_moved) < abs(m2->piece_moved))
+    if (ABS(m1->piece_moved) < ABS(m2->piece_moved))
         return -1;
-    if (abs(m1->piece_moved) > abs(m2->piece_moved))
+    if (ABS(m1->piece_moved) > ABS(m2->piece_moved))
         return 1;
 
     if (m1->from < m2->from)
@@ -12897,7 +12897,7 @@ static void MoveToUCI(Move *mv, char *move) {
         move[3] = '1' + Row(mv->to);
         move[4] = '\0';
         if (mv->flag & PROMOTION) {
-            move[4] = piece_char(abs(mv->piece_promoted));
+            move[4] = piece_char(ABS(mv->piece_promoted));
             move[5] = '\0';
         }
     }
@@ -13223,7 +13223,7 @@ static void MakeMoveUCI(BOARD *Board, char *mv) {
         piece_captured = board[to];
         flag |= CAPTURE;
     } else {
-        if (abs(piece_moved) == PAWN && mv[0] != mv[2]) {
+        if (ABS(piece_moved) == PAWN && mv[0] != mv[2]) {
             piece_captured = -piece_moved;
             flag |= (CAPTURE | EN_PASSANT);
         }
@@ -13726,8 +13726,8 @@ static int GetMoveStringBleicher(Move *mv, char *str) {
 }
 
 static int GetMoveString(Move *mv, char *str, bool simple) {
-    char p = GermanKnight ? eg_piece_char(abs(mv->piece_moved))
-                          : piece_char(abs(mv->piece_moved));
+    char p = GermanKnight ? eg_piece_char(ABS(mv->piece_moved))
+                          : piece_char(ABS(mv->piece_moved));
     p = islower(p) ? toupper(p) : p;
     if (p == 'P')
         p = ' ';
@@ -13742,10 +13742,10 @@ static int GetMoveString(Move *mv, char *str, bool simple) {
                 'a' + Column(mv->to), 1 + Row(mv->to));
         if (mv->flag & PROMOTION) {
             char prom[2];
-            if (abs(mv->piece_promoted) == PAWN)
+            if (ABS(mv->piece_promoted) == PAWN)
                 p = '?';
             else
-                p = piece_char(abs(mv->piece_promoted));
+                p = piece_char(ABS(mv->piece_promoted));
             sprintf(prom, "%1c", islower(p) ? toupper(p) : p);
             strcat(str, prom);
         }
@@ -13779,7 +13779,7 @@ static int GetShortMoveString(Move *mv, Move *mv_list, int nmoves, char *str) {
     }
 
     for (i = 0; i < nmoves; i++) {
-        if ((mv->flag & PROMOTION) && (abs(mv->piece_promoted) == PAWN))
+        if ((mv->flag & PROMOTION) && (ABS(mv->piece_promoted) == PAWN))
             continue;
         if (mv->from == mv_list[i].from && mv->to == mv_list[i].to)
             continue;
@@ -13803,10 +13803,10 @@ static int GetShortMoveString(Move *mv, Move *mv_list, int nmoves, char *str) {
         str[len++] = 'O';
         str[len++] = '-';
         str[len++] = 'O';
-    } else if (abs(mv->piece_moved) != PAWN) {
+    } else if (ABS(mv->piece_moved) != PAWN) {
 
-        p = GermanKnight ? eg_piece_char(abs(mv->piece_moved))
-                         : piece_char(abs(mv->piece_moved));
+        p = GermanKnight ? eg_piece_char(ABS(mv->piece_moved))
+                         : piece_char(ABS(mv->piece_moved));
 
         p = islower(p) ? toupper(p) : p;
 
@@ -13835,7 +13835,7 @@ static int GetShortMoveString(Move *mv, Move *mv_list, int nmoves, char *str) {
 
     if (mv->flag & PROMOTION) {
         str[len++] = '=';
-        str[len++] = PIECE_CHAR(abs(mv->piece_promoted));
+        str[len++] = PIECE_CHAR(ABS(mv->piece_promoted));
     }
 
     if (mv->flag & MATE)
@@ -14321,7 +14321,7 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
     int col_wk = Column(wk);
     int col_bk = Column(bk);
 
-    if (wk == bk || (abs(row_wk - row_bk) <= 1 && abs(col_wk - col_bk) <= 1)) {
+    if (wk == bk || (ABS(row_wk - row_bk) <= 1 && ABS(col_wk - col_bk) <= 1)) {
         if (Verbose > 1) {
             MyPrintf("Invalid king positions\n");
         }
@@ -14473,7 +14473,7 @@ static bool IsAttacked(int *board, int attacker, int ptype, int victim) {
         return false;
     }
 
-    atype = abs(ptype);
+    atype = ABS(ptype);
 
     if (atype & KNIGHT)
         if (KnightAttack[NSQUARES * attacker + victim])
@@ -14626,7 +14626,7 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
     int col_wk = Column(wk);
     int col_bk = Column(bk);
 
-    if (abs(row_wk - row_bk) <= 1 && abs(col_wk - col_bk) <= 1) {
+    if (ABS(row_wk - row_bk) <= 1 && ABS(col_wk - col_bk) <= 1) {
         if (Verbose > 1)
             MyPrintf("ScanFEN: Kings are adjacent in %s\n", pos_str);
         goto error;
@@ -15365,7 +15365,7 @@ bool KK_Canonical(int *wk_in, int *bk_in, int *sym) {
     int bk_col = Column(bk);
 
     // positions where kings are adjacent are illegal
-    if (abs(wk_row - bk_row) <= 1 && abs(wk_col - bk_col) <= 1)
+    if (ABS(wk_row - bk_row) <= 1 && ABS(wk_col - bk_col) <= 1)
         return false;
 
     // try all symmetry operations on the two kings to find the canonical one
@@ -15422,7 +15422,7 @@ bool KK_Canonical_NoPawns(int *wk_in, int *bk_in, int *sym) {
     int bk_col = Column(bk);
 
     // positions where kings are adjacent are illegal
-    if (abs(wk_row - bk_row) <= 1 && abs(wk_col - bk_col) <= 1)
+    if (ABS(wk_row - bk_row) <= 1 && ABS(wk_col - bk_col) <= 1)
         return false;
 
     // try all symmetry operations on the two kings to find the canonical one
@@ -16181,11 +16181,11 @@ static int GenPseudoLegalMoves(BOARD *Board, Move *move_list,
                 castle_possible = false;
             }
             /* general test whether rook and king can move unimpeded */
-            int kstart = min(king_orig_col, KING_GCASTLE_DEST_COL);
-            int kend = max(king_orig_col, KING_GCASTLE_DEST_COL);
+            int kstart = MIN(king_orig_col, KING_GCASTLE_DEST_COL);
+            int kend = MAX(king_orig_col, KING_GCASTLE_DEST_COL);
             int cstart =
-                min(kstart, min(grook_orig_col, ROOK_GCASTLE_DEST_COL));
-            int cend = max(kend, max(grook_orig_col, ROOK_GCASTLE_DEST_COL));
+                MIN(kstart, MIN(grook_orig_col, ROOK_GCASTLE_DEST_COL));
+            int cend = MAX(kend, MAX(grook_orig_col, ROOK_GCASTLE_DEST_COL));
             for (i = cstart; i <= cend; i++) {
                 if (i == king_orig_col || i == grook_orig_col)
                     continue;
@@ -16246,11 +16246,11 @@ static int GenPseudoLegalMoves(BOARD *Board, Move *move_list,
                 castle_possible = false;
             }
             /* general test whether rook and king can move unimpeded */
-            int kstart = min(king_orig_col, KING_CCASTLE_DEST_COL);
-            int kend = max(king_orig_col, KING_CCASTLE_DEST_COL);
+            int kstart = MIN(king_orig_col, KING_CCASTLE_DEST_COL);
+            int kend = MAX(king_orig_col, KING_CCASTLE_DEST_COL);
             int cstart =
-                min(kstart, min(crook_orig_col, ROOK_CCASTLE_DEST_COL));
-            int cend = max(kend, max(crook_orig_col, ROOK_CCASTLE_DEST_COL));
+                MIN(kstart, MIN(crook_orig_col, ROOK_CCASTLE_DEST_COL));
+            int cend = MAX(kend, MAX(crook_orig_col, ROOK_CCASTLE_DEST_COL));
             for (i = cstart; i <= cend; i++) {
                 if (i == king_orig_col || i == crook_orig_col)
                     continue;
@@ -16564,11 +16564,11 @@ static int GenPseudoLegalMoves(BOARD *Board, Move *move_list,
                 castle_possible = false;
             }
             /* general test whether rook and king can move unimpeded */
-            int kstart = min(king_orig_col, KING_GCASTLE_DEST_COL);
-            int kend = max(king_orig_col, KING_GCASTLE_DEST_COL);
+            int kstart = MIN(king_orig_col, KING_GCASTLE_DEST_COL);
+            int kend = MAX(king_orig_col, KING_GCASTLE_DEST_COL);
             int cstart =
-                min(kstart, min(grook_orig_col, ROOK_GCASTLE_DEST_COL));
-            int cend = max(kend, max(grook_orig_col, ROOK_GCASTLE_DEST_COL));
+                MIN(kstart, MIN(grook_orig_col, ROOK_GCASTLE_DEST_COL));
+            int cend = MAX(kend, MAX(grook_orig_col, ROOK_GCASTLE_DEST_COL));
             for (i = cstart; i <= cend; i++) {
                 if (i == king_orig_col || i == grook_orig_col)
                     continue;
@@ -16630,11 +16630,11 @@ static int GenPseudoLegalMoves(BOARD *Board, Move *move_list,
                 castle_possible = false;
             }
             /* general test whether rook and king can move unimpeded */
-            int kstart = min(king_orig_col, KING_CCASTLE_DEST_COL);
-            int kend = max(king_orig_col, KING_CCASTLE_DEST_COL);
+            int kstart = MIN(king_orig_col, KING_CCASTLE_DEST_COL);
+            int kend = MAX(king_orig_col, KING_CCASTLE_DEST_COL);
             int cstart =
-                min(kstart, min(crook_orig_col, ROOK_CCASTLE_DEST_COL));
-            int cend = max(kend, max(crook_orig_col, ROOK_CCASTLE_DEST_COL));
+                MIN(kstart, MIN(crook_orig_col, ROOK_CCASTLE_DEST_COL));
+            int cend = MAX(kend, MAX(crook_orig_col, ROOK_CCASTLE_DEST_COL));
             for (i = cstart; i <= cend; i++) {
                 if (i == king_orig_col || i == crook_orig_col)
                     continue;
@@ -17036,11 +17036,11 @@ static int GenLegalMoves(BOARD *Board, Move *move_list,
                 castle_possible = false;
             }
             /* general test whether rook and king can move unimpeded */
-            int kstart = min(king_orig_col, KING_GCASTLE_DEST_COL);
-            int kend = max(king_orig_col, KING_GCASTLE_DEST_COL);
+            int kstart = MIN(king_orig_col, KING_GCASTLE_DEST_COL);
+            int kend = MAX(king_orig_col, KING_GCASTLE_DEST_COL);
             int cstart =
-                min(kstart, min(grook_orig_col, ROOK_GCASTLE_DEST_COL));
-            int cend = max(kend, max(grook_orig_col, ROOK_GCASTLE_DEST_COL));
+                MIN(kstart, MIN(grook_orig_col, ROOK_GCASTLE_DEST_COL));
+            int cend = MAX(kend, MAX(grook_orig_col, ROOK_GCASTLE_DEST_COL));
             for (i = cstart; i <= cend; i++) {
                 if (i == king_orig_col || i == grook_orig_col)
                     continue;
@@ -17105,11 +17105,11 @@ static int GenLegalMoves(BOARD *Board, Move *move_list,
                 castle_possible = false;
             }
             /* general test whether rook and king can move unimpeded */
-            int kstart = min(king_orig_col, KING_CCASTLE_DEST_COL);
-            int kend = max(king_orig_col, KING_CCASTLE_DEST_COL);
+            int kstart = MIN(king_orig_col, KING_CCASTLE_DEST_COL);
+            int kend = MAX(king_orig_col, KING_CCASTLE_DEST_COL);
             int cstart =
-                min(kstart, min(crook_orig_col, ROOK_CCASTLE_DEST_COL));
-            int cend = max(kend, max(crook_orig_col, ROOK_CCASTLE_DEST_COL));
+                MIN(kstart, MIN(crook_orig_col, ROOK_CCASTLE_DEST_COL));
+            int cend = MAX(kend, MAX(crook_orig_col, ROOK_CCASTLE_DEST_COL));
             for (i = cstart; i <= cend; i++) {
                 if (i == king_orig_col || i == crook_orig_col)
                     continue;
@@ -17495,11 +17495,11 @@ static int GenLegalMoves(BOARD *Board, Move *move_list,
                 castle_possible = false;
             }
             /* general test whether rook and king can move unimpeded */
-            int kstart = min(king_orig_col, KING_GCASTLE_DEST_COL);
-            int kend = max(king_orig_col, KING_GCASTLE_DEST_COL);
+            int kstart = MIN(king_orig_col, KING_GCASTLE_DEST_COL);
+            int kend = MAX(king_orig_col, KING_GCASTLE_DEST_COL);
             int cstart =
-                min(kstart, min(grook_orig_col, ROOK_GCASTLE_DEST_COL));
-            int cend = max(kend, max(grook_orig_col, ROOK_GCASTLE_DEST_COL));
+                MIN(kstart, MIN(grook_orig_col, ROOK_GCASTLE_DEST_COL));
+            int cend = MAX(kend, MAX(grook_orig_col, ROOK_GCASTLE_DEST_COL));
             for (i = cstart; i <= cend; i++) {
                 if (i == king_orig_col || i == grook_orig_col)
                     continue;
@@ -17565,11 +17565,11 @@ static int GenLegalMoves(BOARD *Board, Move *move_list,
                 castle_possible = false;
             }
             /* general test whether rook and king can move unimpeded */
-            int kstart = min(king_orig_col, KING_CCASTLE_DEST_COL);
-            int kend = max(king_orig_col, KING_CCASTLE_DEST_COL);
+            int kstart = MIN(king_orig_col, KING_CCASTLE_DEST_COL);
+            int kend = MAX(king_orig_col, KING_CCASTLE_DEST_COL);
             int cstart =
-                min(kstart, min(crook_orig_col, ROOK_CCASTLE_DEST_COL));
-            int cend = max(kend, max(crook_orig_col, ROOK_CCASTLE_DEST_COL));
+                MIN(kstart, MIN(crook_orig_col, ROOK_CCASTLE_DEST_COL));
+            int cend = MAX(kend, MAX(crook_orig_col, ROOK_CCASTLE_DEST_COL));
             for (i = cstart; i <= cend; i++) {
                 if (i == king_orig_col || i == crook_orig_col)
                     continue;
@@ -21981,7 +21981,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                 //		fprintf(stderr,"MSB: move %d xscore %d\n", i,
                 //xscore);
                 if ((move_list[i].flag & PROMOTION) &&
-                    abs(move_list[i].piece_promoted) == PAWN)
+                    ABS(move_list[i].piece_promoted) == PAWN)
                     continue;
                 Move reply_list[MAX_MOVES];
                 int nreplies;
@@ -22025,7 +22025,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                 if (score == 1) {
                     if ((move_list[i].flag & (CAPTURE | PROMOTION)) ||
                         (metric == DTZ &&
-                         abs(move_list[i].piece_moved) == PAWN)) {
+                         ABS(move_list[i].piece_moved) == PAWN)) {
                         if (xscore < 0 && xscore + 1024 > best_move) {
                             best_move = xscore + 1024;
                             best_index = i;
@@ -22038,14 +22038,14 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                         } else if (best_move == 0) {
                             if (move_list[i].flag & (CAPTURE | PROMOTION)) {
                                 int material =
-                                    abs(move_list[i].piece_captured) +
-                                    abs(move_list[i].piece_promoted);
+                                    ABS(move_list[i].piece_captured) +
+                                    ABS(move_list[i].piece_promoted);
                                 if (material > biggest_capture) {
                                     biggest_capture = material;
                                     best_index = i;
                                 }
                             } else if (metric == DTZ &&
-                                       abs(move_list[i].piece_moved) == PAWN) {
+                                       ABS(move_list[i].piece_moved) == PAWN) {
                                 best_index = i;
                             }
                         }
@@ -22054,7 +22054,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                     bool pchange =
                         (move_list[i].flag & (CAPTURE | PROMOTION)) ||
                         (metric == DTZ &&
-                         abs(move_list[i].piece_moved) == PAWN);
+                         ABS(move_list[i].piece_moved) == PAWN);
                     //		    fprintf(stderr,"MSB: pchange=%d\n",
                     //pchange); 		    fprintf(stderr,"MSB: xscore=%d, -(score - 1)=%d,
                     //best_move=%d\n", xscore, -(score - 1), best_move);
@@ -22084,7 +22084,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                     move_list[best_index].flag |= UNIQUE;
                 for (i = 0; i < nmoves; i++) {
                     if ((move_list[i].flag & PROMOTION) &&
-                        (abs(move_list[i].piece_promoted) == PAWN))
+                        (ABS(move_list[i].piece_promoted) == PAWN))
                         continue;
                     if (move_list[i].score == move_list[best_index].score)
                         nbest++;
@@ -22097,7 +22097,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
             best_move = -16384;
             for (i = 0; i < nmoves; i++) {
                 if ((move_list[i].flag & PROMOTION) &&
-                    (abs(move_list[i].piece_promoted) == PAWN))
+                    (ABS(move_list[i].piece_promoted) == PAWN))
                     continue;
                 int xscore = move_list[i].score;
                 if (xscore == UNKNOWN || xscore == NOT_LOST ||
@@ -22116,7 +22116,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                 if (score == 0) {
                     if ((move_list[i].flag & (CAPTURE | PROMOTION)) ||
                         (metric == DTZ &&
-                         abs(move_list[i].piece_moved) == PAWN)) {
+                         ABS(move_list[i].piece_moved) == PAWN)) {
                         if (xscore == WON) {
                             if (best_move <= -1024) {
                                 best_move = -1023;
@@ -22179,7 +22179,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
 
                         if ((reply_list[j].flag & (CAPTURE | PROMOTION)) ||
                             (metric == DTZ &&
-                             abs(reply_list[j].piece_moved) == PAWN)) {
+                             ABS(reply_list[j].piece_moved) == PAWN)) {
                             if (xscore_x < 0 && xscore_x + 1024 > best_move_x) {
                                 best_move_x = xscore_x + 1024;
                                 best_index_x = j;
@@ -22193,14 +22193,14 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                                 if (reply_list[j].flag &
                                     (CAPTURE | PROMOTION)) {
                                     int material =
-                                        abs(reply_list[j].piece_captured) +
-                                        abs(reply_list[j].piece_promoted);
+                                        ABS(reply_list[j].piece_captured) +
+                                        ABS(reply_list[j].piece_promoted);
                                     if (material > biggest_capture) {
                                         biggest_capture = material;
                                         best_index_x = j;
                                     }
                                 } else if (metric == DTZ &&
-                                           abs(reply_list[j].piece_moved) ==
+                                           ABS(reply_list[j].piece_moved) ==
                                                PAWN) {
                                     best_index_x = j;
                                 }
@@ -22217,7 +22217,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                 } else {
                     if (!((move_list[i].flag & (CAPTURE | PROMOTION)) ||
                           (metric == DTZ &&
-                           abs(move_list[i].piece_moved) == PAWN)) &&
+                           ABS(move_list[i].piece_moved) == PAWN)) &&
                         xscore == -score && xscore > best_move) {
                         best_move = xscore;
                         best_index = i;
@@ -22241,7 +22241,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
             capture_seen = true;
         phase_change_seen = capture_seen;
         if ((metric == DTZ || StopAtPawnMove) &&
-            abs(move_list[best_index].piece_moved) == PAWN)
+            ABS(move_list[best_index].piece_moved) == PAWN)
             phase_change_seen = true;
 
         strcpy(prev_move, move_string);
@@ -22750,7 +22750,7 @@ repeat:
         bool in_check2;
         move_list[i].score = RetrogradeResult(move_list[i].score);
         if ((move_list[i].flag & PROMOTION) &&
-            (abs(move_list[i].piece_promoted) == PAWN))
+            (ABS(move_list[i].piece_promoted) == PAWN))
             continue;
         MakeMove(&Board, &move_list[i]);
         nreplies = GenLegalMoves(&Board, reply_list, true, true);
@@ -22911,7 +22911,7 @@ prompt:
             move_no = -1;
         if (move_no >= 0) {
             if ((move_list[move_no].flag == PROMOTION) &&
-                (abs(move_list[move_no].piece_promoted) == PAWN)) {
+                (ABS(move_list[move_no].piece_promoted) == PAWN)) {
                 MyPrintf("Cannot promote to pawn\n");
                 goto repeat;
             }
@@ -23009,7 +23009,7 @@ static void EvaluateBleicher(char *pos, int side_in) {
         int nreplies;
         bool in_check_x;
         if ((move_list[i].flag & PROMOTION) &&
-            (abs(move_list[i].piece_promoted) == PAWN)) {
+            (ABS(move_list[i].piece_promoted) == PAWN)) {
             nmoves_x--;
             continue;
         }
@@ -23035,7 +23035,7 @@ static void EvaluateBleicher(char *pos, int side_in) {
         Move *mptr = &move_list[i];
         char move_string[16], score_string[16];
 
-        if ((mptr->flag & PROMOTION) && (abs(mptr->piece_promoted) == PAWN))
+        if ((mptr->flag & PROMOTION) && (ABS(mptr->piece_promoted) == PAWN))
             continue;
 
         GetMoveStringBleicher(mptr, move_string);
@@ -23652,7 +23652,7 @@ PGNToken ParseMoveList(PGNToken symbol, FILE *fin, ParseType *yylval,
                     }
                 }
                 if (IsResultChangingMove(move_score) ||
-                    (DepthDelta > 0 && abs(move_score) >= DepthDelta)) {
+                    (DepthDelta > 0 && ABS(move_score) >= DepthDelta)) {
                     if (InsertComments && is_prior_right_number_of_pieces) {
                         char move_string[16];
                         MoveScoreToString(move_score, move_string);
@@ -24505,7 +24505,7 @@ int main(int argc, char *argv[]) {
                 bool in_check2;
                 move_list[i].score = RetrogradeResult(move_list[i].score);
                 if ((move_list[i].flag & PROMOTION) &&
-                    (abs(move_list[i].piece_promoted) == PAWN))
+                    (ABS(move_list[i].piece_promoted) == PAWN))
                     continue;
                 MakeMove(&Board, &move_list[i]);
                 nreplies = GenLegalMoves(&Board, reply_list, true, true);
@@ -24529,11 +24529,11 @@ int main(int argc, char *argv[]) {
 
             time_taken = 1000 * (clock() - time_taken) / CLOCKS_PER_SEC;
             uint32_t nodes = CacheHits + DBHits;
-            uint32_t nps = nodes / max(1, time_taken / 1000);
+            uint32_t nps = nodes / MAX(1, time_taken / 1000);
 
             char move[6];
 
-            for (int i = 0; i < min(MultiPV, nmoves); i++) {
+            for (int i = 0; i < MIN(MultiPV, nmoves); i++) {
                 MoveToUCI(&move_list[i], move);
                 char score_str[32];
                 if (move_list[i].score == DRAW)
@@ -25390,7 +25390,7 @@ int main(int argc, char *argv[]) {
                     ref_ptr->num_bad++;
                 ScoreList[NumBadMoves++].score = move_score;
             } else if (DepthDelta > 0 && !phase_change) {
-                if (abs(move_score) >= DepthDelta) {
+                if (ABS(move_score) >= DepthDelta) {
                     ScoreListDelta[NumBadMovesDelta++].score = move_score;
                 }
             }
