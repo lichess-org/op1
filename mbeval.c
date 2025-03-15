@@ -9787,7 +9787,7 @@ static int KingAttack[NSQUARES * NSQUARES];
 static int BishopDirection[NSQUARES * NSQUARES];
 static int RookDirection[NSQUARES * NSQUARES];
 
-int MyUncompress(uint8_t *dest, uint32_t *dest_size, const uint8_t *source,
+static int MyUncompress(uint8_t *dest, uint32_t *dest_size, const uint8_t *source,
                  uint32_t source_size, int method) {
     if (method == NO_COMPRESSION) {
         *dest_size = source_size;
@@ -12204,7 +12204,7 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
     *offset = (eptr->IndexFromPos)(mb_pos);
 
     if (Verbose > 3) {
-        MyPrintf("GetMBIndex: index = %I64u\n", *offset);
+        MyPrintf("GetMBIndex: index = " DEC_ZINDEX_FORMAT "\n", *offset);
     }
 
     bool flipped = false;
