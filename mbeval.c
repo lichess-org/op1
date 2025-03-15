@@ -15,6 +15,10 @@
 #include <zlib.h>
 #include <zstd.h>
 
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+#error "Need memcpy from file to struct"
+#endif
+
 #define NROWS 8
 #define NCOLS 8
 
