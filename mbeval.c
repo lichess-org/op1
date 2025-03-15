@@ -9772,21 +9772,6 @@ static void InitCaches() {
     }
 }
 
-#if (NROWS > NCOLS)
-static int RookMoves[NSQUARES][4][NROWS];
-#else
-static int RookMoves[NSQUARES][4][NCOLS];
-#endif
-
-static int BishopMoves[NSQUARES][4][NCOLS];
-static int KingMoves[NSQUARES][9];
-static int KnightMoves[NSQUARES][9];
-
-static int KnightAttack[NSQUARES * NSQUARES];
-static int KingAttack[NSQUARES * NSQUARES];
-static int BishopDirection[NSQUARES * NSQUARES];
-static int RookDirection[NSQUARES * NSQUARES];
-
 static int MyUncompress(uint8_t *dest, uint32_t *dest_size, const uint8_t *source,
                  uint32_t source_size, int method) {
     if (method == NO_COMPRESSION) {
@@ -10889,86 +10874,6 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
     return side;
 }
 
-static bool IsAttacked(int *board, int attacker, int ptype, int victim) {
-    int atype;
-
-    if (ptype == PAWN) {
-        int col = Column(attacker);
-        if (col > 0 && (victim == (attacker + NCOLS - 1)))
-            return true;
-        if (col < (NCOLS - 1) && (victim == (attacker + NCOLS + 1)))
-            return true;
-        return false;
-    }
-
-    if (ptype == -PAWN) {
-        int col = Column(attacker);
-        if (col > 0 && (victim == (attacker - NCOLS - 1)))
-            return true;
-        if (col < (NCOLS - 1) && (victim == (attacker - NCOLS + 1)))
-            return true;
-        return false;
-    }
-
-    atype = ABS(ptype);
-
-    if (atype & KNIGHT)
-        if (KnightAttack[NSQUARES * attacker + victim])
-            return true;
-
-    if (atype & BISHOP) {
-        int direc = BishopDirection[NSQUARES * attacker + victim];
-        if (direc >= 0) {
-            int *sqp = BishopMoves[attacker][direc];
-            int sq;
-            while ((sq = *sqp++) != -1) {
-                if (sq == victim)
-                    return true;
-                if (board[sq])
-                    break;
-            }
-        }
-    }
-
-    if (atype & ROOK) {
-        int direc = RookDirection[NSQUARES * attacker + victim];
-        if (direc >= 0) {
-            int *sqp = RookMoves[attacker][direc];
-            int sq;
-            while ((sq = *sqp++) != -1) {
-                if (sq == victim)
-                    return true;
-                if (board[sq])
-                    break;
-            }
-        }
-    }
-
-    return false;
-}
-
-static bool IsInCheck(BOARD *Board, int side) {
-    if (side == WHITE) {
-        for (int ptype = KING - 1; ptype >= PAWN; ptype--) {
-            int *pos = Board->piece_locations[BLACK][ptype];
-            for (int i = 0; i < Board->piece_type_count[BLACK][ptype]; i++) {
-                if (IsAttacked(Board->board, pos[i], -ptype, Board->wkpos))
-                    return true;
-            }
-        }
-    } else {
-        for (int ptype = KING - 1; ptype >= PAWN; ptype--) {
-            int *pos = Board->piece_locations[WHITE][ptype];
-            for (int i = 0; i < Board->piece_type_count[WHITE][ptype]; i++) {
-                if (IsAttacked(Board->board, pos[i], ptype, Board->bkpos))
-                    return true;
-            }
-        }
-    }
-
-    return false;
-}
-
 static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
                    int *half_move, int *full_move, char *title) {
     char pos_str[128], side_str[128], castle_str[128], ep_str[128];
@@ -11318,8 +11223,6 @@ static int ReadPosition(char *pos, BOARD *Board, char *title) {
             MyPrintf("ReadPosition: Board scanned\n");
             DisplayBoard(Board, "after SetBoard");
         }
-        if (IsInCheck(Board, OtherSide(legal)))
-            legal = NEUTRAL;
     }
     return legal;
 }
@@ -11731,144 +11634,6 @@ static void InitPieceStrengths() {
     PieceStrengths[ARCHBISHOP] = 7;
     PieceStrengths[CARDINAL] = 8;
     PieceStrengths[MAHARAJA] = 13;
-}
-
-static void InitMoves() {
-    int sq, *sqp, sq2, direc;
-    int i, n;
-
-    for (sq = 0; sq < NSQUARES; sq++) {
-        int row = Row(sq);
-        int col = Column(sq);
-        int row2, col2;
-        n = 0;
-        if (row < (NROWS - 2) && col < (NCOLS - 1))
-            KnightMoves[sq][n++] = SquareMake(row + 2, col + 1);
-        if (row < (NROWS - 2) && col >= 1)
-            KnightMoves[sq][n++] = SquareMake(row + 2, col - 1);
-        if (row < (NROWS - 1) && col < (NCOLS - 2))
-            KnightMoves[sq][n++] = SquareMake(row + 1, col + 2);
-        if (row < (NROWS - 1) && col >= 2)
-            KnightMoves[sq][n++] = SquareMake(row + 1, col - 2);
-        if (row >= 1 && col < (NCOLS - 2))
-            KnightMoves[sq][n++] = SquareMake(row - 1, col + 2);
-        if (row >= 1 && col >= 2)
-            KnightMoves[sq][n++] = SquareMake(row - 1, col - 2);
-        if (row >= 2 && col < (NCOLS - 1))
-            KnightMoves[sq][n++] = SquareMake(row - 2, col + 1);
-        if (row >= 2 && col >= 1)
-            KnightMoves[sq][n++] = SquareMake(row - 2, col - 1);
-        KnightMoves[sq][n] = -1;
-
-        n = 0;
-        for (col2 = col + 1; col2 < NCOLS; col2++)
-            RookMoves[sq][0][n++] = SquareMake(row, col2);
-        RookMoves[sq][0][n] = -1;
-        n = 0;
-        for (col2 = col - 1; col2 >= 0; col2--)
-            RookMoves[sq][1][n++] = SquareMake(row, col2);
-        RookMoves[sq][1][n] = -1;
-        n = 0;
-        for (row2 = row + 1; row2 < NROWS; row2++)
-            RookMoves[sq][2][n++] = SquareMake(row2, col);
-        RookMoves[sq][2][n] = -1;
-        n = 0;
-        for (row2 = row - 1; row2 >= 0; row2--)
-            RookMoves[sq][3][n++] = SquareMake(row2, col);
-        RookMoves[sq][3][n] = -1;
-
-        n = 0;
-        for (row2 = row + 1, col2 = col + 1; row2 < NROWS && col2 < NCOLS;
-             row2++, col2++)
-            BishopMoves[sq][0][n++] = SquareMake(row2, col2);
-        BishopMoves[sq][0][n] = -1;
-        n = 0;
-        for (row2 = row + 1, col2 = col - 1; row2 < NROWS && col2 >= 0;
-             row2++, col2--)
-            BishopMoves[sq][1][n++] = SquareMake(row2, col2);
-        BishopMoves[sq][1][n] = -1;
-        n = 0;
-        for (row2 = row - 1, col2 = col + 1; row2 >= 0 && col2 < NCOLS;
-             row2--, col2++)
-            BishopMoves[sq][2][n++] = SquareMake(row2, col2);
-        BishopMoves[sq][2][n] = -1;
-        n = 0;
-        for (row2 = row - 1, col2 = col - 1; row2 >= 0 && col2 >= 0;
-             row2--, col2--)
-            BishopMoves[sq][3][n++] = SquareMake(row2, col2);
-        BishopMoves[sq][3][n] = -1;
-
-        n = 0;
-        if (row < (NROWS - 1)) {
-            if (col < (NCOLS - 1))
-                KingMoves[sq][n++] = SquareMake(row + 1, col + 1);
-            KingMoves[sq][n++] = SquareMake(row + 1, col);
-            if (col >= 1)
-                KingMoves[sq][n++] = SquareMake(row + 1, col - 1);
-        }
-        if (col < (NCOLS - 1))
-            KingMoves[sq][n++] = SquareMake(row, col + 1);
-        if (col >= 1)
-            KingMoves[sq][n++] = SquareMake(row, col - 1);
-        if (row >= 1) {
-            if (col < (NCOLS - 1))
-                KingMoves[sq][n++] = SquareMake(row - 1, col + 1);
-            KingMoves[sq][n++] = SquareMake(row - 1, col);
-            if (col >= 1)
-                KingMoves[sq][n++] = SquareMake(row - 1, col - 1);
-        }
-        KingMoves[sq][n] = -1;
-    }
-
-    for (sq = 0; sq < NSQUARES; sq++) {
-        int row_sq = Row(sq);
-        int col_sq = Column(sq);
-        for (sq2 = 0; sq2 < NSQUARES; sq2++) {
-            BishopDirection[sq * NSQUARES + sq2] = -1;
-            RookDirection[sq * NSQUARES + sq2] = -1;
-            KnightAttack[sq * NSQUARES + sq2] = 0;
-            KingAttack[sq * NSQUARES + sq2] = -1;
-        }
-        for (direc = 0; direc < 4; direc++) {
-            sqp = BishopMoves[sq][direc];
-            while ((sq2 = *sqp++) != -1)
-                BishopDirection[sq * NSQUARES + sq2] = direc;
-            sqp = RookMoves[sq][direc];
-            while ((sq2 = *sqp++) != -1)
-                RookDirection[sq * NSQUARES + sq2] = direc;
-        }
-        sqp = KnightMoves[sq];
-        while ((sq2 = *sqp++) != -1)
-            KnightAttack[sq * NSQUARES + sq2] = 1;
-        sqp = KingMoves[sq];
-        while ((sq2 = *sqp++) != -1) {
-            int row_sq2 = Row(sq2);
-            int col_sq2 = Column(sq2);
-            if (row_sq2 == row_sq) {
-                if (col_sq2 == (col_sq + 1)) {
-                    KingAttack[sq * NSQUARES + sq2] = EE;
-                } else if (col_sq2 == (col_sq - 1)) {
-                    KingAttack[sq * NSQUARES + sq2] = WW;
-                }
-            } else if (row_sq2 == (row_sq + 1)) {
-                if (col_sq2 == (col_sq + 1)) {
-                    KingAttack[sq * NSQUARES + sq2] = NE;
-                } else if (col_sq2 == col_sq) {
-                    KingAttack[sq * NSQUARES + sq2] = NN;
-                } else if (col_sq2 == (col_sq - 1)) {
-                    KingAttack[sq * NSQUARES + sq2] = NW;
-                }
-            } else if (row_sq2 == (row_sq - 1)) {
-                if (col_sq2 == (col_sq + 1)) {
-                    KingAttack[sq * NSQUARES + sq2] = SE;
-                } else if (col_sq2 == col_sq) {
-                    KingAttack[sq * NSQUARES + sq2] = SS;
-                } else if (col_sq2 == (col_sq - 1)) {
-                    KingAttack[sq * NSQUARES + sq2] = SW;
-                }
-            }
-        }
-    }
 }
 
 static void InitParity() {
@@ -14781,7 +14546,6 @@ int main(int argc, char *argv[]) {
 #endif
 
     InitTransforms();
-    InitMoves();
     InitParity();
     InitPieceStrengths();
     NumPaths = InitPaths();
