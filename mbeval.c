@@ -8354,7 +8354,7 @@ static int CompareHigh(const void *a, const void *b) {
 static int PieceStrengths[KING];
 static char *TbDirs = ".";
 
-static char piece_char(int type) {
+static char PieceChar(int type) {
     switch (type) {
     case PAWN:
         return 'p';
@@ -8386,13 +8386,13 @@ static int GetEndingName(int type_count[2][KING], char *ending) {
     ending[len++] = 'k';
     for (piece = KING - 1; piece >= PAWN; piece--) {
         for (int k = len; k < len + type_count[WHITE][piece]; k++)
-            ending[k] = piece_char(piece);
+            ending[k] = PieceChar(piece);
         len += type_count[WHITE][piece];
     }
     ending[len++] = 'k';
     for (piece = KING - 1; piece >= PAWN; piece--) {
         for (int k = len; k < len + type_count[BLACK][piece]; k++)
-            ending[k] = piece_char(piece);
+            ending[k] = PieceChar(piece);
         len += type_count[BLACK][piece];
     }
     ending[len] = '\0';
@@ -10372,18 +10372,18 @@ static int GetYKIndex(int *yk_pos, int npieces, bool pawns_present,
     return 0;
 }
 
-static void GetYKBaseFileName(int count[2][KING], int side, char *fname) {
+static void GetYKBaseFileName(const int count[2][KING], int side, char *fname) {
     fname[0] = 'k';
     int len = 1;
     for (int piece = KING - 1; piece >= PAWN; piece--) {
         for (int i = len; i < len + count[WHITE][piece]; i++)
-            fname[i] = piece_char(piece);
+            fname[i] = PieceChar(piece);
         len += count[WHITE][piece];
     }
     fname[len++] = 'k';
     for (int piece = KING - 1; piece >= PAWN; piece--) {
         for (int i = len; i < len + count[BLACK][piece]; i++)
-            fname[i] = piece_char(piece);
+            fname[i] = PieceChar(piece);
         len += count[BLACK][piece];
     }
     for (int i = len; i < MAX_PIECES_YK; i++)
