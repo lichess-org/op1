@@ -83,8 +83,6 @@ static char *Version = "7.9";
 
 //#define NO_DOUBLE_PAWN_STEPS
 
-#define USE_64_BIT // Needed for 8-man endings
-
 #if !defined(NO_ZSTD)
 #include "zstd.h" // ZSTD compression library
 #endif
@@ -701,17 +699,10 @@ typedef unsigned __int64 INDEX;
 #define SEPARATOR ":"
 #define DELIMITER "/"
 
-#if defined(USE_64_BIT)
 typedef unsigned __int64 ZINDEX;
 #define DEC_ZINDEX_FORMAT "%I64u"
 #define DEC_ZINDEX_FORMAT_W(n) "%" #n "I64u"
 #define HEX_ZINDEX_FORMAT "%016I64X"
-#else
-typedef unsigned long ZINDEX;
-#define DEC_ZINDEX_FORMAT "%lu"
-#define DEC_ZINDEX_FORMAT_W(n) "%" #n "lu"
-#define HEX_ZINDEX_FORMAT "%08lx"
-#endif
 
 #define ZERO ((ZINDEX)0)
 #define ONE ((ZINDEX)1)
@@ -4970,8 +4961,6 @@ static bool Pos7(ZINDEX index, int *pos) {
     return Pos6((N6 - 1) - index, pos + 1);
 }
 
-#if defined(USE_64_BIT)
-
 /* index functions for 8-man endings require 64 bit zone sizes */
 
 static ZINDEX Index111111(int *pos) {
@@ -9125,10 +9114,7 @@ static bool Pos16(ZINDEX index, int *pos) {
     return Pos6(index, pos + 1);
 }
 
-#endif /* 8-man indices, using 64 bit zones */
-
 static IndexType IndexTable[] = {
-#if defined(USE_64_BIT)
     {111111, FREE_PAWNS, 0, Pos111111, Index111111},
     {111111, BP_11_PAWNS, 0, PosBP111111, IndexBP111111},
     {111111, OP_11_PAWNS, 0, PosOP111111, IndexOP111111},
@@ -9275,7 +9261,6 @@ static IndexType IndexTable[] = {
     {25, FREE_PAWNS, 0, Pos25, Index25},
     {61, FREE_PAWNS, 0, Pos61, Index61},
     {16, FREE_PAWNS, 0, Pos16, Index16},
-#endif
     {1, FREE_PAWNS, 0, Pos1, Index1},
     {11, FREE_PAWNS, 0, Pos11, Index11},
     {11, BP_11_PAWNS, 0, PosBP11, IndexBP11},
@@ -24017,9 +24002,7 @@ PGNToken ParseGame(PGNToken symbol, FILE *fin, ParseType *yylval,
 static void Usage(char *prog_name, bool show_version) {
     if (show_version) {
         MyPrintf("%s version %s"
-#if defined(USE_64_BIT)
                  ", using 64 bit indices"
-#endif
 #if defined(NO_DOUBLE_PAWN_MOVES)
                  ", pawns can't make a double step"
 #endif
