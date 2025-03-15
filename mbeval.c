@@ -259,17 +259,10 @@ static ZSTD_DCtx *ZSTD_DecompressionContext = NULL;
 #define MAX_PIECES 32
 #define MAX_PIECES_MB 9
 #define MAX_PIECES_YK 7
-#define MAX_PIECES_PER_SIDE 7
-#define MAX_PIECES_PER_SIDE_YK 4
 #define MAX_IDENT_PIECES 10
-#define MAX_MOVES 256
-#define MAX_PLY 1500
-#define MAX_SCORES 10000000
-#define MAX_FILE_NAME 64
 #define MAX_FILES 64
 #define MAX_FILES_YK 16
 #define MAX_FILES_HIGH_DTZ 64
-#define MAX_CACHE 8
 
 #define BLEICHER_MATED 0
 #define BLEICHER_NOT_FOUND 32700
