@@ -9383,7 +9383,7 @@ static bool SearchSubgamePromotions = true;
 static int PromoteRow[] = {(NROWS)-1, 0};
 static int StartRow[] = {1, (NROWS)-2};
 static int PieceStrengths[KING];
-static char *TbDirs = "";
+static char *TbDirs = ".";
 
 static char piece_char(int type) {
     switch (type) {
@@ -24182,6 +24182,7 @@ int main(int argc, char *argv[]) {
     InitMoves();
     InitParity();
     InitPieceStrengths();
+    NumPaths = InitPaths();
 
 #if defined(UCI_LOG)
     FILE *fout = fopen("f:\\baseykmb\\new_mb\\uci_ykmb.txt", "w");
