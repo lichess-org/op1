@@ -587,7 +587,6 @@ static bool Chess960 = true;
 static bool Chess960Game = false;
 
 static bool CheckSyntaxOnly = false;
-static int NumDBPositions = 0;
 
 static uint32_t CacheHits = 0;
 static uint32_t DBHits = 0;
@@ -1014,8 +1013,6 @@ typedef struct {
     int zz_type;
 } POSITION_DB;
 
-static POSITION_DB *PositionDB = NULL;
-
 typedef struct {
     int piece_type_count[2][KING];
     int kk_index;
@@ -1026,29 +1023,6 @@ typedef struct {
     char cz_type;
     bool flipped;
 } POSITION;
-
-static int db_pos_compar(const void *a, const void *b) {
-    POSITION_DB *x = (POSITION_DB *)a;
-    POSITION_DB *y = (POSITION_DB *)b;
-
-    int e = strcmp(x->ending, y->ending);
-    if (e > 0)
-        return 1;
-    if (e < 0)
-        return -1;
-
-    if (x->kk_index > y->kk_index)
-        return 1;
-    if (x->kk_index < y->kk_index)
-        return -1;
-
-    if (x->offset > y->offset)
-        return 1;
-    if (x->offset < y->offset)
-        return -1;
-
-    return (y->side - x->side);
-}
 
 #if defined(MB_INDEX)
 
@@ -6071,8 +6045,6 @@ static ZINDEX Index1111111(int *pos) {
 }
 
 static bool Pos1111111(ZINDEX index, int *pos) {
-    int p2, id2;
-
     pos[8] = index % NSQUARES;
     index /= NSQUARES;
     pos[7] = index % NSQUARES;
@@ -6104,8 +6076,6 @@ static ZINDEX Index211111(int *pos) {
 }
 
 static bool Pos211111(ZINDEX index, int *pos) {
-    int p2, id2;
-
     pos[8] = index % NSQUARES;
     index /= NSQUARES;
     pos[7] = index % NSQUARES;
@@ -6138,8 +6108,6 @@ static ZINDEX Index121111(int *pos) {
 }
 
 static bool Pos121111(ZINDEX index, int *pos) {
-    int p2, id2;
-
     pos[8] = index % NSQUARES;
     index /= NSQUARES;
     pos[7] = index % NSQUARES;
@@ -8829,11 +8797,6 @@ static int CompareHigh(const void *a, const void *b) {
     return 0;
 }
 
-static unsigned int Promotions =
-    (1 << KNIGHT) | (1 << BISHOP) | (1 << ROOK) | (1 << QUEEN);
-static bool SearchSubgamePromotions = true;
-static int PromoteRow[] = {(NROWS)-1, 0};
-static int StartRow[] = {1, (NROWS)-2};
 static int PieceStrengths[KING];
 static char *TbDirs = ".";
 
@@ -8882,49 +8845,11 @@ static int GetEndingName(int type_count[2][KING], char *ending) {
     return len;
 }
 
-static void ScoreToString(int score, char *string) {
-    if (score == UNKNOWN)
-        strcpy(string, "?");
-    else if (score == DRAW)
-        strcpy(string, "=");
-    else if (score == NOT_LOST)
-        strcpy(string, "=+");
-    else if (score == NOT_WON)
-        strcpy(string, "=-");
-    else
-        sprintf(string, "%+d", score);
-}
-
-static void ZZTypeToString(int score, char *string) {
-    if (score == UNKNOWN)
-        strcpy(string, "?");
-    else if (score == NO_MZUG)
-        strcpy(string, "--");
-    else if (score == MINUS_PLUS)
-        strcpy(string, "-+");
-    else if (score == MINUS_EQUAL)
-        strcpy(string, "-=");
-    else if (score == EQUAL_PLUS)
-        strcpy(string, "=+");
-}
-
 typedef struct {
     int types[KING];
     int index;
 } ENDING_INDEX;
 
-static ENDING_INDEX *SingleSideCount = NULL;
-static int num_side_endings = 0;
-
-static int side_compare(const void *a, const void *b) {
-    const ENDING_INDEX *x = (ENDING_INDEX *)a;
-    const ENDING_INDEX *y = (ENDING_INDEX *)b;
-
-    return memcmp(x->types, y->types, sizeof(x->types));
-}
-
-#define MAX_LINES 10000
-#define MAX_GAME_MOVES 2048
 
 static int SetBoard(BOARD *Board, int *board, int side, int ep_square,
                     int castle, int half_move, int full_move) {
@@ -10512,477 +10437,6 @@ static int ScoreCompare(int score1, int score2) {
         return 1;
 
     return (score1 - score2);
-}
-
-static void MakeMove(BOARD *Board, Move *mv) {
-    int i;
-    int *board = Board->board;
-
-    mv->save_ep_square = Board->ep_square;
-    mv->save_castle = Board->castle;
-    mv->save_half_move = Board->half_move;
-
-    if (mv->from == 0 && mv->to == 0) {
-        if (Board->side == BLACK)
-            Board->full_move++;
-        Board->side = OtherSide(Board->side);
-        return;
-    }
-
-    if (!(mv->flag & (WK_CASTLE | WQ_CASTLE | BK_CASTLE | BQ_CASTLE))) {
-        board[mv->from] = 0;
-        board[mv->to] = mv->piece_moved;
-        if (Verbose > 6) {
-            MyPrintf("Setting square %d to 0, %d to %d\n", mv->from, mv->to,
-                     mv->piece_moved);
-        }
-    }
-
-    if (Board->side == WHITE) {
-        int *pos = Board->piece_locations[WHITE][mv->piece_moved];
-        int *type_count = Board->piece_type_count[WHITE];
-
-        if ((mv->flag & PROMOTION) && mv->piece_promoted != PAWN) {
-            board[mv->to] = mv->piece_promoted;
-            if (Verbose > 6) {
-                MyPrintf("In promotion, setting square %d to %d\n", mv->to,
-                         mv->piece_promoted);
-            }
-            for (i = 0; i < type_count[PAWN]; i++) {
-                if (mv->from == pos[i])
-                    break;
-            }
-            type_count[PAWN]--;
-            for (; i < type_count[PAWN]; i++) {
-                pos[i] = pos[i + 1];
-            }
-            int *promo_pos = Board->piece_locations[WHITE][mv->piece_promoted];
-            promo_pos[type_count[mv->piece_promoted]++] = mv->to;
-            Board->strength_w +=
-                (PieceStrengths[mv->piece_promoted] - PieceStrengths[PAWN]);
-        } else {
-            for (i = 0; i < type_count[mv->piece_moved]; i++) {
-                if (pos[i] == mv->from) {
-                    pos[i] = mv->to;
-                    break;
-                }
-            }
-        }
-
-        if (mv->flag & CAPTURE) {
-            int cap_sq = mv->to;
-            int *cap_pos = Board->piece_locations[BLACK][-mv->piece_captured];
-            int *cap_type_count = Board->piece_type_count[BLACK];
-            if (mv->flag & EN_PASSANT) {
-                if (Board->ep_square != mv->to) {
-                    DisplayBoard(Board, "bad e.p. square make");
-                } else {
-                    cap_sq = SquareMake(Row(cap_sq) - 1, Column(cap_sq));
-                    board[cap_sq] = 0;
-                    if (Verbose > 6) {
-                        MyPrintf("Setting e.p. square %d to 0\n", cap_sq);
-                    }
-                }
-            }
-            for (i = 0; i < cap_type_count[-mv->piece_captured]; i++) {
-                if (cap_pos[i] == cap_sq)
-                    break;
-            }
-            cap_type_count[-mv->piece_captured]--;
-            for (; i < cap_type_count[-mv->piece_captured]; i++) {
-                cap_pos[i] = cap_pos[i + 1];
-            }
-            Board->strength_b -= PieceStrengths[-mv->piece_captured];
-            Board->num_pieces--;
-            Board->nblack--;
-        }
-
-        Board->ep_square = 0;
-
-        if (mv->piece_moved == KING) {
-            Board->castle &= ~(WK_CASTLE | WQ_CASTLE);
-            Board->wkpos = mv->to;
-            if (mv->flag & WK_CASTLE) {
-                int *wr_pos = Board->piece_locations[WHITE][ROOK];
-                board[mv->from] = 0;
-                board[SquareMake(0, grook_orig_col)] = 0;
-                board[SquareMake(0, ROOK_GCASTLE_DEST_COL)] = ROOK;
-                board[mv->to] = KING;
-                if (Verbose > 6) {
-                    MyPrintf("WKing side case, square %d = 0, %d = %d,\n",
-                             mv->from, mv->to, KING);
-                    MyPrintf("  %d = 0, %d = %d\n",
-                             SquareMake(0, grook_orig_col),
-                             SquareMake(0, ROOK_GCASTLE_DEST_COL), ROOK);
-                }
-                for (i = 0; i < Board->piece_type_count[WHITE][ROOK]; i++) {
-                    if (wr_pos[i] == SquareMake(0, grook_orig_col)) {
-                        wr_pos[i] = SquareMake(0, ROOK_GCASTLE_DEST_COL);
-                        break;
-                    }
-                }
-            } else if (mv->flag & WQ_CASTLE) {
-                int *wr_pos = Board->piece_locations[WHITE][ROOK];
-                board[mv->from] = 0;
-                board[SquareMake(0, crook_orig_col)] = 0;
-                board[SquareMake(0, ROOK_CCASTLE_DEST_COL)] = ROOK;
-                board[mv->to] = KING;
-                if (Verbose > 6) {
-                    MyPrintf("WQueen side case, square %d = 0, %d = %d,\n",
-                             mv->from, mv->to, KING);
-                    MyPrintf("  %d = 0, %d = %d\n",
-                             SquareMake(0, crook_orig_col),
-                             SquareMake(0, ROOK_CCASTLE_DEST_COL), ROOK);
-                }
-
-                for (i = 0; i < Board->piece_type_count[WHITE][ROOK]; i++) {
-                    if (wr_pos[i] == SquareMake(0, crook_orig_col)) {
-                        wr_pos[i] = SquareMake(0, ROOK_CCASTLE_DEST_COL);
-                        break;
-                    }
-                }
-            }
-        } else if (mv->piece_moved == ROOK) {
-            if (mv->from == SquareMake(0, grook_orig_col))
-                Board->castle &= ~(WK_CASTLE);
-            else if (mv->from == SquareMake(0, crook_orig_col))
-                Board->castle &= ~(WQ_CASTLE);
-        } else if (mv->piece_moved == PAWN) {
-            int row_from = Row(mv->from);
-            int row_to = Row(mv->to);
-            int col_to = Column(mv->to);
-
-            if (row_from == 1 && row_to == 3) {
-                if ((col_to >= 1 &&
-                     board[SquareMake(3, col_to - 1)] == -PAWN) ||
-                    (col_to <= NCOLS - 2 &&
-                     board[SquareMake(3, col_to + 1)] == -PAWN))
-                    Board->ep_square = SquareMake(2, col_to);
-            }
-        }
-
-        if (mv->to == SquareMake(NROWS - 1, crook_orig_col))
-            Board->castle &= ~(BQ_CASTLE);
-        if (mv->to == SquareMake(NROWS - 1, grook_orig_col))
-            Board->castle &= ~(BK_CASTLE);
-    } else { // black moves
-        int *pos = Board->piece_locations[BLACK][-mv->piece_moved];
-        int *type_count = Board->piece_type_count[BLACK];
-
-        if ((mv->flag & PROMOTION) && mv->piece_promoted != -PAWN) {
-            board[mv->to] = mv->piece_promoted;
-            if (Verbose > 6) {
-                MyPrintf("In promotion, setting square %d to %d\n", mv->to,
-                         mv->piece_promoted);
-            }
-            for (i = 0; i < type_count[PAWN]; i++) {
-                if (mv->from == pos[i])
-                    break;
-            }
-            type_count[PAWN]--;
-            for (; i < type_count[PAWN]; i++) {
-                pos[i] = pos[i + 1];
-            }
-            int *promo_pos = Board->piece_locations[BLACK][-mv->piece_promoted];
-            promo_pos[type_count[-mv->piece_promoted]++] = mv->to;
-            Board->strength_b +=
-                (PieceStrengths[-mv->piece_promoted] - PieceStrengths[PAWN]);
-        } else {
-            for (i = 0; i < type_count[-mv->piece_moved]; i++) {
-                if (pos[i] == mv->from) {
-                    pos[i] = mv->to;
-                    break;
-                }
-            }
-        }
-
-        if (mv->flag & CAPTURE) {
-            int cap_sq = mv->to;
-            int *cap_pos = Board->piece_locations[WHITE][mv->piece_captured];
-            int *cap_type_count = Board->piece_type_count[WHITE];
-            if (mv->flag & EN_PASSANT) {
-                if (Board->ep_square != mv->to) {
-                    DisplayBoard(Board, "bad e.p. capture made");
-                } else {
-                    cap_sq = SquareMake(Row(cap_sq) + 1, Column(cap_sq));
-                    board[cap_sq] = 0;
-                    if (Verbose > 6) {
-                        MyPrintf("Setting e.p. square %d to 0\n", cap_sq);
-                    }
-                }
-            }
-            for (i = 0; i < cap_type_count[mv->piece_captured]; i++) {
-                if (cap_pos[i] == cap_sq)
-                    break;
-            }
-            cap_type_count[mv->piece_captured]--;
-            for (; i < cap_type_count[mv->piece_captured]; i++) {
-                cap_pos[i] = cap_pos[i + 1];
-            }
-            Board->strength_w -= PieceStrengths[mv->piece_captured];
-            Board->num_pieces--;
-            Board->nwhite--;
-        }
-
-        Board->ep_square = 0;
-
-        if (mv->piece_moved == -KING) {
-            Board->castle &= ~(BK_CASTLE | BQ_CASTLE);
-            Board->bkpos = mv->to;
-            if (mv->flag & BK_CASTLE) {
-                int *br_pos = Board->piece_locations[BLACK][ROOK];
-                board[mv->from] = 0;
-                board[SquareMake(NROWS - 1, grook_orig_col)] = 0;
-                board[SquareMake(NROWS - 1, ROOK_GCASTLE_DEST_COL)] = -ROOK;
-                board[mv->to] = -KING;
-                if (Verbose > 6) {
-                    MyPrintf("BKing side castle, square %d = 0, %d = %d,\n",
-                             mv->from, mv->to, -KING);
-                    MyPrintf("  %d = 0, %d = %d\n",
-                             SquareMake(NROWS - 1, grook_orig_col),
-                             SquareMake(NROWS - 1, ROOK_GCASTLE_DEST_COL),
-                             -ROOK);
-                }
-                for (i = 0; i < Board->piece_type_count[BLACK][ROOK]; i++) {
-                    if (br_pos[i] == SquareMake(NROWS - 1, grook_orig_col)) {
-                        br_pos[i] =
-                            SquareMake(NROWS - 1, ROOK_GCASTLE_DEST_COL);
-                        break;
-                    }
-                }
-            } else if (mv->flag & BQ_CASTLE) {
-                int *br_pos = Board->piece_locations[BLACK][ROOK];
-                board[mv->from] = 0;
-                board[SquareMake(NROWS - 1, crook_orig_col)] = 0;
-                board[SquareMake(NROWS - 1, ROOK_CCASTLE_DEST_COL)] = -ROOK;
-                board[mv->to] = -KING;
-                if (Verbose > 6) {
-                    MyPrintf("BQueen side castle, square %d = 0, %d = %d,\n",
-                             mv->from, mv->to, -KING);
-                    MyPrintf("  %d = 0, %d = %d\n",
-                             SquareMake(NROWS - 1, crook_orig_col),
-                             SquareMake(NROWS - 1, ROOK_CCASTLE_DEST_COL),
-                             -ROOK);
-                }
-                for (i = 0; i < Board->piece_type_count[BLACK][ROOK]; i++) {
-                    if (br_pos[i] == SquareMake(NROWS - 1, crook_orig_col)) {
-                        br_pos[i] =
-                            SquareMake(NROWS - 1, ROOK_CCASTLE_DEST_COL);
-                        break;
-                    }
-                }
-            }
-        } else if (mv->piece_moved == -ROOK) {
-            if (mv->from == SquareMake(NROWS - 1, grook_orig_col))
-                Board->castle &= ~(BK_CASTLE);
-            else if (mv->from == SquareMake(NROWS - 1, crook_orig_col))
-                Board->castle &= ~(BQ_CASTLE);
-        } else if (mv->piece_moved == -PAWN) {
-            int row_from = Row(mv->from);
-            int row_to = Row(mv->to);
-            int col_to = Column(mv->to);
-
-            if (row_from == NROWS - 2 && row_to == NROWS - 4) {
-                if ((col_to >= 1 &&
-                     board[SquareMake(NROWS - 4, col_to - 1)] == PAWN) ||
-                    (col_to <= NCOLS - 2 &&
-                     board[SquareMake(NROWS - 4, col_to + 1)] == PAWN))
-                    Board->ep_square = SquareMake(NROWS - 3, col_to);
-            }
-        }
-
-        if (mv->to == SquareMake(0, crook_orig_col))
-            Board->castle &= ~(WQ_CASTLE);
-        if (mv->to == SquareMake(0, grook_orig_col))
-            Board->castle &= ~(WK_CASTLE);
-
-        Board->full_move++;
-    }
-
-    Board->side = OtherSide(Board->side);
-
-    if (mv->piece_moved == PAWN || mv->piece_moved == -PAWN ||
-        (mv->flag & CAPTURE))
-        Board->half_move = 0;
-    else
-        Board->half_move++;
-}
-
-static void UnMakeMove(BOARD *Board, Move *mv) {
-    int i;
-    int *board = Board->board;
-
-    Board->side = OtherSide(Board->side);
-    Board->ep_square = mv->save_ep_square;
-
-    if (mv->from == 0 && mv->to == 0) {
-        if (Board->side == BLACK)
-            Board->full_move--;
-        Board->castle = mv->save_castle;
-        Board->half_move = mv->save_half_move;
-        return;
-    }
-
-    if (!(mv->flag & (WK_CASTLE | WQ_CASTLE | BK_CASTLE | BQ_CASTLE))) {
-        board[mv->to] = 0;
-        board[mv->from] = mv->piece_moved;
-    }
-
-    if (Board->side == WHITE) {
-        int *pos = Board->piece_locations[WHITE][mv->piece_moved];
-        int *type_count = Board->piece_type_count[WHITE];
-        if ((mv->flag & PROMOTION) && mv->piece_promoted != PAWN) {
-            int *promo_pos = Board->piece_locations[WHITE][mv->piece_promoted];
-            board[mv->from] = PAWN;
-            pos[type_count[PAWN]++] = mv->from;
-            for (i = 0; i < type_count[mv->piece_promoted]; i++) {
-                if (mv->to == promo_pos[i])
-                    break;
-            }
-            type_count[mv->piece_promoted]--;
-            for (; i < type_count[mv->piece_promoted]; i++) {
-                promo_pos[i] = promo_pos[i + 1];
-            }
-            Board->strength_w -=
-                (PieceStrengths[mv->piece_promoted] - PieceStrengths[PAWN]);
-        } else {
-            for (i = 0; i < type_count[mv->piece_moved]; i++) {
-                if (pos[i] == mv->to) {
-                    pos[i] = mv->from;
-                    break;
-                }
-            }
-        }
-
-        if (mv->flag & CAPTURE) {
-            int cap_sq = mv->to;
-            int *cap_pos = Board->piece_locations[BLACK][-mv->piece_captured];
-            int *cap_type_count = Board->piece_type_count[BLACK];
-            if (mv->flag & EN_PASSANT) {
-                if (Board->ep_square != mv->to) {
-                    DisplayBoard(Board, "bad e.p. capture in unmake");
-                } else {
-                    cap_sq = SquareMake(Row(cap_sq) - 1, Column(cap_sq));
-                    board[cap_sq] = -PAWN;
-                }
-            } else {
-                board[mv->to] = mv->piece_captured;
-            }
-            cap_pos[cap_type_count[-mv->piece_captured]++] = cap_sq;
-            Board->strength_b += PieceStrengths[-mv->piece_captured];
-            Board->nblack++;
-            Board->num_pieces++;
-        }
-
-        if (mv->piece_moved == KING) {
-            Board->wkpos = mv->from;
-            if (mv->flag & WK_CASTLE) {
-                int *wr_pos = Board->piece_locations[WHITE][ROOK];
-                board[mv->to] = 0;
-                board[SquareMake(0, ROOK_GCASTLE_DEST_COL)] = 0;
-                board[SquareMake(0, grook_orig_col)] = ROOK;
-                board[mv->from] = KING;
-                for (i = 0; i < Board->piece_type_count[WHITE][ROOK]; i++) {
-                    if (wr_pos[i] == SquareMake(0, ROOK_GCASTLE_DEST_COL)) {
-                        wr_pos[i] = SquareMake(0, grook_orig_col);
-                        break;
-                    }
-                }
-            } else if (mv->flag & WQ_CASTLE) {
-                int *wr_pos = Board->piece_locations[WHITE][ROOK];
-                board[mv->to] = 0;
-                board[SquareMake(0, ROOK_CCASTLE_DEST_COL)] = 0;
-                board[SquareMake(0, crook_orig_col)] = ROOK;
-                board[mv->from] = KING;
-                for (i = 0; i < Board->piece_type_count[WHITE][ROOK]; i++) {
-                    if (wr_pos[i] == SquareMake(0, ROOK_CCASTLE_DEST_COL)) {
-                        wr_pos[i] = SquareMake(0, crook_orig_col);
-                        break;
-                    }
-                }
-            }
-        }
-    } else { // black moves
-        int *pos = Board->piece_locations[BLACK][-mv->piece_moved];
-        int *type_count = Board->piece_type_count[BLACK];
-        if ((mv->flag & PROMOTION) && mv->piece_promoted != -PAWN) {
-            int *promo_pos = Board->piece_locations[BLACK][-mv->piece_promoted];
-            board[mv->from] = -PAWN;
-            pos[type_count[PAWN]++] = mv->from;
-            for (i = 0; i < type_count[-mv->piece_promoted]; i++) {
-                if (mv->to == promo_pos[i])
-                    break;
-            }
-            type_count[-mv->piece_promoted]--;
-            for (; i < type_count[-mv->piece_promoted]; i++) {
-                promo_pos[i] = promo_pos[i + 1];
-            }
-            Board->strength_b -=
-                (PieceStrengths[-mv->piece_promoted] - PieceStrengths[PAWN]);
-        } else {
-            for (i = 0; i < type_count[-mv->piece_moved]; i++) {
-                if (pos[i] == mv->to) {
-                    pos[i] = mv->from;
-                    break;
-                }
-            }
-        }
-
-        if (mv->flag & CAPTURE) {
-            int cap_sq = mv->to;
-            int *cap_pos = Board->piece_locations[WHITE][mv->piece_captured];
-            int *cap_type_count = Board->piece_type_count[WHITE];
-            if (mv->flag & EN_PASSANT) {
-                if (Board->ep_square != mv->to) {
-                    DisplayBoard(Board, "bad e.p. capture unmake");
-                } else {
-                    cap_sq = SquareMake(Row(cap_sq) + 1, Column(cap_sq));
-                    board[cap_sq] = PAWN;
-                }
-            } else {
-                board[mv->to] = mv->piece_captured;
-            }
-            cap_pos[cap_type_count[mv->piece_captured]++] = cap_sq;
-            Board->strength_w += PieceStrengths[mv->piece_captured];
-            Board->nwhite++;
-            Board->num_pieces++;
-        }
-
-        if (mv->piece_moved == -KING) {
-            Board->bkpos = mv->from;
-            if (mv->flag & BK_CASTLE) {
-                int *br_pos = Board->piece_locations[BLACK][ROOK];
-                board[mv->to] = 0;
-                board[SquareMake(NROWS - 1, ROOK_GCASTLE_DEST_COL)] = 0;
-                board[SquareMake(NROWS - 1, grook_orig_col)] = -ROOK;
-                board[mv->from] = -KING;
-                for (i = 0; i < Board->piece_type_count[BLACK][ROOK]; i++) {
-                    if (br_pos[i] ==
-                        SquareMake(NROWS - 1, ROOK_GCASTLE_DEST_COL)) {
-                        br_pos[i] = SquareMake(NROWS - 1, grook_orig_col);
-                        break;
-                    }
-                }
-            } else if (mv->flag & BQ_CASTLE) {
-                int *br_pos = Board->piece_locations[BLACK][ROOK];
-                board[mv->to] = 0;
-                board[SquareMake(NROWS - 1, ROOK_CCASTLE_DEST_COL)] = 0;
-                board[SquareMake(NROWS - 1, crook_orig_col)] = -ROOK;
-                board[mv->from] = -KING;
-                for (i = 0; i < Board->piece_type_count[BLACK][ROOK]; i++) {
-                    if (br_pos[i] ==
-                        SquareMake(NROWS - 1, ROOK_CCASTLE_DEST_COL)) {
-                        br_pos[i] = SquareMake(NROWS - 1, crook_orig_col);
-                        break;
-                    }
-                }
-            }
-        }
-        Board->full_move--;
-    }
-
-    Board->castle = mv->save_castle;
-    Board->half_move = mv->save_half_move;
 }
 
 static int CastleRights(int *board, int proposed_castle) {
@@ -15338,8 +14792,6 @@ typedef struct {
     int piece_types[2][KING];
     unsigned int count;
 } FREQ_TABLE;
-
-static bool ContainsEGTBEvaluation = false;
 
 /*
  * append paths given in TbDirs to existing paths
