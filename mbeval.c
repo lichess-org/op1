@@ -1,3 +1,5 @@
+/* Based on mbeval.cpp 7.9 */
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -11,7 +13,8 @@
 #include <time.h>
 #include <unistd.h>
 
-/* Based on mbeval.cpp 7.9 */
+#include <zstd.h>
+#include <zlib.h>
 
 #define NROWS 8
 #define NCOLS 8
@@ -27,14 +30,6 @@
 #endif
 
 //#define NO_DOUBLE_PAWN_STEPS
-
-#if !defined(NO_ZSTD)
-#include "zstd.h" // ZSTD compression library
-#endif
-
-#if !defined(NO_ZLIB)
-#include "zlib.h" // ZLIB compression library
-#endif
 
 #define NSQUARES ((NROWS) * (NCOLS))
 
@@ -76,16 +71,9 @@ const char *CompressionMethod[] = {"None", "ZLIB", "ZSTD"};
 static bool YKFormatOnly = false;
 static bool MBFormatOnly = false;
 
-#if !defined(NO_ZSTD)
 static ZSTD_DCtx *ZSTD_DecompressionContext = NULL;
-#endif
 
-#if !defined(NO_ZLIB)
 #define COMPRESS_OK Z_OK
-#else
-#define COMPRESS_OK 0
-#endif
-
 #define COMPRESS_NOT_OK ((COMPRESS_OK) + 1)
 
 #define ABS(a) ((a) < 0 ? -(a) : (a))
@@ -8945,7 +8933,6 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
         *dest_size = source_size;
         memcpy(dest, source, source_size);
     }
-#if !defined(NO_ZSTD)
     else if (method == ZSTD) {
         size_t destCapacity = *dest_size;
         if (ZSTD_DecompressionContext == NULL)
@@ -8964,8 +8951,6 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
         }
         *dest_size = destCapacity;
     }
-#endif
-#if !defined(NO_ZLIB)
     else if (method == ZLIB) {
         uLongf dest_size_value = 0;
         int err_code = uncompress(dest, &dest_size_value, source, source_size);
@@ -8989,7 +8974,6 @@ static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
             return COMPRESS_NOT_OK;
         }
     }
-#endif
     else {
         fprintf(stderr, "MyUnompress: unknown de-compression method\n");
         exit(1);
