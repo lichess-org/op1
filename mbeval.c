@@ -739,11 +739,8 @@ enum {
     BAD_ZONE_SIZE,
     BAD_ZONE_NUMBER,
     HEADER_READ_ERROR,
-    OFFSET_ALLOC_ERROR,
     OFFSET_READ_ERROR,
-    ZONE_ALLOC_ERROR,
     ZONE_READ_ERROR,
-    BUF_ALLOC_ERROR,
     BUF_READ_ERROR
 };
 
@@ -11180,9 +11177,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             fcache->max_num_blocks = num_blocks;
             fcache->offsets =
                 (INDEX *)MyMalloc((fcache->max_num_blocks + 1) * sizeof(INDEX));
-            if (fcache->offsets == NULL) {
-                return OFFSET_ALLOC_ERROR;
-            }
         }
 
         fcache->num_blocks = num_blocks;
@@ -11270,13 +11264,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             }
             CompressionBufferSize = length;
             CompressionBuffer = (uint8_t *)MyMalloc(CompressionBufferSize);
-            if (CompressionBuffer == NULL) {
-                fprintf(stderr,
-                        "Could not allocate CompressionBuffer size %" PRIu32
-                        "\n",
-                        CompressionBufferSize);
-                exit(1);
-            }
         }
         f_read(CompressionBuffer, length, fcache->fp, fcache->offsets[b_index]);
         uint32_t tmp_zone_size = fcache->block_size;
@@ -11286,12 +11273,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             }
             fcache->max_block_size = tmp_zone_size;
             fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
-            if (fcache->block == NULL) {
-                fprintf(stderr,
-                        "Could not allocate zone block size %" PRIu32 "\n",
-                        fcache->max_block_size);
-                exit(1);
-            }
         }
         MyUncompress(fcache->block, &tmp_zone_size, CompressionBuffer, length,
                      fcache->compression_method);
@@ -11327,9 +11308,6 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             if (fcache->num_high_dtc > 0) {
                 fcache->block_high =
                     (HDATA *)MyMalloc(fcache->num_high_dtc * sizeof(HDATA));
-                if (fcache->block_high == NULL) {
-                    return HIGH_DTZ_MISSING;
-                }
                 INDEX nread = f_read(fcache->block_high,
                                      fcache->num_high_dtc * sizeof(HDATA),
                                      fcache->fp_high, 0);
