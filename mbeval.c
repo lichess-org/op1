@@ -1,15 +1,15 @@
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <time.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <inttypes.h>
 
 static char *Version = "7.9";
 
@@ -692,9 +692,7 @@ static int LineWidth = 80;
 static uint32_t CacheHits = 0;
 static uint32_t DBHits = 0;
 
-static bool FileExists(char *fname) {
-    return access(fname, F_OK) == 0;
-}
+static bool FileExists(char *fname) { return access(fname, F_OK) == 0; }
 
 typedef uint64_t INDEX;
 #define DEC_INDEX_FORMAT "%" PRIu64
@@ -768,9 +766,7 @@ typedef struct {
 
 #define MyPrintf(...) printf(__VA_ARGS__)
 
-void MyFlush() {
-    fflush(stdout);
-}
+void MyFlush() { fflush(stdout); }
 
 static size_t MemoryAllocated = 0;
 static size_t MemoryFreed = 0;
@@ -795,7 +791,6 @@ static void MyFree(void *pv, size_t cb) {
     free(pv);
 }
 
-
 static INDEX FileReads = 0;
 static INDEX FileWrites = 0;
 
@@ -803,7 +798,7 @@ typedef struct {
     int fd;
 } FD_WRAPPER;
 
-typedef FD_WRAPPER* file;
+typedef FD_WRAPPER *file;
 
 file f_open(const char *szFile, const char *szMode) {
     int fd = open(szFile, O_RDONLY);
@@ -811,7 +806,7 @@ file f_open(const char *szFile, const char *szMode) {
         return NULL;
     }
 
-    FD_WRAPPER* h = MyMalloc(sizeof(FD_WRAPPER));
+    FD_WRAPPER *h = MyMalloc(sizeof(FD_WRAPPER));
     h->fd = fd;
     FilesOpened++;
     return h;
@@ -830,7 +825,8 @@ size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     while (total < cb) {
         ssize_t result = pread(fp->fd, pv, cb - total, indStart + total);
         if (result < 0) {
-            fprintf(stderr, "*** pread failed: pos is %lu code is %d\n", indStart + total, errno);
+            fprintf(stderr, "*** pread failed: pos is %lu code is %d\n",
+                    indStart + total, errno);
             exit(1);
             return 0;
         }
@@ -9316,8 +9312,7 @@ static IndexType IndexTable[] = {
     {51, FREE_PAWNS, 0, Pos51, Index51},
     {15, FREE_PAWNS, 0, Pos15, Index15},
     {6, FREE_PAWNS, 0, Pos6, Index6},
-    {7, FREE_PAWNS, 0, Pos7, Index7}
-};
+    {7, FREE_PAWNS, 0, Pos7, Index7}};
 
 #define NumIndexTypes (sizeof(IndexTable) / sizeof(IndexTable[0]))
 
@@ -19816,8 +19811,8 @@ static int GetMBCacheResult(MB_INFO *mb_info, int side) {
             return UNKNOWN;
 
         uint32_t n_per_block = (fcache_high_dtz->header.n_elements +
-                             fcache_high_dtz->header.num_blocks - 1) /
-                            fcache_high_dtz->header.num_blocks;
+                                fcache_high_dtz->header.num_blocks - 1) /
+                               fcache_high_dtz->header.num_blocks;
 
         if (fcache_high_dtz->block_index ==
             fcache_high_dtz->header.num_blocks - 1) {
@@ -20189,7 +20184,8 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
 
     if (b_index != fcache->block_index) {
         cache_hit = false;
-        uint32_t length = fcache->offsets[b_index + 1] - fcache->offsets[b_index];
+        uint32_t length =
+            fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (Verbose > 4) {
             MyPrintf(
                 "Reading compressed block size %lu at offset " DEC_INDEX_FORMAT
@@ -20919,7 +20915,8 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
 
     if (b_index != fcache->block_index) {
         cache_hit = false;
-        uint32_t length = fcache->offsets[b_index + 1] - fcache->offsets[b_index];
+        uint32_t length =
+            fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (Verbose > 4) {
             MyPrintf("GetMBResult: Reading compressed block size %lu at "
                      "offset " DEC_INDEX_FORMAT " block index %lu\n",
@@ -21978,7 +21975,7 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
             for (i = 0; i < nmoves; i++) {
                 int xscore = move_list[i].score;
                 //		fprintf(stderr,"MSB: move %d xscore %d\n", i,
-                //xscore);
+                // xscore);
                 if ((move_list[i].flag & PROMOTION) &&
                     ABS(move_list[i].piece_promoted) == PAWN)
                     continue;
@@ -21989,8 +21986,8 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                 //		DisplayBoard(Board, "MSB after move");
                 nreplies = GenLegalMoves(Board, reply_list, true, true);
                 in_check = IsInCheck(Board, Board->side);
-                //		fprintf(stderr,"MSB: nreplies %d, in_check %d\n",
-                //nreplies, in_check);
+                //		fprintf(stderr,"MSB: nreplies %d, in_check
+                //%d\n", nreplies, in_check);
                 UnMakeMove(Board, &move_list[i]);
                 if (nreplies == 0) {
                     if (in_check) {
@@ -22014,8 +22011,8 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
 
                 if (xscore == DRAW || xscore == NOT_WON || xscore == NOT_LOST ||
                     xscore == UNRESOLVED || xscore == ILLEGAL) {
-                    //		    fprintf(stderr,"MSB: for xscore=%d, continue\n",
-                    //xscore);
+                    //		    fprintf(stderr,"MSB: for xscore=%d,
+                    //continue\n", xscore);
                     continue;
                 }
 
@@ -22055,18 +22052,18 @@ static void FindBestLine(BOARD *Board, bool mark_mzugs, bool mark_best,
                         (metric == DTZ &&
                          ABS(move_list[i].piece_moved) == PAWN);
                     //		    fprintf(stderr,"MSB: pchange=%d\n",
-                    //pchange); 		    fprintf(stderr,"MSB: xscore=%d, -(score - 1)=%d,
-                    //best_move=%d\n", xscore, -(score - 1), best_move);
+                    // pchange); 		    fprintf(stderr,"MSB: xscore=%d, -(score -
+                    // 1)=%d, best_move=%d\n", xscore, -(score - 1), best_move);
                     if (!pchange && xscore == -(score - 1) &&
                         best_move != xscore) {
                         best_move = xscore;
                         best_index = i;
                         //			fprintf(stderr,"MSB: changing
-                        //best_move to %d\n", best_move);
+                        // best_move to %d\n", best_move);
                     }
                     //		    else {
-                    //			fprintf(stderr,"MSB: leaving best_move at %d\n",
-                    //best_move);
+                    //			fprintf(stderr,"MSB: leaving best_move at
+                    //%d\n", best_move);
                     //		    }
                 }
             }
