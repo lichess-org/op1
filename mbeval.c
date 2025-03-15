@@ -9669,6 +9669,8 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
     *ep_square = 0;
     *castle = 0;
 
+    char castle_str[8];
+
     while (pos_string[i] != '\0') {
         switch (pos_string[i]) {
         case ' ':
@@ -9746,7 +9748,6 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
         case 'Q':
         case 'k':
         case 'q':
-            char castle_str[8];
             sscanf(&pos_string[i], "%s", castle_str);
             if (strchr(castle_str, 'K'))
                 *castle |= WK_CASTLE;
