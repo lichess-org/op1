@@ -533,9 +533,7 @@ typedef struct {
 #define N3_ODD_PARITY_Offset N3_ODD_PARITY
 #endif
 
-#define MAX_PATHS 16
-
-static char TbPaths[MAX_PATHS][1024];
+static char** TbPaths = NULL;
 static int NumPaths = 0;
 
 static const bool Chess960 = true;
@@ -8311,7 +8309,6 @@ static int CompareHigh(const void *a, const void *b) {
 }
 
 static int PieceStrengths[KING];
-static char *TbDirs = ".";
 
 static char PieceChar(int type) {
     switch (type) {
@@ -8559,7 +8556,7 @@ static int MyUncompress(CONTEXT *ctx, uint8_t *dest, uint32_t *dest_size,
         }
     } else {
         fprintf(stderr, "MyUncompress: unknown de-compression method\n");
-        abort();
+        return COMPRESS_NOT_OK;
     }
 
     return COMPRESS_OK;
@@ -12052,60 +12049,6 @@ static int ScorePosition(CONTEXT *ctx, const BOARD *BoardIn,
     return UNKNOWN;
 }
 
-/*
- * append paths given in TbDirs to existing paths
- */
-static int InitPaths() {
-    char path[1024], *pptr;
-    int num_paths = NumPaths, i;
-
-    /* store each path separately for later reference */
-
-    pptr = TbDirs;
-
-    for (;;) {
-        for (i = 0; pptr[i] != '\0' && pptr[i] != ',' && pptr[i] != ';'
-#if !defined(_WIN32) && !defined(_WIN64) && !defined(__MWERKS__)
-                    && pptr[i] != ':'
-#endif
-             ;
-             i++) {
-            path[i] = pptr[i];
-        }
-        path[i] = '\0';
-
-        /* check whether we already have this path */
-
-        bool found = false;
-
-        for (int j = 0; j < num_paths - 1; j++) {
-            if (!strcmp(path, TbPaths[j])) {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found && strlen(path) > 0 && num_paths < MAX_PATHS) {
-            strcpy(TbPaths[num_paths++], path);
-        }
-
-        pptr += i;
-        if (*pptr == '\0')
-            break;
-        pptr++;
-    }
-
-    /* have at least one path */
-
-    if (num_paths == 0) {
-        TbPaths[0][0] = '.';
-        TbPaths[0][1] = '\0';
-        num_paths = 1;
-    }
-
-    return num_paths;
-}
-
 static void AssertScore(CONTEXT *ctx, const char *fen, int expected_score) {
     char mutable_fen[256] = {0};
     strncpy(mutable_fen, fen, sizeof(mutable_fen) - 1);
@@ -12127,9 +12070,16 @@ void ykmb_init(void) {
     InitTransforms();
     InitParity();
     InitPieceStrengths();
-    NumPaths = InitPaths();
     InitCaches();
     InitPermutationTables();
+}
+
+void ykmb_add_path(const char* path) {
+    TbPaths = MyRealloc(TbPaths, (NumPaths + 1) * sizeof(char*));
+    TbPaths[NumPaths] = strdup(path);
+    assert(TbPaths[NumPaths] != NULL);
+    if (TbPaths[NumPaths] == NULL) abort();
+    NumPaths++;
 }
 
 CONTEXT *ykmb_context_create() {
@@ -12153,6 +12103,7 @@ void ykmb_context_destroy(CONTEXT *context) {
 
 int main(int argc, char *argv[]) {
     ykmb_init();
+    ykmb_add_path(".");
 
     assert(IsWinningScore(1));
     assert(IsLosingScore(-1));
