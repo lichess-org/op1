@@ -694,13 +694,13 @@ static bool FileExists(char *fname) {
 }
 
 #define strtok_r strtok_s
-typedef unsigned __int64 INDEX;
-#define DEC_INDEX_FORMAT "%I64u"
+typedef uint64_t INDEX;
+#define DEC_INDEX_FORMAT "%" PRIu64
 #define SEPARATOR ":"
 #define DELIMITER "/"
 
-typedef unsigned __int64 ZINDEX;
-#define DEC_ZINDEX_FORMAT "%I64u"
+typedef uint64_t ZINDEX;
+#define DEC_ZINDEX_FORMAT "%" PRIu64
 #define DEC_ZINDEX_FORMAT_W(n) "%" #n "I64u"
 #define HEX_ZINDEX_FORMAT "%016I64X"
 
