@@ -29,8 +29,6 @@
 #define SquareMake(row, col) ((NCOLS) * (row) + (col))
 #endif
 
-//#define NO_DOUBLE_PAWN_STEPS
-
 #define NSQUARES ((NROWS) * (NCOLS))
 
 enum {
@@ -52,24 +50,13 @@ enum {
     OP_24_PAWNS
 };
 
-const char *OpExtensionName[] = {"Free Pawns", "BP_11", "OP_11", "OP_21",
+static const char *OpExtensionName[] = {"Free Pawns", "BP_11", "OP_11", "OP_21",
                                  "OP_12",      "OP_22", "DP_22", "OP_31",
                                  "OP_13",      "OP_41", "OP_14", "OP_32",
                                  "OP_23",      "OP_33", "OP_42", "OP_24"};
 
-enum { DTZ = 0, DTC, DTM, BIT_BASE };
-
-const char *MetricName[] = {"DTZ", "DTC", "DTM", "BitBase"};
-
-enum { BITMAP_FORMAT = 0, LIST_FORMAT, HIGH_DTZ_FORMAT };
-
 enum { NO_COMPRESSION = 0, ZLIB, ZSTD, NUM_COMPRESSION_METHODS };
 enum { ZLIB_YK = 0, BZIP_YK, LZMA_YK, ZSTD_YK, NO_COMPRESSION_YK };
-
-const char *CompressionMethod[] = {"None", "ZLIB", "ZSTD"};
-
-static bool YKFormatOnly = false;
-static bool MBFormatOnly = false;
 
 static ZSTD_DCtx *ZSTD_DecompressionContext = NULL;
 
@@ -277,7 +264,6 @@ static ZSTD_DCtx *ZSTD_DecompressionContext = NULL;
 #define MAX_IDENT_PIECES 10
 #define MAX_MOVES 256
 #define MAX_PLY 1500
-#define MAX_STACK 1000
 #define MAX_SCORES 10000000
 #define MAX_FILE_NAME 64
 #define MAX_FILES 64
@@ -560,10 +546,6 @@ static int grook_orig_col = GROOK_ORIG_COL_TRADITIONAL;
 
 static char TbPaths[MAX_PATHS][1024];
 static int NumPaths = 0;
-
-#define MAX_PGN_LINE (1024 * 1024)
-#define MAX_LINE 8192
-#define MAX_STRING 10000
 
 static size_t FilesOpened = 0;
 static size_t FilesClosed = 0;
@@ -12208,11 +12190,6 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                  Board->num_pieces);
     }
 
-    if (YKFormatOnly) {
-        INDEX_DATA ind_yk;
-        return GetYKResult(Board, &ind_yk);
-    }
-
     MB_INFO mb_info = {0};
     FILE_CACHE *fcache;
     bool cache_hit = true;
@@ -12746,11 +12723,8 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
                              "file missing\n",
                              OpExtensionName[mb_info.pawn_file_type]);
                 }
-                if (!MBFormatOnly) {
                     INDEX_DATA ind_yk;
                     return GetYKResult(Board, &ind_yk);
-                }
-                return MB_FILE_MISSING;
             } else {
                 if (Verbose > 3)
                     MyPrintf("GetMBResult: Found file for %s\n",
@@ -13353,7 +13327,7 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
     else
         DBHits++;
 
-    if (!MBFormatOnly && result == UNKNOWN) {
+    if (result == UNKNOWN) {
         INDEX_DATA ind_yk;
         result = GetYKResult(Board, &ind_yk);
     }
