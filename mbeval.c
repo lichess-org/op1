@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 static char *Version = "7.9";
 
@@ -764,6 +765,49 @@ typedef struct {
     uint32_t block_size;
 } BUFFER;
 
+static FILE *flog = NULL;
+
+static int MyPrintf(char *fmt, ...) {
+    va_list args;
+    int len;
+
+    va_start(args, fmt);
+    len = vprintf(fmt, args);
+    if (flog != NULL)
+        vfprintf(flog, fmt, args);
+    return len;
+}
+
+void MyFlush() {
+    fflush(stdout);
+    if (flog != NULL)
+        fflush(flog);
+}
+
+static size_t MemoryAllocated = 0;
+static size_t MemoryFreed = 0;
+
+static void *MyMalloc(size_t cb) {
+    void *pv;
+
+    if (Verbose > 2)
+        MyPrintf("Allocating %lu bytes of memory\n", cb);
+    pv = malloc(cb);
+    if (pv == NULL) {
+        MyPrintf("Could not allocate %lu bytes of memory\n", cb);
+        MyFlush();
+        exit(1);
+    }
+    MemoryAllocated += cb;
+    return pv;
+}
+
+static void MyFree(void *pv, size_t cb) {
+    MemoryFreed += cb;
+    free(pv);
+}
+
+
 static INDEX FileReads = 0;
 static INDEX FileWrites = 0;
 
@@ -810,48 +854,6 @@ size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
 static void f_write(void *pv, size_t cb, file fp, INDEX indStart) {
     fprintf(stderr, "*** f_write not implemented\n");
     exit(1);
-}
-
-static FILE *flog = NULL;
-
-static int MyPrintf(char *fmt, ...) {
-    va_list args;
-    int len;
-
-    va_start(args, fmt);
-    len = vprintf(fmt, args);
-    if (flog != NULL)
-        vfprintf(flog, fmt, args);
-    return len;
-}
-
-void MyFlush() {
-    fflush(stdout);
-    if (flog != NULL)
-        fflush(flog);
-}
-
-static size_t MemoryAllocated = 0;
-static size_t MemoryFreed = 0;
-
-static void *MyMalloc(size_t cb) {
-    void *pv;
-
-    if (Verbose > 2)
-        MyPrintf("Allocating %lu bytes of memory\n", cb);
-    pv = malloc(cb);
-    if (pv == NULL) {
-        MyPrintf("Could not allocate %lu bytes of memory\n", cb);
-        MyFlush();
-        exit(1);
-    }
-    MemoryAllocated += cb;
-    return pv;
-}
-
-static void MyFree(void *pv, size_t cb) {
-    MemoryFreed += cb;
-    free(pv);
 }
 
 enum { WHITE = 0, BLACK, NEUTRAL };
