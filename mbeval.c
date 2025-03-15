@@ -1396,8 +1396,7 @@ static void InitN2Tables(int *tab, int *pos) {
             if (p1 == p2)
                 score = -1;
             else {
-                if (pos != NULL)
-                    pos[index] = p2 + NSQUARES * p1;
+                pos[index] = p2 + NSQUARES * p1;
                 int g_index = N2_Index_Function(p2, p1);
                 assert(index == g_index);
                 score = index++;
@@ -2341,10 +2340,8 @@ static void InitN4OpposingTables(int *tab, int *pos) {
         for (int w2 = 0; w2 < NSQUARES; w2++) {
             for (int b1_r = 0; b1_r < NROWS; b1_r++) {
                 for (int b2_r = 0; b2_r < NROWS; b2_r++) {
-                    if (tab != NULL) {
-                        tab[b2_r +
-                            NROWS * (b1_r + NROWS * (w2 + NSQUARES * w1))] = -1;
-                    }
+                    tab[b2_r + NROWS * (b1_r + NROWS * (w2 + NSQUARES * w1))] =
+                        -1;
                 }
             }
         }
@@ -2399,23 +2396,19 @@ static void InitN4OpposingTables(int *tab, int *pos) {
                             Row(b2) +
                             NROWS * (Row(b1) + NROWS * (w1 + NSQUARES * w2));
                     }
-                    if (tab != NULL) {
-                        tab[pos_array_00] = index;
-                        assert(tab[pos_array_11] == -1 ||
-                               tab[pos_array_11] == index);
-                        tab[pos_array_11] = index;
-                        if (w1_col == w2_col) {
-                            assert(tab[pos_array_10] == -1 ||
-                                   tab[pos_array_10] == index);
-                            tab[pos_array_10] = index;
-                            assert(tab[pos_array_01] == -1 ||
-                                   tab[pos_array_01] == index);
-                            tab[pos_array_01] = index;
-                        }
+                    tab[pos_array_00] = index;
+                    assert(tab[pos_array_11] == -1 ||
+                           tab[pos_array_11] == index);
+                    tab[pos_array_11] = index;
+                    if (w1_col == w2_col) {
+                        assert(tab[pos_array_10] == -1 ||
+                               tab[pos_array_10] == index);
+                        tab[pos_array_10] = index;
+                        assert(tab[pos_array_01] == -1 ||
+                               tab[pos_array_01] == index);
+                        tab[pos_array_01] = index;
                     }
-                    if (pos != NULL) {
-                        pos[index] = pos_array_00;
-                    }
+                    pos[index] = pos_array_00;
                     index++;
                 }
             }
@@ -2462,22 +2455,19 @@ static void InitN3Tables(int *tab, int *pos) {
                 if (p1 == p2 || p1 == p3 || p2 == p3) {
                     score = -1;
                 } else {
-                    if (pos != NULL)
-                        pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
+                    pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
                     int g_index = N3_Index_Function(p3, p2, p1);
                     assert(index == g_index);
                     score = index++;
                 }
-                if (tab != NULL) {
-                    tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
-                    tab[p1 + NSQUARES * (p3 + NSQUARES * p2)] = score;
+                tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
+                tab[p1 + NSQUARES * (p3 + NSQUARES * p2)] = score;
 
-                    tab[p2 + NSQUARES * (p1 + NSQUARES * p3)] = score;
-                    tab[p2 + NSQUARES * (p3 + NSQUARES * p1)] = score;
+                tab[p2 + NSQUARES * (p1 + NSQUARES * p3)] = score;
+                tab[p2 + NSQUARES * (p3 + NSQUARES * p1)] = score;
 
-                    tab[p3 + NSQUARES * (p2 + NSQUARES * p1)] = score;
-                    tab[p3 + NSQUARES * (p1 + NSQUARES * p2)] = score;
-                }
+                tab[p3 + NSQUARES * (p2 + NSQUARES * p1)] = score;
+                tab[p3 + NSQUARES * (p1 + NSQUARES * p2)] = score;
             }
         }
     }
@@ -2503,91 +2493,88 @@ static void InitN4Tables(int *tab, int *pos) {
                         p2 == p4 || p3 == p4) {
                         score = -1;
                     } else {
-                        if (pos != NULL)
-                            pos[index] =
-                                p4 + NSQUARES *
-                                         (p3 + NSQUARES * (p2 + NSQUARES * p1));
+                        pos[index] =
+                            p4 +
+                            NSQUARES * (p3 + NSQUARES * (p2 + NSQUARES * p1));
                         int g_index = N4_Index_Function(p4, p3, p2, p1);
                         assert(index == g_index);
                         score = index++;
                     }
-                    if (tab != NULL) {
-                        tab[p1 +
-                            NSQUARES * (p2 + NSQUARES * (p3 + p4 * NSQUARES))] =
-                            score;
-                        tab[p1 +
-                            NSQUARES * (p2 + NSQUARES * (p4 + p3 * NSQUARES))] =
-                            score;
-                        tab[p1 +
-                            NSQUARES * (p3 + NSQUARES * (p2 + p4 * NSQUARES))] =
-                            score;
-                        tab[p1 +
-                            NSQUARES * (p3 + NSQUARES * (p4 + p2 * NSQUARES))] =
-                            score;
-                        tab[p1 +
-                            NSQUARES * (p4 + NSQUARES * (p3 + p2 * NSQUARES))] =
-                            score;
-                        tab[p1 +
-                            NSQUARES * (p4 + NSQUARES * (p2 + p3 * NSQUARES))] =
-                            score;
+                    tab[p1 +
+                        NSQUARES * (p2 + NSQUARES * (p3 + p4 * NSQUARES))] =
+                        score;
+                    tab[p1 +
+                        NSQUARES * (p2 + NSQUARES * (p4 + p3 * NSQUARES))] =
+                        score;
+                    tab[p1 +
+                        NSQUARES * (p3 + NSQUARES * (p2 + p4 * NSQUARES))] =
+                        score;
+                    tab[p1 +
+                        NSQUARES * (p3 + NSQUARES * (p4 + p2 * NSQUARES))] =
+                        score;
+                    tab[p1 +
+                        NSQUARES * (p4 + NSQUARES * (p3 + p2 * NSQUARES))] =
+                        score;
+                    tab[p1 +
+                        NSQUARES * (p4 + NSQUARES * (p2 + p3 * NSQUARES))] =
+                        score;
 
-                        tab[p2 +
-                            NSQUARES * (p1 + NSQUARES * (p3 + p4 * NSQUARES))] =
-                            score;
-                        tab[p2 +
-                            NSQUARES * (p1 + NSQUARES * (p4 + p3 * NSQUARES))] =
-                            score;
-                        tab[p2 +
-                            NSQUARES * (p3 + NSQUARES * (p4 + p1 * NSQUARES))] =
-                            score;
-                        tab[p2 +
-                            NSQUARES * (p3 + NSQUARES * (p1 + p4 * NSQUARES))] =
-                            score;
-                        tab[p2 +
-                            NSQUARES * (p4 + NSQUARES * (p1 + p3 * NSQUARES))] =
-                            score;
-                        tab[p2 +
-                            NSQUARES * (p4 + NSQUARES * (p3 + p1 * NSQUARES))] =
-                            score;
+                    tab[p2 +
+                        NSQUARES * (p1 + NSQUARES * (p3 + p4 * NSQUARES))] =
+                        score;
+                    tab[p2 +
+                        NSQUARES * (p1 + NSQUARES * (p4 + p3 * NSQUARES))] =
+                        score;
+                    tab[p2 +
+                        NSQUARES * (p3 + NSQUARES * (p4 + p1 * NSQUARES))] =
+                        score;
+                    tab[p2 +
+                        NSQUARES * (p3 + NSQUARES * (p1 + p4 * NSQUARES))] =
+                        score;
+                    tab[p2 +
+                        NSQUARES * (p4 + NSQUARES * (p1 + p3 * NSQUARES))] =
+                        score;
+                    tab[p2 +
+                        NSQUARES * (p4 + NSQUARES * (p3 + p1 * NSQUARES))] =
+                        score;
 
-                        tab[p3 +
-                            NSQUARES * (p2 + NSQUARES * (p1 + p4 * NSQUARES))] =
-                            score;
-                        tab[p3 +
-                            NSQUARES * (p2 + NSQUARES * (p4 + p1 * NSQUARES))] =
-                            score;
-                        tab[p3 +
-                            NSQUARES * (p1 + NSQUARES * (p4 + p2 * NSQUARES))] =
-                            score;
-                        tab[p3 +
-                            NSQUARES * (p1 + NSQUARES * (p2 + p4 * NSQUARES))] =
-                            score;
-                        tab[p3 +
-                            NSQUARES * (p4 + NSQUARES * (p2 + p1 * NSQUARES))] =
-                            score;
-                        tab[p3 +
-                            NSQUARES * (p4 + NSQUARES * (p1 + p2 * NSQUARES))] =
-                            score;
+                    tab[p3 +
+                        NSQUARES * (p2 + NSQUARES * (p1 + p4 * NSQUARES))] =
+                        score;
+                    tab[p3 +
+                        NSQUARES * (p2 + NSQUARES * (p4 + p1 * NSQUARES))] =
+                        score;
+                    tab[p3 +
+                        NSQUARES * (p1 + NSQUARES * (p4 + p2 * NSQUARES))] =
+                        score;
+                    tab[p3 +
+                        NSQUARES * (p1 + NSQUARES * (p2 + p4 * NSQUARES))] =
+                        score;
+                    tab[p3 +
+                        NSQUARES * (p4 + NSQUARES * (p2 + p1 * NSQUARES))] =
+                        score;
+                    tab[p3 +
+                        NSQUARES * (p4 + NSQUARES * (p1 + p2 * NSQUARES))] =
+                        score;
 
-                        tab[p4 +
-                            NSQUARES * (p2 + NSQUARES * (p3 + p1 * NSQUARES))] =
-                            score;
-                        tab[p4 +
-                            NSQUARES * (p2 + NSQUARES * (p1 + p3 * NSQUARES))] =
-                            score;
-                        tab[p4 +
-                            NSQUARES * (p1 + NSQUARES * (p2 + p3 * NSQUARES))] =
-                            score;
-                        tab[p4 +
-                            NSQUARES * (p1 + NSQUARES * (p3 + p2 * NSQUARES))] =
-                            score;
-                        tab[p4 +
-                            NSQUARES * (p3 + NSQUARES * (p1 + p2 * NSQUARES))] =
-                            score;
-                        tab[p4 +
-                            NSQUARES * (p3 + NSQUARES * (p2 + p1 * NSQUARES))] =
-                            score;
-                    }
+                    tab[p4 +
+                        NSQUARES * (p2 + NSQUARES * (p3 + p1 * NSQUARES))] =
+                        score;
+                    tab[p4 +
+                        NSQUARES * (p2 + NSQUARES * (p1 + p3 * NSQUARES))] =
+                        score;
+                    tab[p4 +
+                        NSQUARES * (p1 + NSQUARES * (p2 + p3 * NSQUARES))] =
+                        score;
+                    tab[p4 +
+                        NSQUARES * (p1 + NSQUARES * (p3 + p2 * NSQUARES))] =
+                        score;
+                    tab[p4 +
+                        NSQUARES * (p3 + NSQUARES * (p1 + p2 * NSQUARES))] =
+                        score;
+                    tab[p4 +
+                        NSQUARES * (p3 + NSQUARES * (p2 + p1 * NSQUARES))] =
+                        score;
                 }
             }
         }
@@ -2607,10 +2594,9 @@ static void InitN4TablesMB(int *pos) {
                         p2 == p4 || p3 == p4) {
                         // skip
                     } else {
-                        if (pos != NULL)
-                            pos[index] =
-                                p4 + NSQUARES *
-                                         (p3 + NSQUARES * (p2 + NSQUARES * p1));
+                        pos[index] =
+                            p4 +
+                            NSQUARES * (p3 + NSQUARES * (p2 + NSQUARES * p1));
                         int g_index = p4 * (p4 - 1) * (p4 - 2) * (p4 - 3) / 24 +
                                       p3 * (p3 - 1) * (p3 - 2) / 6 +
                                       p2 * (p2 - 1) / 2 + p1;
