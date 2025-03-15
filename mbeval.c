@@ -12145,7 +12145,9 @@ int MyUncompress(uint8_t *dest, uint32_t *dest_size, const uint8_t *source,
 #endif
 #if !defined(NO_ZLIB)
     else if (method == ZLIB) {
-        int err_code = uncompress(dest, dest_size, source, source_size);
+        uLongf dest_size_value = 0;
+        int err_code = uncompress(dest, &dest_size_value, source, source_size);
+        *dest_size = dest_size_value;
 
         if (err_code != Z_OK) {
             if (Verbose > 0) {
