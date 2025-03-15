@@ -5,9 +5,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
 
 static char *Version = "7.9";
 
@@ -693,8 +692,7 @@ static uint32_t CacheHits = 0;
 static uint32_t DBHits = 0;
 
 static bool FileExists(char *fname) {
-    struct _stat64 buffer;
-    return (_stat64(fname, &buffer) == 0);
+    return access(fname, F_OK) == 0;
 }
 
 #if defined(_WIN32) || defined(_WIN64)
