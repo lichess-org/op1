@@ -9684,8 +9684,9 @@ static void InitCaches() {
     }
 }
 
-static int MyUncompress(uint8_t *dest, uint32_t *dest_size, const uint8_t *source,
-                 uint32_t source_size, int method) {
+static int MyUncompress(uint8_t *dest, uint32_t *dest_size,
+                        const uint8_t *source, uint32_t source_size,
+                        int method) {
     if (method == NO_COMPRESSION) {
         *dest_size = source_size;
         memcpy(dest, source, source_size);
@@ -10701,9 +10702,9 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
                     break;
                 }
                 bool ok = false;
-                if (col > 0 && board[SquareMake(row - 1, col - 1)] == PAWN ||
-                    col < (NCOLS - 1) &&
-                        board[SquareMake(row - 1, col + 1)] == PAWN)
+                if ((col > 0 && board[SquareMake(row - 1, col - 1)] == PAWN) ||
+                    (col < (NCOLS - 1) &&
+                     board[SquareMake(row - 1, col + 1)] == PAWN))
                     ok = true;
                 if (!ok) {
                     if (Verbose > 1) {
@@ -10746,9 +10747,9 @@ static int ScanPosition(char *pos_string, int *board, int *ep_square,
                     break;
                 }
                 bool ok = false;
-                if (col > 0 && board[SquareMake(row + 1, col - 1)] == -PAWN ||
-                    col < (NCOLS - 1) &&
-                        board[SquareMake(row + 1, col + 1)] == -PAWN)
+                if ((col > 0 && board[SquareMake(row + 1, col - 1)] == -PAWN) ||
+                    (col < (NCOLS - 1) &&
+                     board[SquareMake(row + 1, col + 1)] == -PAWN))
                     ok = true;
                 if (!ok) {
                     if (Verbose > 1) {
@@ -10944,7 +10945,7 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
             col = (int)(ep_str[0] - (isupper(ep_str[0]) ? 'A' : 'a'));
             sscanf(&ep_str[1], "%d", &row);
             row--;
-            if (col < 0 || col >= NCOLS || row < 0 | row >= NROWS) {
+            if (col < 0 || col >= NCOLS || row < 0 || row >= NROWS) {
                 if (Verbose > 1) {
                     MyPrintf(
                         "ScanFEN: Warning: e.p. square %c%d out of range\n",
@@ -10987,9 +10988,9 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
                     break;
                 }
                 bool ok = false;
-                if (col > 0 && board[SquareMake(row - 1, col - 1)] == PAWN ||
-                    col < (NCOLS - 1) &&
-                        board[SquareMake(row - 1, col + 1)] == PAWN)
+                if ((col > 0 && board[SquareMake(row - 1, col - 1)] == PAWN) ||
+                    (col < (NCOLS - 1) &&
+                     board[SquareMake(row - 1, col + 1)] == PAWN))
                     ok = true;
                 if (!ok) {
                     if (Verbose > 1) {
@@ -11035,9 +11036,9 @@ static int ScanFEN(char *fen_string, int *board, int *ep_square, int *castle,
                     break;
                 }
                 bool ok = false;
-                if (col > 0 && board[SquareMake(row + 1, col - 1)] == -PAWN ||
-                    col < (NCOLS - 1) &&
-                        board[SquareMake(row + 1, col + 1)] == -PAWN)
+                if ((col > 0 && board[SquareMake(row + 1, col - 1)] == -PAWN) ||
+                    (col < (NCOLS - 1) &&
+                     board[SquareMake(row + 1, col + 1)] == -PAWN))
                     ok = true;
                 if (!ok) {
                     if (Verbose > 1) {
@@ -12936,7 +12937,8 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
 
     if (Verbose > 4) {
         MyPrintf(
-            "Searching YK index %lu block index %d, header block size %" PRIu32 "\n",
+            "Searching YK index %lu block index %d, header block size %" PRIu32
+            "\n",
             ind->index, fcache->block_index, fcache->block_size);
     }
 
@@ -12958,10 +12960,9 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (Verbose > 4) {
-            MyPrintf(
-                "Reading compressed block size %" PRIu32 " at offset " DEC_INDEX_FORMAT
-                " block index %d\n",
-                length, fcache->offsets[b_index], b_index);
+            MyPrintf("Reading compressed block size %" PRIu32
+                     " at offset " DEC_INDEX_FORMAT " block index %d\n",
+                     length, fcache->offsets[b_index], b_index);
         }
         if (length > CompressionBufferSize) {
             if (CompressionBuffer != NULL) {
@@ -12971,7 +12972,8 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             CompressionBuffer = (uint8_t *)MyMalloc(CompressionBufferSize);
             if (CompressionBuffer == NULL) {
                 fprintf(stderr,
-                        "Could not allocate CompressionBuffer size %" PRIu32 "\n",
+                        "Could not allocate CompressionBuffer size %" PRIu32
+                        "\n",
                         CompressionBufferSize);
                 exit(1);
             }
@@ -12985,7 +12987,8 @@ static int GetYKResult(BOARD *Board, INDEX_DATA *ind) {
             fcache->max_block_size = tmp_zone_size;
             fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
             if (fcache->block == NULL) {
-                fprintf(stderr, "Could not allocate zone block size %" PRIu32 "\n",
+                fprintf(stderr,
+                        "Could not allocate zone block size %" PRIu32 "\n",
                         fcache->max_block_size);
                 exit(1);
             }
@@ -13689,7 +13692,8 @@ static int GetMBResult(BOARD *Board, INDEX_DATA *ind) {
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (Verbose > 4) {
-            MyPrintf("GetMBResult: Reading compressed block size %" PRIu32 " at "
+            MyPrintf("GetMBResult: Reading compressed block size %" PRIu32
+                     " at "
                      "offset " DEC_INDEX_FORMAT " block index %d\n",
                      length, fcache->offsets[b_index], b_index);
         }
