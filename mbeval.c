@@ -765,23 +765,10 @@ typedef struct {
     uint32_t block_size;
 } BUFFER;
 
-static FILE *flog = NULL;
-
-static int MyPrintf(char *fmt, ...) {
-    va_list args;
-    int len;
-
-    va_start(args, fmt);
-    len = vprintf(fmt, args);
-    if (flog != NULL)
-        vfprintf(flog, fmt, args);
-    return len;
-}
+#define MyPrintf(...) printf(__VA_ARGS__)
 
 void MyFlush() {
     fflush(stdout);
-    if (flog != NULL)
-        fflush(flog);
 }
 
 static size_t MemoryAllocated = 0;
