@@ -589,19 +589,9 @@ static bool StrictPGN = false;
 static bool EGFormat = false;
 static bool GermanKnight = false;
 
-static bool AnnotateVariations = false;
 static bool CheckSyntaxOnly = false;
-static bool PositionDatabase = false;
-static bool PrintBadlyPlayedPositions = false;
-static bool TBGamesOnly = false;
 static bool FlagRestrictedPromotions = false;
 static int NumRestrictedPromotionEndings = 0;
-static bool AddAnnotator = false;
-static char *Annotator = "EGTB";
-static bool AddEGTBDepthComments = false;
-static bool AddEGTBComments = false;
-static bool InsertComments = false;
-static int DepthDelta = -1;
 static int NumDBPositions = 0;
 static int MinimumNumberOfPieces = 3;
 static int MaximumNumberOfPieces = 9;
@@ -9169,8 +9159,6 @@ static void MoveScoreToString(int move_score, char *score_string) {
     }
 }
 
-static unsigned int *EndingStats = NULL;
-
 typedef struct {
     int types[KING];
     int index;
@@ -9223,20 +9211,6 @@ static int ending_stat_index(int piece_types[2][KING]) {
 #define MAX_GAME_MOVES 2048
 
 static unsigned int num_games = 0;
-
-static int OutputColumn = 0;
-static int NumOutputLines = 0;
-
-static SCORE *ScoreListPGN = NULL;
-static SCORE *ScoreListDeltaPGN = NULL;
-static int NumBadMovesPGN = 0;
-static int NumDeltaMovesPGN = 0;
-static int MaxBadEnding = -1;
-static int MaxBadVariation = -1;
-static bool AnnotatorSeen = false;
-static int AnnotatorLine = 0;
-static int LastTagLine = 0;
-static int AddEGTBCommentLine = 0;
 
 static int SetBoard(BOARD *Board, int *board, int side, int ep_square, int castle,
              int half_move, int full_move) {
@@ -9375,20 +9349,12 @@ static void DisplayBoard(BOARD *Board, char *label) {
     MyFlush();
 }
 
-static bool skipping_game = false;
 static unsigned int RAV_level = 0;
-
-static unsigned int num_positions = 0;
-static unsigned int max_rav_game = 0;
-static unsigned int max_rav_level = 0;
-
-static short MoveChars[MAX_CHAR];
 
 /* Return TRUE if line contains a non-space character, but
  * is not a comment line.
  */
-
-bool NonBlankLine(const char *line) {
+static bool NonBlankLine(const char *line) {
     bool blank = true;
 
     if (line != NULL) {
@@ -9405,37 +9371,13 @@ bool NonBlankLine(const char *line) {
     return !blank;
 }
 
-bool BlankLine(const char *line) { return !NonBlankLine(line); }
-
-static char *NextInputLine(FILE *fp) {
-    /* Retain each line in turn. */
-    static bool first_call = true;
-    static char *line, *linep;
-
-    if (first_call) {
-        if ((line = (char *)malloc(MAX_PGN_LINE * sizeof(char))) == NULL) {
-            fprintf(stderr, "Could not allocate line of length %d\n",
-                    MAX_PGN_LINE);
-            exit(1);
-        }
-        first_call = false;
-    }
-
-    linep = fgets(line, MAX_PGN_LINE, fp);
-
-    if (strlen(line) >= (MAX_PGN_LINE - 1)) {
-        fprintf(stderr, "WARNING: input contains lines > %d\n", MAX_PGN_LINE);
-        printf("%s\n", line);
-        exit(1);
-    }
-    return linep;
-}
+static bool BlankLine(const char *line) { return !NonBlankLine(line); }
 
 /* Does the character represent a column of the board? */
-bool IsColumn(char c) { return (c >= 'a') && (c <= 'a' + NCOLS - 1); }
+static bool IsColumn(char c) { return (c >= 'a') && (c <= 'a' + NCOLS - 1); }
 
 /* Does the character represent a rank of the board? */
-bool IsRank(char c) { return (c >= '1') && (c <= '1' + NROWS - 1); }
+static bool IsRank(char c) { return (c >= '1') && (c <= '1' + NROWS - 1); }
 
 static int GetPiece(char p) {
     switch (p) {
@@ -11353,145 +11295,6 @@ static void UnMakeMove(BOARD *Board, Move *mv) {
     Board->half_move = mv->save_half_move;
 }
 
-static int GetMoveString(Move *mv, char *str, bool simple) {
-    char p = GermanKnight ? eg_piece_char(ABS(mv->piece_moved))
-                          : piece_char(ABS(mv->piece_moved));
-    p = islower(p) ? toupper(p) : p;
-    if (p == 'P')
-        p = ' ';
-
-    if ((mv->flag & WK_CASTLE) || (mv->flag & BK_CASTLE)) {
-        sprintf(str, "O-O");
-    } else if ((mv->flag & WQ_CASTLE) || (mv->flag & BQ_CASTLE)) {
-        sprintf(str, "O-O-O");
-    } else {
-        sprintf(str, "%c%c%d%c%c%d", p, 'a' + Column(mv->from),
-                1 + Row(mv->from), (mv->flag & CAPTURE) ? 'x' : '-',
-                'a' + Column(mv->to), 1 + Row(mv->to));
-        if (mv->flag & PROMOTION) {
-            char prom[2];
-            if (ABS(mv->piece_promoted) == PAWN)
-                p = '?';
-            else
-                p = piece_char(ABS(mv->piece_promoted));
-            sprintf(prom, "%1c", islower(p) ? toupper(p) : p);
-            strcat(str, prom);
-        }
-    }
-
-    if ((mv->flag & CAPTURE) && (mv->flag & EN_PASSANT))
-        strcat(str, "ep");
-    if (!simple) {
-        if (mv->flag & MATE)
-            strcat(str, "#");
-        else if (mv->flag & CHECK)
-            strcat(str, "+");
-        if (mv->flag & BEST)
-            strcat(str, "!");
-        if (mv->flag & UNIQUE)
-            strcat(str, "!");
-    }
-    return strlen(str);
-}
-
-static int GetShortMoveString(Move *mv, Move *mv_list, int nmoves, char *str) {
-    int i, len = 0;
-    char p;
-    bool ambig = false, col_ok = true, row_ok = true;
-
-    if (mv->from == 0 && mv->to == 0) {
-        str[len++] = '-';
-        str[len++] = '-';
-        str[len++] = '\0';
-        return len;
-    }
-
-    for (i = 0; i < nmoves; i++) {
-        if ((mv->flag & PROMOTION) && (ABS(mv->piece_promoted) == PAWN))
-            continue;
-        if (mv->from == mv_list[i].from && mv->to == mv_list[i].to)
-            continue;
-        if (mv->piece_moved == mv_list[i].piece_moved &&
-            mv->to == mv_list[i].to) {
-            ambig = true;
-            if (Column(mv->from) == Column(mv_list[i].from))
-                col_ok = false;
-            if (Row(mv->from) == Row(mv_list[i].from))
-                row_ok = false;
-        }
-    }
-
-    if ((mv->flag & WK_CASTLE) || (mv->flag & BK_CASTLE)) {
-        str[len++] = 'O';
-        str[len++] = '-';
-        str[len++] = 'O';
-    } else if ((mv->flag & WQ_CASTLE) || (mv->flag & BQ_CASTLE)) {
-        str[len++] = 'O';
-        str[len++] = '-';
-        str[len++] = 'O';
-        str[len++] = '-';
-        str[len++] = 'O';
-    } else if (ABS(mv->piece_moved) != PAWN) {
-
-        p = GermanKnight ? eg_piece_char(ABS(mv->piece_moved))
-                         : piece_char(ABS(mv->piece_moved));
-
-        p = islower(p) ? toupper(p) : p;
-
-        str[len++] = p;
-
-        if (ambig) {
-            if (col_ok || !row_ok)
-                str[len++] = 'a' + Column(mv->from);
-            if (!col_ok) {
-                sprintf(&str[len], "%d", 1 + Row(mv->from));
-                len = strlen(str);
-            }
-        }
-    } else if (mv->flag & CAPTURE)
-        str[len++] = 'a' + Column(mv->from);
-
-    if (mv->flag & CAPTURE)
-        str[len++] = 'x';
-
-    if ((mv->flag & (WK_CASTLE | BK_CASTLE | WQ_CASTLE | BQ_CASTLE)) == 0) {
-        str[len++] = 'a' + Column(mv->to);
-
-        sprintf(&str[len], "%d", 1 + Row(mv->to));
-        len = strlen(str);
-    }
-
-    if (mv->flag & PROMOTION) {
-        str[len++] = '=';
-        str[len++] = PIECE_CHAR(ABS(mv->piece_promoted));
-    }
-
-    if (mv->flag & MATE)
-        str[len++] = '#';
-    else if (mv->flag & CHECK)
-        str[len++] = '+';
-
-    if ((mv->flag & BEST) || (mv->flag & UNIQUE)) {
-        if (StrictPGN) {
-            str[len++] = ' ';
-            str[len++] = '$';
-            if ((mv->flag & UNIQUE) && (mv->flag & BEST))
-                str[len++] = '3';
-            else
-                str[len++] = '1';
-        } else {
-            if (mv->flag & BEST)
-                str[len++] = '!';
-            if (mv->flag & UNIQUE)
-                str[len++] = '!';
-        }
-    }
-
-    str[len] = '\0';
-
-    return len;
-}
-
 static int CastleRights(int *board, int proposed_castle) {
     int castle = 0;
 
@@ -12521,16 +12324,6 @@ static void BoardToFEN(BOARD *Board, char *FEN_String) {
     sprintf(pch, "%d %d", Board->half_move, Board->full_move);
 }
 
-static void PrintEPD(BOARD *Board, char *comment) {
-    char fen_string[256];
-    BoardToFEN(Board, fen_string);
-    if (comment != NULL)
-        MyPrintf("%s %s\n", fen_string, comment);
-    else
-        MyPrintf("%s\n", fen_string);
-    MyFlush();
-}
-
 /*
  * KK_Canonical computes the symmetry operation to transform wk_in and bk_in to
  * a "canonical" configuration when pawns are present.  The symmetry operation
@@ -12540,7 +12333,7 @@ static void PrintEPD(BOARD *Board, char *comment) {
  * The routine returns true if the position is legal, false otherwise
  */
 
-bool KK_Canonical(int *wk_in, int *bk_in, int *sym) {
+static bool KK_Canonical(int *wk_in, int *bk_in, int *sym) {
     int wk = *wk_in;
     int bk = *bk_in;
     int wk_row = Row(wk);
@@ -18323,177 +18116,10 @@ typedef struct {
     unsigned int count;
 } FREQ_TABLE;
 
-static void AddEndingToStats(BOARD *Board) {
-    int piece_types[2][KING];
-    int index;
-
-    if (Board->strength_w < Board->strength_b) {
-        memcpy(piece_types[0], Board->piece_type_count[1], KING * sizeof(int));
-        memcpy(piece_types[1], Board->piece_type_count[0], KING * sizeof(int));
-    } else {
-        memcpy(piece_types, Board->piece_type_count, sizeof(piece_types));
-    }
-
-    index = ending_stat_index(piece_types);
-
-    EndingStats[index]++;
-}
-
 static bool FirstMove = true;
 static bool EGTBWritten = false;
 static bool PrevEGTBWritten = false;
 static bool ContainsEGTBEvaluation = false;
-
-static int ProcessPosition(BOARD *pos, bool evaluate, bool best_capture,
-                           bool mark_mzugs) {
-    MB_INFO mb_info;
-    char ending[16];
-    int changed = 0;
-    INDEX_DATA idata;
-
-    if (!IgnoreCastle && pos->castle)
-        return 0;
-
-    if (pos->num_pieces > MaximumNumberOfPieces ||
-        pos->num_pieces < MinimumNumberOfPieces)
-        return 0;
-
-    int len = GetEndingName(pos->piece_type_count, ending);
-
-    if (len > MaximumNumberOfPieces || len < MinimumNumberOfPieces) {
-        fprintf(stderr, "Inconsistent length for %s\n", ending);
-        exit(1);
-    }
-
-    if (GetMBInfo(pos, &mb_info) < 0) {
-        if (Verbose > 1) {
-            fprintf(stderr, "Could not map ending %s\n", ending);
-        }
-        return 0;
-    }
-
-    int result = pos->result;
-
-    if (evaluate) {
-        int score = pos->score;
-        if (score == UNKNOWN || score == NOT_WON || score == NOT_LOST) {
-            int score_new = UNKNOWN;
-            if (best_capture) {
-                Move move_list[MAX_MOVES];
-                int ncaptures = GenLegalCaptures(pos, move_list, true, true);
-
-                for (int i = 0; i < ncaptures; i++) {
-                    MakeMove(pos, &move_list[i]);
-                    int tmp_score = ScorePosition(pos, &idata);
-                    UnMakeMove(pos, &move_list[i]);
-                    tmp_score = RetrogradeResult(tmp_score);
-                    if (tmp_score == UNKNOWN || tmp_score == UNRESOLVED ||
-                        tmp_score == ILLEGAL || tmp_score == LOST ||
-                        tmp_score == NOT_WON)
-                        continue;
-                    if (tmp_score == STALE_MATE || tmp_score == DRAW ||
-                        tmp_score == NOT_LOST)
-                        score_new = NOT_LOST;
-                    else if (tmp_score == WON || tmp_score > 0) {
-                        score_new = 1;
-                        break;
-                    }
-                }
-            } else {
-                score_new = ScorePosition(pos, &idata);
-            }
-
-            if (score != score_new) {
-                if ((score == NOT_WON && score_new == NOT_LOST) ||
-                    (score == NOT_LOST && score_new == NOT_WON)) {
-                    score = DRAW;
-                    changed = 1;
-                } else if (score == UNKNOWN ||
-                           (score_new != UNKNOWN &&
-                            (score == NOT_WON || score == NOT_LOST))) {
-                    score = score_new;
-                    changed = 1;
-                }
-                pos->score = score;
-            }
-        }
-    }
-
-    if (mark_mzugs) {
-        int score = pos->score;
-        int zz_type = pos->zz_type;
-
-        if (zz_type == UNKNOWN) {
-            if (score == WON ||
-                (score > 0 && score != DRAW && score != NOT_WON &&
-                 score != LOST && score != UNKNOWN) ||
-                IsInCheck(pos, pos->side)) {
-                pos->zz_type = NO_MZUG;
-            } else {
-                int score_other = UNKNOWN;
-                pos->side = OtherSide(pos->side);
-                score_other = ScorePosition(pos, &idata);
-                pos->side = OtherSide(pos->side);
-                if (score_other != UNKNOWN) {
-                    if (score == LOST || score <= 0) {
-                        if (score_other == DRAW || score_other == NOT_WON)
-                            zz_type = MINUS_EQUAL;
-                        else if (score_other == LOST || score_other <= 0)
-                            zz_type = MINUS_PLUS;
-                        else
-                            zz_type = NO_MZUG;
-                    } else if (score == DRAW || score == NOT_WON) {
-                        if (score_other == LOST || score_other <= 0)
-                            zz_type = EQUAL_PLUS;
-                        else
-                            zz_type = NO_MZUG;
-                    }
-
-                    if (zz_type != UNKNOWN) {
-                        pos->zz_type = zz_type;
-                        changed = 1;
-                    }
-                }
-            }
-        }
-    }
-
-    int game_num = pos->game_num;
-
-    if (!evaluate && !mark_mzugs) {
-        game_num = num_games;
-    }
-
-    int promos = QRBN_PROMOTIONS;
-
-    if (FlagRestrictedPromotions && mb_info.pawn_file_type == FREE_PAWNS &&
-        pos->num_pieces == 8) {
-        RESTRICTED_PROMOTION *rptr, ref;
-        strcpy(ref.ending, ending);
-        rptr = (RESTRICTED_PROMOTION *)bsearch(
-            &ref, RestrictedPromotionList, NumRestrictedPromotionEndings,
-            sizeof(RestrictedPromotionList[0]), restricted_promo_compar);
-        if (rptr != NULL)
-            promos = rptr->promos;
-    }
-
-    POSITION_DATA pos_data;
-
-    strncpy(pos_data.ending, ending, sizeof(pos_data.ending));
-    pos_data.kk_index = mb_info.kk_index;
-    pos_data.offset = mb_info.parity_index[0].index;
-    pos_data.side = pos->side;
-    pos_data.promos = promos;
-    pos_data.game_num = game_num;
-    pos_data.move_no = (RAV_level == 0 ? pos->full_move : -1);
-    pos_data.result = result;
-    pos_data.score = pos->score;
-    pos_data.zz_type = pos->zz_type;
-
-    WritePositionData(&pos_data, 9);
-
-    return changed;
-}
 
 /*
  * append paths given in TbDirs to existing paths
