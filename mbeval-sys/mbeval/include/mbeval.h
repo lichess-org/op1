@@ -49,6 +49,20 @@ enum {
     NO_MZUG
 };
 
+enum {
+    CAPTURE = 0x1,
+    PROMOTION = 0x2,
+    EN_PASSANT = 0x4,
+    CHECK = 0x8,
+    MATE = 0x10,
+    WK_CASTLE = 0x20,
+    WQ_CASTLE = 0x40,
+    BK_CASTLE = 0x80,
+    BQ_CASTLE = 0x100,
+    UNIQUE = 0x200,
+    BEST = 0x400
+};
+
 void mbeval_init(void);
 
 void mbeval_add_path(const char *path);
