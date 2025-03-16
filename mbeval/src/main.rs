@@ -63,29 +63,35 @@ impl Drop for Context {
     }
 }
 
-fn assert_score(ctx: &mut Context, fen: &str, expected: Option<c_int>) {
-    let pos: Chess = fen
-        .parse::<Fen>()
-        .unwrap()
-        .into_position(CastlingMode::Chess960)
-        .unwrap();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    assert_eq!(ctx.probe(&pos), expected);
-}
+    fn assert_score(ctx: &mut Context, fen: &str, expected: Option<c_int>) {
+        let pos: Chess = fen
+            .parse::<Fen>()
+            .unwrap()
+            .into_position(CastlingMode::Chess960)
+            .unwrap();
 
-fn main() {
-    unsafe {
-        mbeval_init();
-        mbeval_add_path(c".".as_ptr());
+        assert_eq!(ctx.probe(&pos), expected);
     }
 
-    let mut ctx = unsafe { Context::new() };
-    assert_score(&mut ctx, "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", Some(-3));
-    assert_score(&mut ctx, "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1", Some(-1));
-    assert_score(&mut ctx, "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1", Some(-2));
-    assert_score(&mut ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1", Some(-7));
-    assert_score(&mut ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", Some(6));
-    assert_score(&mut ctx, "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", Some(4));
-    assert_score(&mut ctx, "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1", Some(0));
-    assert_score(&mut ctx, "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", None);
+    #[test]
+    fn test_kbpkpppp() {
+        unsafe {
+            mbeval_init();
+            mbeval_add_path(c"..".as_ptr());
+        }
+
+        let mut ctx = unsafe { Context::new() };
+        assert_score(&mut ctx, "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", Some(-3));
+        assert_score(&mut ctx, "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1", Some(-1));
+        assert_score(&mut ctx, "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1", Some(-2));
+        assert_score(&mut ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1", Some(-7));
+        assert_score(&mut ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", Some(6));
+        assert_score(&mut ctx, "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", Some(4));
+        assert_score(&mut ctx, "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1", Some(0));
+        assert_score(&mut ctx, "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", None);
+    }
 }
