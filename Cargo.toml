@@ -1,0 +1,3 @@
+[workspace]
+members = ["mbeval-sys", "mbeval"]
+resolver = "3"

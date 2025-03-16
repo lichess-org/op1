@@ -1,0 +1,8 @@
+[package]
+name = "mbeval"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+mbeval-sys = { version = "0.1.0", path = "../mbeval-sys" }
+shakmaty = "0.27.3"

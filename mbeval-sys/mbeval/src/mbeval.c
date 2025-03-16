@@ -1,5 +1,7 @@
 /* Based on mbeval.cpp 7.9 */
 
+#include "mbeval.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -19,9 +21,6 @@
 #error "Need memcpy from file to struct"
 #endif
 
-#define NROWS 8
-#define NCOLS 8
-
 #if (NROWS == 8) && (NCOLS == 8)
 #define Row(sq) ((sq) >> 3)
 #define Column(sq) ((sq)&07)
@@ -31,8 +30,6 @@
 #define Column(sq) ((sq) % (NCOLS))
 #define SquareMake(row, col) ((NCOLS) * (row) + (col))
 #endif
-
-#define NSQUARES ((NROWS) * (NCOLS))
 
 enum {
     FREE_PAWNS = 0,
@@ -55,14 +52,6 @@ enum {
 
 enum { NO_COMPRESSION = 0, ZLIB, ZSTD, NUM_COMPRESSION_METHODS };
 enum { ZLIB_YK = 0, BZIP_YK, LZMA_YK, ZSTD_YK, NO_COMPRESSION_YK };
-
-typedef struct {
-    ZSTD_DCtx *zstd_decompression;
-    uint8_t *compressed_buffer;
-    uint32_t compressed_buffer_size;
-    uint8_t *block_buffer;
-    uint32_t block_buffer_size;
-} CONTEXT;
 
 #define COMPRESS_OK Z_OK
 #define COMPRESS_NOT_OK ((COMPRESS_OK) + 1)
@@ -648,26 +637,11 @@ static size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
     return total;
 }
 
-enum { WHITE = 0, BLACK, NEUTRAL };
-
 #define OtherSide(side) ((side) ^ 1)
 #define ColorName(side) ((side) == WHITE ? "white" : "black")
 #define SideTm(side) ((side) == WHITE ? "wtm" : "btm")
 
 enum { NONE = 0, EVEN, ODD };
-
-enum {
-    NO_PIECE = 0,
-    PAWN = 1,
-    KNIGHT = 2,
-    BISHOP = 4,
-    ARCHBISHOP = (KNIGHT | BISHOP),
-    ROOK = 8,
-    CARDINAL = (KNIGHT | ROOK),
-    QUEEN = (BISHOP | ROOK),
-    MAHARAJA = (KNIGHT | BISHOP | ROOK),
-    KING = 16
-};
 
 #define QRBN_PROMOTIONS                                                        \
     ((1 << (KNIGHT)) | (1 << (BISHOP)) | (1 << (ROOK)) | (1 << (QUEEN)))
@@ -680,31 +654,6 @@ enum {
 #define QB_PROMOTIONS ((1 << (BISHOP)) | (1 << (QUEEN)))
 
 enum { BASE = 0, EE, NE, NN, NW, WW, SW, SS, SE };
-
-enum {
-    LOST = 65000,
-    DRAW,
-    STALE_MATE,
-    NOT_LOST,
-    NOT_WON,
-    HIGH_DTZ_MISSING,
-    WON,
-    CHECK_MATE,
-    ILLEGAL,
-    UNRESOLVED,
-    UNKNOWN,
-    PLUS_MINUS,
-    PLUS_EQUAL,
-    EQUAL_MINUS,
-    PLUS_EQUALMINUS,
-    PLUSEQUAL_MINUS,
-    MINUS_EQUAL,
-    MINUS_PLUS,
-    MINUS_PLUSEQUAL,
-    EQUAL_PLUS,
-    EQUALMINUS_PLUS,
-    NO_MZUG
-};
 
 enum {
     IDENTITY = 0,
@@ -762,6 +711,15 @@ typedef struct {
     int zz_type;
     unsigned int game_num;
 } BOARD;
+
+struct _CONTEXT {
+    BOARD board;
+    ZSTD_DCtx *zstd_decompression;
+    uint8_t *compressed_buffer;
+    uint32_t compressed_buffer_size;
+    uint8_t *block_buffer;
+    uint32_t block_buffer_size;
+};
 
 static int ParityTable[NSQUARES];
 static int WhiteSquare[NSQUARES / 2], BlackSquare[NSQUARES / 2];
@@ -12039,7 +11997,7 @@ void mbeval_init(void) {
     InitPermutationTables();
 }
 
-void ykmb_add_path(const char *path) {
+void mbeval_add_path(const char *path) {
     TbPaths = MyRealloc(TbPaths, (NumPaths + 1) * sizeof(char *));
     TbPaths[NumPaths] = strdup(path);
     assert(TbPaths[NumPaths] != NULL);
@@ -12048,7 +12006,7 @@ void ykmb_add_path(const char *path) {
     NumPaths++;
 }
 
-CONTEXT *ykmb_context_create() {
+CONTEXT *mbeval_context_create() {
     CONTEXT *context = (CONTEXT *)MyMalloc(sizeof(CONTEXT));
     memset(context, 0, sizeof(CONTEXT));
 
@@ -12058,7 +12016,7 @@ CONTEXT *ykmb_context_create() {
     return context;
 }
 
-void ykmb_context_destroy(CONTEXT *context) {
+void mbeval_context_destroy(CONTEXT *context) {
     assert(context != NULL);
 
     MyFree(context->compressed_buffer);
@@ -12068,51 +12026,14 @@ void ykmb_context_destroy(CONTEXT *context) {
     MyFree(context);
 }
 
-BOARD *ykmb_board_create() {
-    BOARD *board = (BOARD *)MyMalloc(sizeof(BOARD));
-    memset(board, 0, sizeof(BOARD));
-    return board;
-}
-
-void ykmb_board_set(BOARD *board, const int pieces[NSQUARES], int side,
-                    int ep_square, int castle, int half_move, int full_move) {
-    assert(board != NULL);
-    SetBoard(board, pieces, side, ep_square, castle, half_move, full_move);
-}
-
-void ykmb_board_destroy(BOARD *board) {
-    assert(board != NULL);
-    MyFree(board);
-}
-
-int ykmb_probe(CONTEXT *ctx, const BOARD *board) {
+int mbeval_context_probe(CONTEXT *ctx, const int pieces[NSQUARES], int side,
+                          int ep_square, int castle, int half_move,
+                          int full_move) {
     assert(ctx != NULL);
-    assert(board != NULL);
+
+    SetBoard(&ctx->board, pieces, side, ep_square, castle, half_move,
+             full_move);
 
     INDEX_DATA index = {0};
-    return ScorePosition(ctx, board, &index);
-}
-
-int main(int argc, char *argv[]) {
-    mbeval_init();
-    ykmb_add_path(".");
-
-    assert(IsWinningScore(1));
-    assert(IsLosingScore(-1));
-    assert(ScoreCompare(1, 2) < 0);
-
-    CONTEXT *ctx = ykmb_context_create();
-
-    AssertScore(ctx, "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", -3);
-    AssertScore(ctx, "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1", -1);
-    AssertScore(ctx, "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1", -2);
-    AssertScore(ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1", -7);
-    AssertScore(ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", 6);
-    AssertScore(ctx, "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", 4);
-    AssertScore(ctx, "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1", DRAW);
-    AssertScore(ctx, "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", UNKNOWN);
-
-    ykmb_context_destroy(ctx);
-
-    return 0;
+    return ScorePosition(ctx, &ctx->board, &index);
 }
