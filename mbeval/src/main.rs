@@ -1,19 +1,33 @@
 use std::{
+    collections::HashMap,
     ffi::{CString, c_int},
     net::SocketAddr,
     os::unix::ffi::OsStrExt,
     path::PathBuf,
+    sync::Mutex,
 };
 
-use axum::{Router, routing::get};
+use axum::{
+    Json, Router,
+    extract::{Query, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::get,
+};
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
 use mbeval_sys::{
     CONTEXT, mbeval_add_path, mbeval_context_create, mbeval_context_destroy, mbeval_context_probe,
     mbeval_init,
 };
-use shakmaty::{CastlingMode, Chess, EnPassantMode, Position, Role, fen::Fen};
-use tokio::net::{TcpListener, UnixListener};
+use serde::{Deserialize, Serialize};
+use shakmaty::{
+    CastlingMode, Chess, EnPassantMode, Position, PositionError, Role, fen::Fen, uci::UciMove,
+};
+use tokio::{
+    net::{TcpListener, UnixListener},
+    task,
+};
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
@@ -86,10 +100,60 @@ struct Opt {
 }
 
 struct AppState {
-    ctx: Context,
+    ctx: Mutex<Context>,
 }
 
-async fn handle_probe() {}
+#[derive(Deserialize)]
+struct ProbeQuery {
+    fen: Fen,
+}
+
+#[derive(Serialize)]
+struct ProbeResponse {
+    children: HashMap<UciMove, Option<i32>>,
+}
+
+enum ProbeError {
+    Position(PositionError<Chess>),
+}
+
+impl IntoResponse for ProbeError {
+    fn into_response(self) -> Response {
+        match self {
+            ProbeError::Position(err) => (StatusCode::BAD_REQUEST, err.to_string()).into_response(),
+        }
+    }
+}
+
+impl From<PositionError<Chess>> for ProbeError {
+    fn from(err: PositionError<Chess>) -> Self {
+        ProbeError::Position(err)
+    }
+}
+
+#[axum::debug_handler]
+async fn handle_probe(
+    State(app): State<&'static AppState>,
+    Query(query): Query<ProbeQuery>,
+) -> Result<Json<ProbeResponse>, ProbeError> {
+    let pos = query.fen.into_position(CastlingMode::Chess960)?;
+
+    let response = task::spawn_blocking(move || {
+        let legals = pos.legal_moves();
+        let mut children = HashMap::with_capacity(legals.len());
+        let mut ctx = app.ctx.lock().expect("lock");
+        for m in legals {
+            let mut after = pos.clone();
+            after.play_unchecked(&m);
+            children.insert(m.to_uci(CastlingMode::Chess960), ctx.probe(&after));
+        }
+        ProbeResponse { children }
+    })
+    .await
+    .expect("blocking probe");
+
+    Ok(Json(response))
+}
 
 #[tokio::main]
 async fn main() {
@@ -128,7 +192,7 @@ async fn main() {
 
     // Start server
     let state: &'static AppState = Box::leak(Box::new(AppState {
-        ctx: unsafe { Context::new() },
+        ctx: Mutex::new(unsafe { Context::new() }),
     }));
 
     let app = Router::new()
