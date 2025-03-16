@@ -110,7 +110,8 @@ struct ProbeQuery {
 
 #[derive(Serialize)]
 struct ProbeResponse {
-    children: HashMap<UciMove, Option<i32>>,
+    parent: Option<c_int>,
+    children: HashMap<UciMove, Option<c_int>>,
 }
 
 enum ProbeError {
@@ -147,7 +148,10 @@ async fn handle_probe(
             after.play_unchecked(&m);
             children.insert(m.to_uci(CastlingMode::Chess960), ctx.probe(&after));
         }
-        ProbeResponse { children }
+        ProbeResponse {
+            parent: ctx.probe(&pos),
+            children,
+        }
     })
     .await
     .expect("blocking probe");
