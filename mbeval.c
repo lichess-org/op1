@@ -535,7 +535,7 @@ typedef struct {
 #define N3_ODD_PARITY_Offset N3_ODD_PARITY
 #endif
 
-static char** TbPaths = NULL;
+static char **TbPaths = NULL;
 static int NumPaths = 0;
 
 static const bool Chess960 = true;
@@ -11449,23 +11449,23 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
 
     // load and decompress block
 
-        uint32_t length =
-            fcache->offsets[b_index + 1] - fcache->offsets[b_index];
-        if (length > ctx->compressed_buffer_size) {
-            ctx->compressed_buffer =
-                (uint8_t *)MyRealloc(ctx->compressed_buffer, length);
-            ctx->compressed_buffer_size = length;
-        }
-        f_read(ctx->compressed_buffer, length, fcache->fp,
-               fcache->offsets[b_index]);
-        uint32_t tmp_zone_size = fcache->header.block_size;
-        if (tmp_zone_size > ctx->block_buffer_size) {
-            ctx->block_buffer = (uint8_t *)MyRealloc(ctx->block_buffer, tmp_zone_size);
-            ctx->block_buffer_size = tmp_zone_size;
-        }
-        MyUncompress(ctx, ctx->block_buffer, &tmp_zone_size, ctx->compressed_buffer,
-                     length, fcache->header.compression_method);
-        assert(tmp_zone_size == fcache->header.block_size);
+    uint32_t length = fcache->offsets[b_index + 1] - fcache->offsets[b_index];
+    if (length > ctx->compressed_buffer_size) {
+        ctx->compressed_buffer =
+            (uint8_t *)MyRealloc(ctx->compressed_buffer, length);
+        ctx->compressed_buffer_size = length;
+    }
+    f_read(ctx->compressed_buffer, length, fcache->fp,
+           fcache->offsets[b_index]);
+    uint32_t tmp_zone_size = fcache->header.block_size;
+    if (tmp_zone_size > ctx->block_buffer_size) {
+        ctx->block_buffer =
+            (uint8_t *)MyRealloc(ctx->block_buffer, tmp_zone_size);
+        ctx->block_buffer_size = tmp_zone_size;
+    }
+    MyUncompress(ctx, ctx->block_buffer, &tmp_zone_size, ctx->compressed_buffer,
+                 length, fcache->header.compression_method);
+    assert(tmp_zone_size == fcache->header.block_size);
 
     result = ctx->block_buffer[ind->index % fcache->header.block_size];
 
@@ -12067,11 +12067,12 @@ void ykmb_init(void) {
     InitPermutationTables();
 }
 
-void ykmb_add_path(const char* path) {
-    TbPaths = MyRealloc(TbPaths, (NumPaths + 1) * sizeof(char*));
+void ykmb_add_path(const char *path) {
+    TbPaths = MyRealloc(TbPaths, (NumPaths + 1) * sizeof(char *));
     TbPaths[NumPaths] = strdup(path);
     assert(TbPaths[NumPaths] != NULL);
-    if (TbPaths[NumPaths] == NULL) abort();
+    if (TbPaths[NumPaths] == NULL)
+        abort();
     NumPaths++;
 }
 
@@ -12095,13 +12096,14 @@ void ykmb_context_destroy(CONTEXT *context) {
     MyFree(context);
 }
 
-BOARD* ykmb_board_create() {
+BOARD *ykmb_board_create() {
     BOARD *board = (BOARD *)MyMalloc(sizeof(BOARD));
     memset(board, 0, sizeof(BOARD));
     return board;
 }
 
-void ykmb_board_set(BOARD *board, const int pieces[NSQUARES], int side, int ep_square, int castle, int half_move, int full_move) {
+void ykmb_board_set(BOARD *board, const int pieces[NSQUARES], int side,
+                    int ep_square, int castle, int half_move, int full_move) {
     assert(board != NULL);
     SetBoard(board, pieces, side, ep_square, castle, half_move, full_move);
 }
@@ -12111,7 +12113,7 @@ void ykmb_board_destroy(BOARD *board) {
     MyFree(board);
 }
 
-int ykmb_probe(CONTEXT* ctx, const BOARD* board) {
+int ykmb_probe(CONTEXT *ctx, const BOARD *board) {
     assert(ctx != NULL);
     assert(board != NULL);
 
