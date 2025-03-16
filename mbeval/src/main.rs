@@ -43,7 +43,7 @@ impl Context {
                 squares.as_ptr(),
                 pos.turn()
                     .fold_wb(mbeval_sys::WHITE as c_int, mbeval_sys::BLACK as c_int),
-                pos.ep_square(EnPassantMode::Legal).map_or(-1, c_int::from),
+                pos.ep_square(EnPassantMode::Legal).map_or(0, c_int::from),
                 0,
                 0,
                 1,
