@@ -8493,9 +8493,6 @@ typedef struct {
     HEADER header;
     INDEX *offsets;
     ZINDEX *starting_index;
-    uint8_t *block;
-    uint32_t max_block_size;
-    int block_index;
 } FILE_CACHE_HIGH_DTZ;
 
 static FILE_CACHE_HIGH_DTZ FileCacheHighDTZ[MAX_FILES_HIGH_DTZ][2];
@@ -8526,7 +8523,6 @@ static void InitCaches() {
         FileCacheHighDTZ[i][0].offsets = FileCacheHighDTZ[i][1].offsets = NULL;
         FileCacheHighDTZ[i][0].starting_index =
             FileCacheHighDTZ[i][1].starting_index = NULL;
-        FileCacheHighDTZ[i][0].block = FileCacheHighDTZ[i][1].block = NULL;
     }
 }
 
@@ -11826,14 +11822,11 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                    (fcache_high_dtz->header.num_blocks + 1) * sizeof(ZINDEX),
                    fcache_high_dtz->fp, l_offset);
             uint32_t block_size = fcache_high_dtz->header.block_size;
-            if (block_size > fcache_high_dtz->max_block_size) {
-                if (fcache_high_dtz->max_block_size > 0) {
-                    MyFree(fcache_high_dtz->block);
-                }
-                fcache_high_dtz->max_block_size = block_size;
-                fcache_high_dtz->block = (uint8_t *)MyMalloc(block_size);
+            if (block_size > ctx->block_buffer_size) {
+                ctx->block_buffer =
+                    (uint8_t *)MyRealloc(ctx->block_buffer, block_size);
+                ctx->block_buffer_size = block_size;
             }
-            fcache_high_dtz->block_index = -1;
             fcache_high_dtz->kk_index = mb_info.kk_index;
             memcpy(fcache_high_dtz->piece_type_count, mb_info.piece_type_count,
                    sizeof(mb_info.piece_type_count));
@@ -11862,78 +11855,50 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
         n_per_block = fcache_high_dtz->header.block_size /
                       fcache_high_dtz->header.list_element_size;
 
-        // check whether index is in range of block that may already be cached
-        if (fcache_high_dtz->block_index != -1) {
-            HIGH_DTZ *hptr = (HIGH_DTZ *)fcache_high_dtz->block;
-            uint32_t n_per_block_cached = n_per_block;
-            if (fcache_high_dtz->block_index ==
-                fcache_high_dtz->header.num_blocks - 1) {
-                uint32_t rem = fcache_high_dtz->header.n_elements % n_per_block;
-                if (rem != 0)
-                    n_per_block_cached = rem;
-            }
-            if (ind->index < hptr[0].index ||
-                ind->index > hptr[n_per_block_cached - 1].index)
-                fcache_high_dtz->block_index = -1;
+        // read block from file.
+        // do binary search to find which block of indices the depth would
+        // be
+        int block_index = 0, r = fcache_high_dtz->header.num_blocks;
+        while (block_index < r) {
+            int m = (block_index + r) / 2;
+            if (fcache_high_dtz->starting_index[m] < ind->index)
+                block_index = m + 1;
+            else
+                r = m;
         }
-
-        // if block is not cached, need to read it from file
-        if (fcache_high_dtz->block_index == -1) {
-            // do binary search to find which block of indices the depth would
-            // be
-            int l = 0, r = fcache_high_dtz->header.num_blocks;
-            while (l < r) {
-                int m = (l + r) / 2;
-                if (fcache_high_dtz->starting_index[m] < ind->index)
-                    l = m + 1;
-                else
-                    r = m;
-            }
-            if ((l == fcache_high_dtz->header.num_blocks) ||
-                (fcache_high_dtz->starting_index[l] > ind->index))
-                l--;
-            // now read block from file
-            fcache_high_dtz->block_index = l;
-            uint32_t length =
-                fcache_high_dtz->offsets[fcache_high_dtz->block_index + 1] -
-                fcache_high_dtz->offsets[fcache_high_dtz->block_index];
-            if (length > ctx->compressed_buffer_size) {
-                ctx->compressed_buffer =
-                    (uint8_t *)MyRealloc(ctx->compressed_buffer, length);
-                ctx->compressed_buffer_size = length;
-            }
-            f_read(ctx->compressed_buffer, length, fcache_high_dtz->fp,
-                   fcache_high_dtz->offsets[fcache_high_dtz->block_index]);
-            uint32_t n_per_block_cached = n_per_block;
-            if (fcache_high_dtz->block_index ==
-                fcache_high_dtz->header.num_blocks - 1) {
-                uint32_t rem = fcache_high_dtz->header.n_elements % n_per_block;
-                if (rem != 0)
-                    n_per_block_cached = rem;
-            }
-            uint32_t tmp_zone_size = n_per_block_cached * sizeof(HIGH_DTZ);
-            MyUncompress(ctx, (uint8_t *)fcache_high_dtz->block, &tmp_zone_size,
-                         ctx->compressed_buffer, length,
-                         fcache_high_dtz->header.compression_method);
-            assert(tmp_zone_size == n_per_block_cached * sizeof(HIGH_DTZ));
+        if ((block_index == fcache_high_dtz->header.num_blocks) ||
+            (fcache_high_dtz->starting_index[block_index] > ind->index))
+            block_index--;
+        // now read block from file
+        uint32_t length = fcache_high_dtz->offsets[block_index + 1] -
+                          fcache_high_dtz->offsets[block_index];
+        if (length > ctx->compressed_buffer_size) {
+            ctx->compressed_buffer =
+                (uint8_t *)MyRealloc(ctx->compressed_buffer, length);
+            ctx->compressed_buffer_size = length;
         }
+        f_read(ctx->compressed_buffer, length, fcache_high_dtz->fp,
+               fcache_high_dtz->offsets[block_index]);
+        uint32_t n_per_block_cached = n_per_block;
+        if (block_index == fcache_high_dtz->header.num_blocks - 1) {
+            uint32_t rem = fcache_high_dtz->header.n_elements % n_per_block;
+            if (rem != 0)
+                n_per_block_cached = rem;
+        }
+        uint32_t tmp_zone_size = n_per_block_cached * sizeof(HIGH_DTZ);
+        MyUncompress(ctx, (uint8_t *)ctx->block_buffer, &tmp_zone_size,
+                     ctx->compressed_buffer, length,
+                     fcache_high_dtz->header.compression_method);
+        assert(tmp_zone_size == n_per_block_cached * sizeof(HIGH_DTZ));
 
         // now perform binary search on block that may contain score
         // corresponding to index
         HIGH_DTZ key;
         key.index = ind->index;
 
-        uint32_t n_per_block_cached = n_per_block;
-        if (fcache_high_dtz->block_index ==
-            fcache_high_dtz->header.num_blocks - 1) {
-            uint32_t rem = fcache_high_dtz->header.n_elements % n_per_block;
-            if (rem != 0)
-                n_per_block_cached = rem;
-        }
-
-        HIGH_DTZ *kptr = (HIGH_DTZ *)bsearch(&key, fcache_high_dtz->block,
-                                             n_per_block_cached,
-                                             sizeof(HIGH_DTZ), high_dtz_compar);
+        HIGH_DTZ *kptr =
+            (HIGH_DTZ *)bsearch(&key, ctx->block_buffer, n_per_block_cached,
+                                sizeof(HIGH_DTZ), high_dtz_compar);
 
         if (kptr == NULL)
             result = 254;
