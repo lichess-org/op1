@@ -8256,6 +8256,12 @@ typedef struct {
 } PARITY_INDEX;
 
 typedef struct {
+    int kk_index;
+    ZINDEX index;
+    uint8_t metric;
+} INDEX_DATA;
+
+typedef struct {
     PARITY_INDEX parity_index[4];
     int num_parities;
     int mb_position[MAX_PIECES_MB], mb_piece_types[MAX_PIECES_MB];
@@ -8273,6 +8279,7 @@ typedef struct {
     int kk_index;
 } MB_INFO;
 
+#ifdef USE_YK
 typedef struct {
     int yk_position[MAX_PIECES_YK], yk_piece_types[MAX_PIECES_YK];
     int piece_type_count[2][KING];
@@ -8281,12 +8288,6 @@ typedef struct {
     int num_pieces;
     int kk_index;
 } YK_INFO;
-
-typedef struct {
-    int kk_index;
-    ZINDEX index;
-    uint8_t metric;
-} INDEX_DATA;
 
 typedef struct {
     unsigned int dtc;
@@ -8309,6 +8310,7 @@ static int CompareHigh(const void *a, const void *b) {
 
     return 0;
 }
+#endif // USE_YK
 
 static int PieceStrengths[KING];
 
@@ -8460,6 +8462,11 @@ typedef struct {
     INDEX *offsets;
 } FILE_CACHE;
 
+static FILE_CACHE FileCache[MAX_FILES][2];
+static int num_cached_files[2] = {0, 0};
+static int cached_file_lru[MAX_FILES][2];
+
+#ifdef USE_YK
 typedef struct {
     int piece_type_count[2][KING];
     uint32_t max_num_blocks, num_blocks;
@@ -8475,13 +8482,11 @@ typedef struct {
     int block_index;
 } FILE_CACHE_YK;
 
-static FILE_CACHE FileCache[MAX_FILES][2];
 static FILE_CACHE_YK FileCacheYK[MAX_FILES_YK][2];
 
-static int num_cached_files[2] = {0, 0};
-static int cached_file_lru[MAX_FILES][2];
 static int num_cached_files_yk[2] = {0, 0};
 static int cached_file_lru_yk[MAX_FILES_YK][2];
+#endif // USE_YK
 
 typedef struct {
     int piece_type_count[2][KING];
@@ -8501,15 +8506,15 @@ static int num_cached_files_high_dtz[2] = {0, 0};
 static int cached_file_high_dtz_lru[MAX_FILES_HIGH_DTZ][2];
 
 static void InitCaches() {
-    memset(FileCache, 0, sizeof(FileCache));
-    memset(FileCacheYK, 0, sizeof(FileCacheYK));
-    memset(FileCacheHighDTZ, 0, sizeof(FileCacheHighDTZ));
 
+    memset(FileCache, 0, sizeof(FileCache));
     for (int i = 0; i < MAX_FILES; i++) {
         FileCache[i][0].fp = FileCache[i][1].fp = NULL;
         FileCache[i][0].offsets = FileCache[i][1].offsets = NULL;
     }
 
+#ifdef USE_YK
+    memset(FileCacheYK, 0, sizeof(FileCacheYK));
     for (int i = 0; i < MAX_FILES_YK; i++) {
         FileCacheYK[i][0].fp = FileCacheYK[i][1].fp = NULL;
         FileCacheYK[i][0].fp_high = FileCacheYK[i][1].fp_high = NULL;
@@ -8517,7 +8522,9 @@ static void InitCaches() {
         FileCacheYK[i][0].block = FileCacheYK[i][1].block = NULL;
         FileCacheYK[i][0].block_high = FileCacheYK[i][1].block_high = NULL;
     }
+#endif
 
+    memset(FileCacheHighDTZ, 0, sizeof(FileCacheHighDTZ));
     for (int i = 0; i < MAX_FILES_HIGH_DTZ; i++) {
         FileCacheHighDTZ[i][0].fp = FileCacheHighDTZ[i][1].fp = NULL;
         FileCacheHighDTZ[i][0].offsets = FileCacheHighDTZ[i][1].offsets = NULL;
@@ -8885,6 +8892,7 @@ static int GetEndingType(const int count[2][KING], int *piece_types,
     return eindex;
 }
 
+#ifdef USE_YK
 static int GetEndingTypeYK(const int count[2][KING], int *piece_types) {
     int etype = 0, ptypes[MAX_PIECES], npieces = 2, eindex = -1;
 
@@ -8923,6 +8931,7 @@ static int GetEndingTypeYK(const int count[2][KING], int *piece_types) {
 
     return eindex;
 }
+#endif // USE_YK
 
 static bool IsWinningScore(int score) {
     if (score == WON)
@@ -10174,6 +10183,7 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
     return loc;
 }
 
+#ifdef USE_YK
 static int GetYKPosition(const BOARD *Board, int *yk_position) {
     int loc = 0;
 
@@ -10205,6 +10215,7 @@ static int GetYKPosition(const BOARD *Board, int *yk_position) {
     assert(loc == Board->num_pieces);
     return loc;
 }
+#endif // USE_YK
 
 static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
                          const IndexType *eptr, int *kindex, ZINDEX *offset) {
@@ -10262,6 +10273,7 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
     return 0;
 }
 
+#ifdef USE_YK
 static int GetYKIndex(int *yk_pos, int npieces, bool pawns_present,
                       const IndexType *eptr, int *kindex, ZINDEX *offset) {
     if (eptr == NULL) {
@@ -10341,6 +10353,7 @@ static void GetYKBaseFileName(const int count[2][KING], int side, char *fname) {
         fname[len++] = 'b';
     fname[len] = '\0';
 }
+#endif // USE_YK
 
 static file OpenMBFile(char *ending, int kk_index, int bishop_parity[2],
                        int pawn_file_type, int side, bool high_dtz) {
@@ -10409,6 +10422,7 @@ static file OpenMBFile(char *ending, int kk_index, int bishop_parity[2],
     return NULL;
 }
 
+#ifdef USE_YK
 static file OpenYKFile(char *base_name) {
     char path[1024];
 
@@ -10422,6 +10436,7 @@ static file OpenYKFile(char *base_name) {
     }
     return NULL;
 }
+#endif // USE_YK
 
 static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     mb_info->num_parities = 0;
@@ -10782,6 +10797,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     return 0;
 }
 
+#ifdef USE_YK
 static int GetYKInfo(const BOARD *Board, YK_INFO *yk_info) {
     if (Board->num_pieces > MAX_PIECES_YK) {
         return TOO_MANY_PIECES;
@@ -10812,6 +10828,7 @@ static int GetYKInfo(const BOARD *Board, YK_INFO *yk_info) {
 
     return 0;
 }
+#endif // USE_YK
 
 /*
  * GetMBResult:
@@ -10828,7 +10845,7 @@ static int GetYKInfo(const BOARD *Board, YK_INFO *yk_info) {
  *
  * A checkmate is loss in 0
  */
-
+#ifdef USE_YK
 static int GetYKResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
     YK_INFO yk_info;
     FILE_CACHE_YK *fcache = NULL;
@@ -11072,6 +11089,7 @@ static int GetYKResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
 
     return result;
 }
+#endif // USE_YK
 
 static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
     MB_INFO mb_info = {0};
@@ -11394,8 +11412,12 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 pawn_file_type = OP_24_PAWNS;
             }
             if (file_mb == NULL) {
+#ifdef USE_YK
                 INDEX_DATA ind_yk;
                 return GetYKResult(ctx, Board, &ind_yk);
+#else
+                return UNKNOWN;
+#endif
             }
         }
 
@@ -11910,8 +11932,10 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
     }
 
     if (result == UNKNOWN) {
+#ifdef USE_YK
         INDEX_DATA ind_yk;
         result = GetYKResult(ctx, Board, &ind_yk);
+#endif
     }
 
     return result;
