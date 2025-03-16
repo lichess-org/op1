@@ -12031,7 +12031,7 @@ static void AssertScore(CONTEXT *ctx, const char *fen, int expected_score) {
     }
 }
 
-void ykmb_init(void) {
+void mbeval_init(void) {
     InitTransforms();
     InitParity();
     InitPieceStrengths();
@@ -12094,7 +12094,7 @@ int ykmb_probe(CONTEXT *ctx, const BOARD *board) {
 }
 
 int main(int argc, char *argv[]) {
-    ykmb_init();
+    mbeval_init();
     ykmb_add_path(".");
 
     assert(IsWinningScore(1));
