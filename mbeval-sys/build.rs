@@ -1,5 +1,4 @@
-use std::env;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=mbeval/include/mbeval.h");
@@ -19,8 +18,6 @@ fn main() {
         .include("mbeval/include")
         .file("mbeval/src/mbeval.c")
         .compile("mbeval");
-
-    println!("cargo:root={}", out_dir.display());
 
     println!("cargo::rustc-link-lib=static=z");
     println!("cargo::rustc-link-lib=static=zstd");

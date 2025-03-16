@@ -4,10 +4,7 @@ use mbeval_sys::{
     CONTEXT, mbeval_add_path, mbeval_context_create, mbeval_context_destroy, mbeval_context_probe,
     mbeval_init,
 };
-use shakmaty::CastlingMode;
-use shakmaty::EnPassantMode;
-use shakmaty::fen::Fen;
-use shakmaty::{Chess, Position, Role};
+use shakmaty::{CastlingMode, Chess, EnPassantMode, Position, Role, fen::Fen};
 
 struct Context {
     ctx: *mut CONTEXT,
@@ -72,6 +69,7 @@ fn assert_score(ctx: &mut Context, fen: &str, expected: Option<c_int>) {
         .unwrap()
         .into_position(CastlingMode::Chess960)
         .unwrap();
+
     assert_eq!(ctx.probe(&pos), expected);
 }
 
