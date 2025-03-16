@@ -1,10 +1,21 @@
-use std::ffi::c_int;
+use std::{
+    ffi::{CString, c_int},
+    net::SocketAddr,
+    os::unix::ffi::OsStrExt,
+    path::PathBuf,
+};
 
+use axum::{Router, routing::get};
+use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
+use listenfd::ListenFd;
 use mbeval_sys::{
     CONTEXT, mbeval_add_path, mbeval_context_create, mbeval_context_destroy, mbeval_context_probe,
     mbeval_init,
 };
 use shakmaty::{CastlingMode, Chess, EnPassantMode, Position, Role, fen::Fen};
+use tokio::net::{TcpListener, UnixListener};
+use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
 
 struct Context {
     ctx: *mut CONTEXT,
@@ -60,6 +71,83 @@ impl Drop for Context {
         unsafe {
             mbeval_context_destroy(self.ctx);
         }
+    }
+}
+
+unsafe impl Send for Context {}
+unsafe impl Sync for Context {}
+
+#[derive(Parser, Debug)]
+struct Opt {
+    #[arg(long, default_value = "127.0.0.1:9999")]
+    bind: SocketAddr,
+    #[arg(long, action = ArgAction::Append, value_parser = PathBufValueParser::new())]
+    paths: Vec<PathBuf>,
+}
+
+struct AppState {
+    ctx: Context,
+}
+
+async fn handle_probe() {}
+
+#[tokio::main]
+async fn main() {
+    // Parse arguments
+    let opt = Opt::parse();
+    if opt.paths.is_empty() {
+        Opt::command().print_help().expect("usage");
+        println!();
+        return;
+    }
+
+    // Prepare tracing
+    tracing_subscriber::fmt()
+        .event_format(tracing_subscriber::fmt::format().compact())
+        .without_time()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
+    // Initialize mbeval
+    unsafe {
+        mbeval_init();
+    }
+    tracing::info!("mbeval initialized");
+
+    // Add paths
+    for path in opt.paths {
+        unsafe {
+            mbeval_add_path(
+                CString::new(path.into_os_string().as_bytes())
+                    .unwrap()
+                    .as_c_str()
+                    .as_ptr(),
+            );
+        }
+    }
+
+    // Start server
+    let state: &'static AppState = Box::leak(Box::new(AppState {
+        ctx: unsafe { Context::new() },
+    }));
+
+    let app = Router::new()
+        .route("/", get(handle_probe))
+        .with_state(state)
+        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()));
+
+    let mut fds = ListenFd::from_env();
+    if let Ok(Some(uds)) = fds.take_unix_listener(0) {
+        uds.set_nonblocking(true).expect("set nonblocking");
+        let listener = UnixListener::from_std(uds).expect("listener");
+        axum::serve(listener, app).await.expect("serve");
+    } else if let Ok(Some(tcp)) = fds.take_tcp_listener(0) {
+        tcp.set_nonblocking(true).expect("set nonblocking");
+        let listener = TcpListener::from_std(tcp).expect("listener");
+        axum::serve(listener, app).await.expect("serve");
+    } else {
+        let listener = TcpListener::bind(&opt.bind).await.expect("bind");
+        axum::serve(listener, app).await.expect("serve");
     }
 }
 

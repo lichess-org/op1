@@ -4,5 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+axum = "0.8.1"
+clap = { version = "4.5.32", features = ["derive"] }
+listenfd = "1.0.2"
 mbeval-sys = { version = "0.1.0", path = "../mbeval-sys" }
 shakmaty = "0.27.3"
+tokio = { version = "1.44.1", features = ["full"] }
+tower = "0.5.2"
+tower-http = { version = "0.6.2", features = ["trace"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
