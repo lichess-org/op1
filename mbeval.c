@@ -1993,7 +1993,7 @@ static void InitN1_3_OpposingTables(int *tab, int *pos) {
 
 enum { ONE_COLUMN = 0, ADJACENT, NON_ADJACENT, NO_DP22 };
 
-int IsValidDP22(int w1, int w2, int b1, int b2) {
+static int IsValidDP22(int w1, int w2, int b1, int b2) {
     if (w1 == w2 || w1 == b1 || w1 == b2 || w2 == b1 || w2 == b2 || b1 == b2)
         return NO_DP22;
     int w1_row = Row(w1);
@@ -2055,7 +2055,7 @@ int IsValidDP22(int w1, int w2, int b1, int b2) {
     return NON_ADJACENT;
 }
 
-void DP22PosFromIndex(int index, int *w1, int *w2, int *b1, int *b2) {
+static void DP22PosFromIndex(int index, int *w1, int *w2, int *b1, int *b2) {
     int pos_array = p4_opposing_tab[index];
     int b2_row = pos_array % NROWS;
     pos_array /= NROWS;
