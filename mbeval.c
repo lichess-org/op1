@@ -2055,21 +2055,6 @@ static int IsValidDP22(int w1, int w2, int b1, int b2) {
     return NON_ADJACENT;
 }
 
-static void DP22PosFromIndex(int index, int *w1, int *w2, int *b1, int *b2) {
-    int pos_array = p4_opposing_tab[index];
-    int b2_row = pos_array % NROWS;
-    pos_array /= NROWS;
-    int b1_row = pos_array % NROWS;
-    pos_array /= NROWS;
-    *w2 = pos_array % NSQUARES;
-    pos_array /= NSQUARES;
-    *w1 = pos_array % NSQUARES;
-    int w1_col = Column(*w1);
-    int w2_col = Column(*w2);
-    *b1 = SquareMake(b1_row, w1_col);
-    *b2 = SquareMake(b2_row, w2_col);
-}
-
 static ZINDEX IndexDP22(int *);
 
 static void InitN4OpposingTables(int *tab, int *pos) {
