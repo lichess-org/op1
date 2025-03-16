@@ -73,8 +73,10 @@ impl Context {
         };
 
         Some(match result {
+            0 => return None,
             v if v == mbeval_sys::DRAW as c_int => 0,
             v if v >= mbeval_sys::LOST as c_int => return None,
+            v if v <= -(mbeval_sys::LOST as c_int) => return None,
             v => v,
         })
     }
@@ -96,7 +98,7 @@ struct Opt {
     #[arg(long, default_value = "127.0.0.1:9999")]
     bind: SocketAddr,
     #[arg(long, action = ArgAction::Append, value_parser = PathBufValueParser::new())]
-    paths: Vec<PathBuf>,
+    path: Vec<PathBuf>,
 }
 
 struct AppState {
@@ -163,7 +165,7 @@ async fn handle_probe(
 async fn main() {
     // Parse arguments
     let opt = Opt::parse();
-    if opt.paths.is_empty() {
+    if opt.path.is_empty() {
         Opt::command().print_help().expect("usage");
         println!();
         return;
@@ -183,7 +185,7 @@ async fn main() {
     tracing::info!("mbeval initialized");
 
     // Add paths
-    for path in opt.paths {
+    for path in opt.path {
         unsafe {
             mbeval_add_path(
                 CString::new(path.into_os_string().as_bytes())
@@ -249,5 +251,6 @@ mod tests {
         assert_score(&mut ctx, "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", Some(4));
         assert_score(&mut ctx, "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1", Some(0));
         assert_score(&mut ctx, "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", None);
+        assert_score(&mut ctx, "8/4p3/8/6P1/4PP2/5b2/7P/5k1K w - - 1 3", None);
     }
 }
