@@ -10340,8 +10340,9 @@ static void GetYKBaseFileName(const int count[2][KING], int side, char *fname) {
 }
 #endif // USE_YK
 
-static file OpenMBFile(char *ending, int kk_index, int bishop_parity[2],
-                       int pawn_file_type, int side, bool high_dtz) {
+static file OpenMBFile(const char *ending, int kk_index,
+                       const int bishop_parity[2], int pawn_file_type, int side,
+                       bool high_dtz) {
     char path[1024];
 
     for (int i = 0; i < NumPaths; i++) {
