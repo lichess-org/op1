@@ -8451,6 +8451,22 @@ static FILE_CACHE FileCache[MAX_FILES][2];
 static int num_cached_files[2] = {0, 0};
 static int cached_file_lru[MAX_FILES][2];
 
+typedef struct {
+    int piece_type_count[2][KING];
+    int kk_index;
+    int pawn_file_type;
+    int bishop_parity[2];
+    uint32_t max_num_blocks;
+    file fp;
+    HEADER header;
+    INDEX *offsets;
+    ZINDEX *starting_index;
+} FILE_CACHE_HIGH_DTZ;
+
+static FILE_CACHE_HIGH_DTZ FileCacheHighDTZ[MAX_FILES_HIGH_DTZ][2];
+static int num_cached_files_high_dtz[2] = {0, 0};
+static int cached_file_high_dtz_lru[MAX_FILES_HIGH_DTZ][2];
+
 #ifdef USE_YK
 typedef struct {
     int piece_type_count[2][KING];
@@ -8468,30 +8484,11 @@ typedef struct {
 } FILE_CACHE_YK;
 
 static FILE_CACHE_YK FileCacheYK[MAX_FILES_YK][2];
-
 static int num_cached_files_yk[2] = {0, 0};
 static int cached_file_lru_yk[MAX_FILES_YK][2];
 #endif // USE_YK
 
-typedef struct {
-    int piece_type_count[2][KING];
-    int kk_index;
-    int pawn_file_type;
-    int bishop_parity[2];
-    uint32_t max_num_blocks;
-    file fp;
-    HEADER header;
-    INDEX *offsets;
-    ZINDEX *starting_index;
-} FILE_CACHE_HIGH_DTZ;
-
-static FILE_CACHE_HIGH_DTZ FileCacheHighDTZ[MAX_FILES_HIGH_DTZ][2];
-
-static int num_cached_files_high_dtz[2] = {0, 0};
-static int cached_file_high_dtz_lru[MAX_FILES_HIGH_DTZ][2];
-
 static void InitCaches() {
-
     memset(FileCache, 0, sizeof(FileCache));
     for (int i = 0; i < MAX_FILES; i++) {
         FileCache[i][0].fp = FileCache[i][1].fp = NULL;
