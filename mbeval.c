@@ -60,6 +60,8 @@ typedef struct {
     ZSTD_DCtx *zstd_decompression;
     uint8_t *compressed_buffer;
     uint32_t compressed_buffer_size;
+    uint8_t *block_buffer;
+    uint32_t block_buffer_size;
 } CONTEXT;
 
 #define COMPRESS_OK Z_OK
@@ -8456,9 +8458,6 @@ typedef struct {
     file fp;
     HEADER header;
     INDEX *offsets;
-    uint8_t *block;
-    uint32_t max_block_size;
-    int block_index;
 } FILE_CACHE;
 
 typedef struct {
@@ -8512,7 +8511,6 @@ static void InitCaches() {
     for (int i = 0; i < MAX_FILES; i++) {
         FileCache[i][0].fp = FileCache[i][1].fp = NULL;
         FileCache[i][0].offsets = FileCache[i][1].offsets = NULL;
-        FileCache[i][0].block = FileCache[i][1].block = NULL;
     }
 
     for (int i = 0; i < MAX_FILES_YK; i++) {
@@ -11437,7 +11435,6 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                sizeof(mb_info.piece_type_count));
         memcpy(fcache->bishop_parity, bishop_parity, sizeof(bishop_parity));
         fcache->pawn_file_type = pawn_file_type;
-        fcache->block_index = -1;
 
         // move file index to front of queue
         if (num_cached_files[side] > 1) {
@@ -11450,7 +11447,8 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
 
     int b_index = ind->index / fcache->header.block_size;
 
-    if (b_index != fcache->block_index) {
+    // load and decompress block
+
         uint32_t length =
             fcache->offsets[b_index + 1] - fcache->offsets[b_index];
         if (length > ctx->compressed_buffer_size) {
@@ -11461,20 +11459,15 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
         f_read(ctx->compressed_buffer, length, fcache->fp,
                fcache->offsets[b_index]);
         uint32_t tmp_zone_size = fcache->header.block_size;
-        if (tmp_zone_size > fcache->max_block_size) {
-            if (fcache->block != NULL) {
-                MyFree(fcache->block);
-            }
-            fcache->max_block_size = tmp_zone_size;
-            fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
+        if (tmp_zone_size > ctx->block_buffer_size) {
+            ctx->block_buffer = (uint8_t *)MyRealloc(ctx->block_buffer, tmp_zone_size);
+            ctx->block_buffer_size = tmp_zone_size;
         }
-        MyUncompress(ctx, fcache->block, &tmp_zone_size, ctx->compressed_buffer,
+        MyUncompress(ctx, ctx->block_buffer, &tmp_zone_size, ctx->compressed_buffer,
                      length, fcache->header.compression_method);
         assert(tmp_zone_size == fcache->header.block_size);
-        fcache->block_index = b_index;
-    }
 
-    result = fcache->block[ind->index % fcache->header.block_size];
+    result = ctx->block_buffer[ind->index % fcache->header.block_size];
 
     // check for results with > 254 moves if possible
 
@@ -12096,6 +12089,7 @@ void ykmb_context_destroy(CONTEXT *context) {
     assert(context != NULL);
 
     MyFree(context->compressed_buffer);
+    MyFree(context->block_buffer);
 
     ZSTD_freeDCtx(context->zstd_decompression);
     MyFree(context);
