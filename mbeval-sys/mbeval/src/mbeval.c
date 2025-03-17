@@ -1014,7 +1014,9 @@ static void GetFlipFunctionNoPawns(int wk, int bk, bool *flipped,
 #endif
 }
 
-static void GetFlipFunction(int wk, int bk, bool *flipped, int **transform) {
+static void GetFlipFunction(__attribute__((unused)) int wk,
+                            __attribute__((unused)) int bk, bool *flipped,
+                            __attribute__((unused)) int **transform) {
     *flipped = false;
 #if (NCOLS % 2)
     if (ReflectV[wk] == wk && ReflectV[bk] == bk) {
@@ -2261,7 +2263,7 @@ static void InitN5Tables() {
             for (int p3 = 2; p3 < p4; p3++) {
                 for (int p2 = 1; p2 < p3; p2++) {
                     for (int p1 = 0; p1 < p2; p1++) {
-                        int g_index = N5_Index_Function(p5, p4, p3, p2, p1);
+                        ZINDEX g_index = N5_Index_Function(p5, p4, p3, p2, p1);
                         assert(index == g_index);
                         index++;
                     }
@@ -2286,7 +2288,7 @@ static void InitN6Tables() {
                 for (int p3 = 2; p3 < p4; p3++) {
                     for (int p2 = 1; p2 < p3; p2++) {
                         for (int p1 = 0; p1 < p2; p1++) {
-                            int g_index =
+                            ZINDEX g_index =
                                 N6_Index_Function(p6, p5, p4, p3, p2, p1);
                             assert(index == g_index);
                             index++;
@@ -8620,7 +8622,7 @@ static int GetEndingType(const int count[2][KING], int *piece_types,
             pawn_file_type == OP_24_PAWNS)
             pawn_file_type_effective = FREE_PAWNS;
 
-        for (int i = 0; i < NumIndexTypes; i++) {
+        for (size_t i = 0; i < NumIndexTypes; i++) {
             if (IndexTable[i].etype == etype &&
                 IndexTable[i].op_type == pawn_file_type_effective) {
                 eindex = i;
@@ -8742,7 +8744,7 @@ static int GetEndingType(const int count[2][KING], int *piece_types,
 
         eindex = -1;
 
-        for (int i = 0; i < NumIndexTypes; i++) {
+        for (size_t i = 0; i < NumIndexTypes; i++) {
             if (IndexTable[i].etype == etype &&
                 IndexTable[i].sub_type == sub_type &&
                 IndexTable[i].op_type == FREE_PAWNS) {
@@ -11078,7 +11080,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
         // read block from file.
         // do binary search to find which block of indices the depth would
         // be
-        int block_index = 0, r = fcache_high_dtz->header.num_blocks;
+        uint32_t block_index = 0, r = fcache_high_dtz->header.num_blocks;
         while (block_index < r) {
             int m = (block_index + r) / 2;
             if (fcache_high_dtz->starting_index[m] < ind->index)
