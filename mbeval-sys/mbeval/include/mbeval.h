@@ -70,5 +70,5 @@ void mbeval_add_path(const char *path);
 CONTEXT *mbeval_context_create(void);
 void mbeval_context_destroy(CONTEXT *ctx);
 int mbeval_context_probe(CONTEXT *ctx, const int pieces[NSQUARES], int side,
-                          int ep_square, int castle, int half_move,
-                          int full_move);
+                         int ep_square, int castle, int half_move,
+                         int full_move);
