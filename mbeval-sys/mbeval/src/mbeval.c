@@ -692,40 +692,6 @@ typedef struct {
     ZINDEX (*IndexFromPos)(const int *pos);
 } IndexType;
 
-#if defined(MB_INDEX)
-
-#define N2_Index_Function(a, b)                                                \
-    ((a) > (b) ? ((a) * ((a) - 1) / 2 + b) : ((b) * ((b) - 1) / 2 + a))
-
-static int N3_Index_Function(int a, int b, int c) {
-    if (a < b)
-        SWAP(a, b);
-    if (a < c)
-        SWAP(a, c);
-    if (b < c)
-        SWAP(b, c);
-
-    return a * (a - 1) * (a - 2) / 6 + b * (b - 1) / 2 + c;
-}
-
-static int N4_Index_Function(int a, int b, int c, int d) {
-    if (a < b)
-        SWAP(a, b);
-    if (c < d)
-        SWAP(c, d);
-    if (a < c)
-        SWAP(a, c);
-    if (b < d)
-        SWAP(b, d);
-    if (b < c)
-        SWAP(b, c);
-
-    return a * (a - 1) * (a - 2) * (a - 3) / 24 + b * (b - 1) * (b - 2) / 6 +
-           c * (c - 1) / 2 + d;
-}
-
-#else // !MB_INDEX (YK_INDEX)
-
 #define N2_Index_Function(a, b)                                                \
     ((a) > (b) ? ((b) * ((2 * NSQUARES - 3) - b) / 2 + a - 1)                  \
                : ((a) * ((2 * NSQUARES - 3) - a) / 2 + b - 1))
@@ -778,7 +744,6 @@ static int N4_Index_Function(int a, int b, int c, int d) {
 
     return b4 + b3 + b * (2 * (NSQUARES - c - 1) - 3 - b) / 2 + a - 1;
 }
-#endif
 
 #define N2_2_Index_Function(a, b)                                              \
     ((a) > (b) ? (((a) / 2) * ((a) / 2 - 1) / 2 + (b) / 2)                     \
