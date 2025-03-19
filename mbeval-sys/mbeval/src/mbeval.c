@@ -23,7 +23,7 @@
 
 #if (NROWS == 8) && (NCOLS == 8)
 #define Row(sq) ((sq) >> 3)
-#define Column(sq) ((sq)&07)
+#define Column(sq) ((sq) & 07)
 #define SquareMake(row, col) (((row) << 3) | (col))
 #else
 #define Row(sq) ((sq) / (NCOLS))
@@ -695,7 +695,7 @@ typedef struct {
 #if defined(MB_INDEX)
 
 #define N2_Index_Function(a, b)                                                \
-    ((a) > (b) ? ((a) * ((a)-1) / 2 + b) : ((b) * ((b)-1) / 2 + a))
+    ((a) > (b) ? ((a) * ((a) - 1) / 2 + b) : ((b) * ((b) - 1) / 2 + a))
 
 static int N3_Index_Function(int a, int b, int c) {
     if (a < b)
@@ -909,7 +909,7 @@ static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
 #define N3_Even_Index(a, b, c) (k3_even_tab[(a) | ((b) << 6) | ((c) << 12)])
 #define N2_Opposing_Index(a, b) (k2_opposing_tab[(a) | ((b) << 6)])
 #define N4_Opposing_Index(a, b, c, d)                                          \
-    (k4_opposing_tab[((a) >> 3) | ((b)&070) | ((c) << 6) | ((d) << 12)])
+    (k4_opposing_tab[((a) >> 3) | ((b) & 070) | ((c) << 6) | ((d) << 12)])
 
 #define N2_1_Opposing_Index(a, b, c)                                           \
     (k2_1_opposing_tab[(a) | ((b) << 6) | ((c) << 12)])
@@ -937,16 +937,18 @@ static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
 #define N2_Opposing_Index(a, b) (k2_opposing_tab[a + (NSQUARES) * (b)])
 #define N4_Opposing_Index(a, b, c, d)                                          \
     (k4_opposing_tab[Row(a) +                                                  \
-                     (NROWS) * (Row(b) + (NROWS) * (c + (NSQUARES)*d))])
+                     (NROWS) * (Row(b) + (NROWS) * (c + (NSQUARES) * d))])
 
 #define N2_1_Opposing_Index(a, b, c)                                           \
-    (k2_1_opposing_tab[a + (NSQUARES) * (b + (NSQUARES)*c)])
+    (k2_1_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * c)])
 #define N1_2_Opposing_Index(a, b, c)                                           \
-    (k1_2_opposing_tab[a + (NSQUARES) * (b + (NSQUARES)*c)])
+    (k1_2_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * c)])
 #define N3_1_Opposing_Index(a, b, c, d)                                        \
-    (k3_1_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES)*d))])
+    (k3_1_opposing_tab[a +                                                     \
+                       (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES) * d))])
 #define N1_3_Opposing_Index(a, b, c, d)                                        \
-    (k1_3_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES)*d))])
+    (k1_3_opposing_tab[a +                                                     \
+                       (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES) * d))])
 #define N2_2_Opposing_Index(a, b, c, d)                                        \
     (k2_2_opposing_tab[a + (NSQUARES) *                                        \
                                (b + (NSQUARES) * (c + (NSQUARES) * (d)))])
@@ -9904,8 +9906,8 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
         else if (b_parity == 11 || b_parity == 21 || b_parity == 12)
             bishop_parity[BLACK] = ODD;
 
-            // for odd-sized boards, can't do any parities for triples, and only
-            // odd parities for doubles
+        // for odd-sized boards, can't do any parities for triples, and only
+        // odd parities for doubles
 
 #if (NROWS % 2) && (NCOLS % 2)
         if (bishop_parity[WHITE] != NONE) {
