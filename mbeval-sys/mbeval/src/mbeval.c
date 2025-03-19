@@ -8196,39 +8196,6 @@ typedef struct {
     int kk_index;
 } MB_INFO;
 
-#ifdef USE_YK
-typedef struct {
-    int yk_position[MAX_PIECES_YK], yk_piece_types[MAX_PIECES_YK];
-    int piece_type_count[2][KING];
-    const IndexType *eptr;
-    ZINDEX index;
-    int num_pieces;
-    int kk_index;
-} YK_INFO;
-
-typedef struct {
-    unsigned int dtc;
-    unsigned int kindex;
-    unsigned int offset;
-} HDATA;
-
-static int CompareHigh(const void *a, const void *b) {
-    const HDATA *x = (const HDATA *)a;
-    const HDATA *y = (const HDATA *)b;
-
-    if (x->kindex < y->kindex)
-        return -1;
-    if (x->kindex > y->kindex)
-        return 1;
-    if (x->offset < y->offset)
-        return -1;
-    if (x->offset > y->offset)
-        return 1;
-
-    return 0;
-}
-#endif // USE_YK
-
 static int PieceStrengths[KING];
 
 static char PieceChar(int type) {
@@ -8356,44 +8323,12 @@ static FILE_CACHE_HIGH_DTZ FileCacheHighDTZ[MAX_FILES_HIGH_DTZ][2];
 static int num_cached_files_high_dtz[2] = {0, 0};
 static int cached_file_high_dtz_lru[MAX_FILES_HIGH_DTZ][2];
 
-#ifdef USE_YK
-typedef struct {
-    int piece_type_count[2][KING];
-    uint32_t max_num_blocks, num_blocks;
-    int compression_method;
-    int max_depth;
-    INDEX num_high_dtc;
-    file fp, fp_high;
-    HEADER header;
-    INDEX *offsets;
-    uint8_t *block;
-    HDATA *block_high;
-    uint32_t max_block_size, block_size;
-    int block_index;
-} FILE_CACHE_YK;
-
-static FILE_CACHE_YK FileCacheYK[MAX_FILES_YK][2];
-static int num_cached_files_yk[2] = {0, 0};
-static int cached_file_lru_yk[MAX_FILES_YK][2];
-#endif // USE_YK
-
 static void InitCaches() {
     memset(FileCache, 0, sizeof(FileCache));
     for (int i = 0; i < MAX_FILES; i++) {
         FileCache[i][0].fp = FileCache[i][1].fp = NULL;
         FileCache[i][0].offsets = FileCache[i][1].offsets = NULL;
     }
-
-#ifdef USE_YK
-    memset(FileCacheYK, 0, sizeof(FileCacheYK));
-    for (int i = 0; i < MAX_FILES_YK; i++) {
-        FileCacheYK[i][0].fp = FileCacheYK[i][1].fp = NULL;
-        FileCacheYK[i][0].fp_high = FileCacheYK[i][1].fp_high = NULL;
-        FileCacheYK[i][0].offsets = FileCacheYK[i][1].offsets = NULL;
-        FileCacheYK[i][0].block = FileCacheYK[i][1].block = NULL;
-        FileCacheYK[i][0].block_high = FileCacheYK[i][1].block_high = NULL;
-    }
-#endif
 
     memset(FileCacheHighDTZ, 0, sizeof(FileCacheHighDTZ));
     for (int i = 0; i < MAX_FILES_HIGH_DTZ; i++) {
@@ -8762,47 +8697,6 @@ static int GetEndingType(const int count[2][KING], int *piece_types,
 
     return eindex;
 }
-
-#ifdef USE_YK
-static int GetEndingTypeYK(const int count[2][KING], int *piece_types) {
-    int etype = 0, ptypes[MAX_PIECES], npieces = 2, eindex = -1;
-
-    ptypes[0] = KING;
-    ptypes[1] = -KING;
-
-    for (int color = WHITE; color <= BLACK; color++) {
-        for (int piece = KING - 1; piece >= PAWN; piece--) {
-            if (count[color][piece] > 0)
-                etype = 10 * etype + count[color][piece];
-        }
-    }
-
-    for (int color = WHITE; color <= BLACK; color++) {
-        for (int piece = KING - 1; piece >= PAWN; piece--) {
-            for (int i = npieces; i < npieces + count[color][piece]; i++) {
-                ptypes[i] = (color == WHITE) ? piece : -piece;
-            }
-            npieces += count[color][piece];
-        }
-    }
-
-    eindex = -1;
-
-    for (int i = 0; i < NumIndexTypes; i++) {
-        if (IndexTable[i].etype == etype && IndexTable[i].sub_type == 0 &&
-            IndexTable[i].op_type == FREE_PAWNS) {
-            eindex = i;
-            break;
-        }
-    }
-
-    if (piece_types != NULL) {
-        memcpy(piece_types, ptypes, npieces * sizeof(piece_types[0]));
-    }
-
-    return eindex;
-}
-#endif // USE_YK
 
 /*
  * KK_Canonical computes the symmetry operation to transform wk_in and bk_in to
@@ -9384,40 +9278,6 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
     return loc;
 }
 
-#ifdef USE_YK
-static int GetYKPosition(const BOARD *Board, int *yk_position) {
-    int loc = 0;
-
-    yk_position[loc++] = Board->wkpos;
-    yk_position[loc++] = Board->bkpos;
-
-    for (int color = WHITE; color <= BLACK; color++) {
-        for (int type = KING - 1; type >= PAWN; type--) {
-            const int *pos = Board->piece_locations[color][type];
-            for (int i = 0; i < Board->piece_type_count[color][type]; i++) {
-                yk_position[loc] = pos[i];
-                if (type == PAWN && Board->ep_square > 0) {
-                    if (color == WHITE &&
-                        SquareMake(Row(pos[i]) - 1, Column(pos[i])) ==
-                            Board->ep_square)
-                        yk_position[loc] = SquareMake(0, Column(pos[i]));
-
-                    if (color == BLACK &&
-                        SquareMake(Row(pos[i]) + 1, Column(pos[i])) ==
-                            Board->ep_square)
-                        yk_position[loc] =
-                            SquareMake(NROWS - 1, Column(pos[i]));
-                }
-                loc++;
-            }
-        }
-    }
-
-    assert(loc == Board->num_pieces);
-    return loc;
-}
-#endif // USE_YK
-
 static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
                          const IndexType *eptr, int *kindex, ZINDEX *offset) {
     if (eptr == NULL) {
@@ -9473,88 +9333,6 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
 
     return 0;
 }
-
-#ifdef USE_YK
-static int GetYKIndex(int *yk_pos, int npieces, bool pawns_present,
-                      const IndexType *eptr, int *kindex, ZINDEX *offset) {
-    if (eptr == NULL) {
-        *kindex = -1;
-        *offset = ALL_ONES;
-        return -1;
-    }
-
-    int sym = IDENTITY;
-
-    int wk = yk_pos[0];
-    int bk = yk_pos[1];
-
-    if (pawns_present)
-        sym = KK_Transform(wk, bk);
-    else
-        sym = KK_Transform_NoPawns(wk, bk);
-
-    int *transform = Transforms[sym];
-
-    for (int i = 0; i < npieces; i++) {
-        yk_pos[i] = transform[yk_pos[i]];
-    }
-
-    wk = yk_pos[0];
-    bk = yk_pos[1];
-
-    *offset = (eptr->IndexFromPos)(yk_pos);
-
-    bool flipped = false;
-
-    if (pawns_present)
-        GetFlipFunction(wk, bk, &flipped, &transform);
-    else
-        GetFlipFunctionNoPawns(wk, bk, &flipped, &transform);
-
-    if (flipped) {
-        int tmp_pos[MAX_PIECES];
-        for (int i = 0; i < npieces; i++) {
-            tmp_pos[i] = transform[yk_pos[i]];
-        }
-        ZINDEX offset_t = (eptr->IndexFromPos)(tmp_pos);
-        if (offset_t < *offset) {
-            *offset = offset_t;
-            memcpy(yk_pos, tmp_pos, npieces * sizeof(tmp_pos[0]));
-        }
-    }
-
-    if (pawns_present)
-        *kindex = KK_Index(wk, bk);
-    else
-        *kindex = KK_Index_NoPawns(wk, bk);
-
-    return 0;
-}
-
-static void GetYKBaseFileName(const int count[2][KING], int side, char *fname) {
-    fname[0] = 'k';
-    int len = 1;
-    for (int piece = KING - 1; piece >= PAWN; piece--) {
-        for (int i = len; i < len + count[WHITE][piece]; i++)
-            fname[i] = PieceChar(piece);
-        len += count[WHITE][piece];
-    }
-    fname[len++] = 'k';
-    for (int piece = KING - 1; piece >= PAWN; piece--) {
-        for (int i = len; i < len + count[BLACK][piece]; i++)
-            fname[i] = PieceChar(piece);
-        len += count[BLACK][piece];
-    }
-    for (int i = len; i < MAX_PIECES_YK; i++)
-        fname[i] = '_';
-    len = MAX_PIECES_YK;
-    if (side == WHITE)
-        fname[len++] = 'w';
-    else
-        fname[len++] = 'b';
-    fname[len] = '\0';
-}
-#endif // USE_YK
 
 static file OpenMBFile(const char *ending, int kk_index,
                        const int bishop_parity[2], int pawn_file_type, int side,
@@ -9623,22 +9401,6 @@ static file OpenMBFile(const char *ending, int kk_index,
     }
     return NULL;
 }
-
-#ifdef USE_YK
-static file OpenYKFile(char *base_name) {
-    char path[1024];
-
-    for (int i = 0; i < NumPaths; i++) {
-        snprintf(path, sizeof(path) - 1, "%s%c%s", TbPaths[i], DELIMITER[0],
-                 base_name);
-        file fptr = f_open(path);
-        if (fptr != NULL) {
-            return fptr;
-        }
-    }
-    return NULL;
-}
-#endif // USE_YK
 
 static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     mb_info->num_parities = 0;
@@ -9999,300 +9761,6 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     return 0;
 }
 
-#ifdef USE_YK
-static int GetYKInfo(const BOARD *Board, YK_INFO *yk_info) {
-    if (Board->num_pieces > MAX_PIECES_YK) {
-        return TOO_MANY_PIECES;
-    }
-
-    memcpy(yk_info->piece_type_count, Board->piece_type_count,
-           sizeof(Board->piece_type_count));
-
-    yk_info->num_pieces = Board->num_pieces;
-
-    GetYKPosition(Board, yk_info->yk_position);
-
-    memset(yk_info->yk_piece_types, 0, sizeof(yk_info->yk_piece_types));
-
-    int eindex =
-        GetEndingTypeYK(Board->piece_type_count, yk_info->yk_piece_types);
-
-    if (eindex < 0)
-        return ETYPE_NOT_MAPPED;
-
-    bool pawns_present = yk_info->piece_type_count[WHITE][PAWN] ||
-                         yk_info->piece_type_count[BLACK][PAWN];
-
-    yk_info->eptr = &IndexTable[eindex];
-
-    GetYKIndex(yk_info->yk_position, yk_info->num_pieces, pawns_present,
-               yk_info->eptr, &yk_info->kk_index, &yk_info->index);
-
-    return 0;
-}
-#endif // USE_YK
-
-/*
- * GetMBResult:
- *
- * returns a negative number if some kind of error is encountered,
- * UNRESOLVED if wtm does not win, or btm does not lose.
- *
- * A value of UNRESOLVED will require probing of a "flipped" position to
- * resolve whether wtm does not win is a draw or loss for white, or btm
- * does not lose is a draw or win for black.
- *
- * Other positive integers indicate the number of moves for a win for wtm,
- * or the number of moves for a loss for btm (using the DTC metric).
- *
- * A checkmate is loss in 0
- */
-#ifdef USE_YK
-static int GetYKResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
-    YK_INFO yk_info;
-    FILE_CACHE_YK *fcache = NULL;
-
-    if (Board->num_pieces > MAX_PIECES_YK) {
-        return TOO_MANY_PIECES;
-    }
-
-    int result = GetYKInfo(Board, &yk_info);
-
-    if (yk_info.index > 0xefffffff) {
-        return BAD_ZONE_SIZE;
-    }
-
-    ind->kk_index = yk_info.kk_index;
-    ind->index = yk_info.index;
-
-    if (result < 0)
-        return result;
-
-    int side = Board->side;
-
-    // check whether file for ending is already opened
-
-    int file_index = -1;
-    for (int n = 0; n < num_cached_files_yk[side]; n++) {
-        int np = cached_file_lru_yk[n][side];
-        fcache = &FileCacheYK[np][side];
-        if (memcmp(fcache->piece_type_count, yk_info.piece_type_count,
-                   sizeof(fcache->piece_type_count))) {
-            continue;
-        }
-
-        file_index = np;
-        // move file to front of queue so it is tried first next time
-        if (n > 0) {
-            for (int i = n; i > 0; i--) {
-                cached_file_lru_yk[i][side] = cached_file_lru_yk[i - 1][side];
-            }
-        }
-        cached_file_lru_yk[0][side] = file_index;
-        break;
-    }
-
-    // if file pointer is not cached, need to open new file
-
-    if (file_index == -1) {
-        char ending[64];
-        GetEndingName(yk_info.piece_type_count, ending);
-
-        char base_name[64];
-        GetYKBaseFileName(yk_info.piece_type_count, side, base_name);
-        strcat(base_name, ".yk");
-
-        file file_yk = OpenYKFile(base_name);
-
-        if (file_yk == NULL) {
-            return YK_FILE_MISSING;
-        }
-
-        if (num_cached_files_yk[side] < MAX_FILES_YK) {
-            file_index = num_cached_files_yk[side];
-            num_cached_files_yk[side]++;
-        } else
-            file_index = cached_file_lru_yk[MAX_FILES_YK - 1][side];
-
-        fcache = &FileCacheYK[file_index][side];
-
-        if (fcache->fp != NULL) {
-            f_close(fcache->fp);
-        }
-
-        fcache->fp = file_yk;
-
-        uint8_t header[YK_HEADER_SIZE];
-        if (f_read(&header, YK_HEADER_SIZE, file_yk, 0) != YK_HEADER_SIZE) {
-            f_close(file_yk);
-            return HEADER_READ_ERROR;
-        }
-
-        uint32_t block_size, num_blocks;
-
-        memcpy(&block_size, &header[0], 4);
-        memcpy(&num_blocks, &header[4], 4);
-
-        if (num_blocks > fcache->max_num_blocks) {
-            if (fcache->max_num_blocks > 0) {
-                MyFree(fcache->offsets);
-            }
-            fcache->max_num_blocks = num_blocks;
-            fcache->offsets =
-                (INDEX *)MyMalloc((fcache->max_num_blocks + 1) * sizeof(INDEX));
-        }
-
-        fcache->num_blocks = num_blocks;
-
-        if (f_read(fcache->offsets, (num_blocks + 1) * sizeof(INDEX), file_yk,
-                   YK_HEADER_SIZE) != (num_blocks + 1) * sizeof(INDEX)) {
-            f_close(file_yk);
-            return OFFSET_READ_ERROR;
-        }
-
-        fcache->block_size = block_size;
-
-        uint8_t archive_id;
-
-        memcpy(&archive_id, &header[23], 1);
-
-        if (archive_id == NO_COMPRESSION_YK)
-            fcache->compression_method = NO_COMPRESSION;
-        else if (archive_id == ZLIB_YK)
-            fcache->compression_method = ZLIB;
-        else if (archive_id == ZSTD_YK)
-            fcache->compression_method = ZSTD;
-        else if (archive_id == LZMA_YK) {
-            fprintf(stderr, "LZMA decompression not supported\n");
-            abort();
-        } else if (archive_id == BZIP_YK) {
-            fprintf(stderr, "BZIP decompression not supported\n");
-            abort();
-        } else {
-            fprintf(stderr, "Unknown decompression method %d in YK file %s\n",
-                    archive_id, base_name);
-            abort();
-        }
-
-        int max_depth;
-
-        memcpy(&max_depth, &header[32], 4);
-
-        fcache->max_depth = max_depth;
-
-        if (max_depth > 254) {
-            unsigned int num_high_dtc_low, num_high_dtc_high;
-
-            memcpy(&num_high_dtc_low, &header[36], 4);
-            memcpy(&num_high_dtc_high, &header[40], 4);
-            INDEX num_high_dtc =
-                (((INDEX)(num_high_dtc_high)) << 32) + num_high_dtc_low;
-            fcache->num_high_dtc = num_high_dtc;
-        }
-
-        memcpy(fcache->piece_type_count, yk_info.piece_type_count,
-               sizeof(yk_info.piece_type_count));
-
-        fcache->block_index = -1;
-
-        // move file index to front of queue
-        if (num_cached_files_yk[side] > 1) {
-            for (int i = num_cached_files_yk[side] - 1; i > 0; i--) {
-                cached_file_lru_yk[i][side] = cached_file_lru_yk[i - 1][side];
-            }
-        }
-        cached_file_lru_yk[0][side] = file_index;
-    }
-
-    bool pawns_present = yk_info.piece_type_count[WHITE][PAWN] ||
-                         yk_info.piece_type_count[BLACK][PAWN];
-
-    int num_kk = N_KINGS_NOPAWNS;
-    if (pawns_present) {
-        num_kk = N_KINGS;
-    }
-
-    int sub_blocks = fcache->num_blocks / num_kk;
-    int sub_index = ind->index / fcache->block_size;
-
-    int b_index = ind->kk_index * sub_blocks + sub_index;
-
-    if (b_index != fcache->block_index) {
-        uint32_t length =
-            fcache->offsets[b_index + 1] - fcache->offsets[b_index];
-        if (length > ctx->compressed_buffer_size) {
-            ctx->compressed_buffer =
-                (uint8_t *)MyRealloc(ctx->compressed_buffer, length);
-            ctx->compressed_buffer_size = length;
-        }
-        f_read(ctx->compressed_buffer, length, fcache->fp,
-               fcache->offsets[b_index]);
-        uint32_t tmp_zone_size = fcache->block_size;
-        if (tmp_zone_size > fcache->max_block_size) {
-            if (fcache->block != NULL) {
-                MyFree(fcache->block);
-            }
-            fcache->max_block_size = tmp_zone_size;
-            fcache->block = (uint8_t *)MyMalloc(tmp_zone_size);
-        }
-        MyUncompress(ctx, fcache->block, &tmp_zone_size, ctx->compressed_buffer,
-                     length, fcache->compression_method);
-        assert(tmp_zone_size == fcache->block_size);
-        fcache->block_index = b_index;
-    }
-
-    result = fcache->block[ind->index % fcache->block_size];
-
-    if (result == 254) {
-        if (fcache->max_depth == 254)
-            return result;
-        if (fcache->block_high == NULL) {
-            // High dtc file (.__) not yet initialized?
-            if (fcache->fp_high == NULL) {
-                char base_name[64];
-                GetYKBaseFileName(yk_info.piece_type_count, side, base_name);
-                strcat(base_name, ".__");
-
-                file file_yk = OpenYKFile(base_name);
-
-                if (file_yk == NULL) {
-                    return HIGH_DTZ_MISSING;
-                }
-
-                fcache->fp_high = file_yk;
-            }
-            if (fcache->num_high_dtc > 0) {
-                fcache->block_high =
-                    (HDATA *)MyMalloc(fcache->num_high_dtc * sizeof(HDATA));
-                INDEX nread = f_read(fcache->block_high,
-                                     fcache->num_high_dtc * sizeof(HDATA),
-                                     fcache->fp_high, 0);
-                if (nread != fcache->num_high_dtc * sizeof(HDATA)) {
-                    return HIGH_DTZ_MISSING;
-                }
-                qsort(fcache->block_high, fcache->num_high_dtc, sizeof(HDATA),
-                      CompareHigh);
-            } else {
-                return HIGH_DTZ_MISSING;
-            }
-        }
-        HDATA tdata;
-        tdata.kindex = yk_info.kk_index;
-        tdata.offset = yk_info.index;
-        HDATA *tptr =
-            (HDATA *)bsearch(&tdata, fcache->block_high, fcache->num_high_dtc,
-                             sizeof(HDATA), CompareHigh);
-        if (tptr != NULL) {
-            return tptr->dtc;
-        }
-    } else if (result == 255) {
-        result = UNRESOLVED;
-    }
-
-    return result;
-}
-#endif // USE_YK
-
 static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
     MB_INFO mb_info = {0};
     FILE_CACHE *fcache;
@@ -10614,12 +10082,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 pawn_file_type = OP_24_PAWNS;
             }
             if (file_mb == NULL) {
-#ifdef USE_YK
-                INDEX_DATA ind_yk;
-                return GetYKResult(ctx, Board, &ind_yk);
-#else
                 return UNKNOWN;
-#endif
             }
         }
 
@@ -11131,13 +10594,6 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
     } else {
         if (result == 255)
             result = UNRESOLVED;
-    }
-
-    if (result == UNKNOWN) {
-#ifdef USE_YK
-        INDEX_DATA ind_yk;
-        result = GetYKResult(ctx, Board, &ind_yk);
-#endif
     }
 
     return result;
