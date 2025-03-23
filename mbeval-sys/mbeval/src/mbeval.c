@@ -255,7 +255,7 @@ enum { ZLIB_YK = 0, BZIP_YK, LZMA_YK, ZSTD_YK, NO_COMPRESSION_YK };
 #define MAX_IDENT_PIECES 10
 #define MAX_FILES 64
 #define MAX_FILES_YK 16
-#define MAX_FILES_HIGH_DTZ 64
+#define MAX_FILES_HIGH_DTC 64
 
 #define BLEICHER_MATED 0
 #define BLEICHER_NOT_FOUND 32700
@@ -543,11 +543,11 @@ typedef struct {
 typedef struct {
     ZINDEX index;
     int score;
-} HIGH_DTZ;
+} HIGH_DTC;
 
-static int high_dtz_compar(const void *a, const void *b) {
-    HIGH_DTZ *x = (HIGH_DTZ *)a;
-    HIGH_DTZ *y = (HIGH_DTZ *)b;
+static int high_dtc_compar(const void *a, const void *b) {
+    HIGH_DTC *x = (HIGH_DTC *)a;
+    HIGH_DTC *y = (HIGH_DTC *)b;
 
     if (x->index < y->index)
         return -1;
@@ -8282,11 +8282,11 @@ typedef struct {
     HEADER header;
     INDEX *offsets;
     ZINDEX *starting_index;
-} FILE_CACHE_HIGH_DTZ;
+} FILE_CACHE_HIGH_DTC;
 
-static FILE_CACHE_HIGH_DTZ FileCacheHighDTZ[MAX_FILES_HIGH_DTZ][2];
-static int num_cached_files_high_dtz[2] = {0, 0};
-static int cached_file_high_dtz_lru[MAX_FILES_HIGH_DTZ][2];
+static FILE_CACHE_HIGH_DTC FileCacheHighDTZ[MAX_FILES_HIGH_DTC][2];
+static int num_cached_files_high_dtc[2] = {0, 0};
+static int cached_file_high_dtc_lru[MAX_FILES_HIGH_DTC][2];
 
 static void InitCaches() {
     memset(FileCache, 0, sizeof(FileCache));
@@ -8296,7 +8296,7 @@ static void InitCaches() {
     }
 
     memset(FileCacheHighDTZ, 0, sizeof(FileCacheHighDTZ));
-    for (int i = 0; i < MAX_FILES_HIGH_DTZ; i++) {
+    for (int i = 0; i < MAX_FILES_HIGH_DTC; i++) {
         FileCacheHighDTZ[i][0].fp = FileCacheHighDTZ[i][1].fp = NULL;
         FileCacheHighDTZ[i][0].offsets = FileCacheHighDTZ[i][1].offsets = NULL;
         FileCacheHighDTZ[i][0].starting_index =
@@ -9301,7 +9301,7 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
 
 static file OpenMBFile(const char *ending, int kk_index,
                        const int bishop_parity[2], int pawn_file_type, int side,
-                       bool high_dtz) {
+                       bool high_dtc) {
     char path[1024];
 
     for (int i = 0; i < NumPaths; i++) {
@@ -9358,7 +9358,7 @@ static file OpenMBFile(const char *ending, int kk_index,
         snprintf(path, sizeof(path) - 1, "%s%c%s_out%c%s_%c_%d.%s", TbPaths[i],
                  DELIMITER[0], dirname, DELIMITER[0], ending,
                  (side == WHITE ? 'w' : 'b'), kk_index,
-                 (high_dtz ? "hi" : "mb"));
+                 (high_dtc ? "hi" : "mb"));
         file fptr = f_open(path);
         if (fptr != NULL) {
             return fptr;
@@ -10121,27 +10121,27 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
 
     if (result == 254 && fcache->header.max_depth > 254) {
         file_index = -1;
-        FILE_CACHE_HIGH_DTZ *fcache_high_dtz = NULL;
+        FILE_CACHE_HIGH_DTC *fcache_high_dtc = NULL;
         uint32_t n_per_block = 0;
 
-        for (int n = 0; n < num_cached_files_high_dtz[side]; n++) {
-            int np = cached_file_high_dtz_lru[n][side];
-            fcache_high_dtz = &FileCacheHighDTZ[np][side];
-            if (fcache_high_dtz->kk_index != mb_info.kk_index)
+        for (int n = 0; n < num_cached_files_high_dtc[side]; n++) {
+            int np = cached_file_high_dtc_lru[n][side];
+            fcache_high_dtc = &FileCacheHighDTZ[np][side];
+            if (fcache_high_dtc->kk_index != mb_info.kk_index)
                 continue;
-            if (memcmp(fcache_high_dtz->piece_type_count,
+            if (memcmp(fcache_high_dtc->piece_type_count,
                        mb_info.piece_type_count,
-                       sizeof(fcache_high_dtz->piece_type_count)))
+                       sizeof(fcache_high_dtc->piece_type_count)))
                 continue;
             bool found_parity = false;
             for (int i = 0; i < mb_info.num_parities; i++) {
-                if (fcache_high_dtz->pawn_file_type != FREE_PAWNS)
+                if (fcache_high_dtc->pawn_file_type != FREE_PAWNS)
                     continue;
-                if ((fcache_high_dtz->bishop_parity[WHITE] == NONE ||
-                     (fcache_high_dtz->bishop_parity[WHITE] ==
+                if ((fcache_high_dtc->bishop_parity[WHITE] == NONE ||
+                     (fcache_high_dtc->bishop_parity[WHITE] ==
                       mb_info.parity_index[i].bishop_parity[WHITE])) &&
-                    (fcache_high_dtz->bishop_parity[BLACK] == NONE ||
-                     (fcache_high_dtz->bishop_parity[BLACK] ==
+                    (fcache_high_dtc->bishop_parity[BLACK] == NONE ||
+                     (fcache_high_dtc->bishop_parity[BLACK] ==
                       mb_info.parity_index[i].bishop_parity[BLACK]))) {
                     found_parity = true;
                     ind->index = mb_info.parity_index[i].index;
@@ -10155,7 +10155,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 bool found_pawn_file = false;
                 if ((mb_info.pawn_file_type == OP_11_PAWNS ||
                      mb_info.pawn_file_type == BP_11_PAWNS) &&
-                    fcache_high_dtz->pawn_file_type == OP_11_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_11_PAWNS) {
                     if (mb_info.index_op_11 != ALL_ONES) {
                         ind->index = mb_info.index_op_11;
                         found_pawn_file = true;
@@ -10163,7 +10163,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == BP_11_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == BP_11_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == BP_11_PAWNS) {
                     if (mb_info.index_bp_11 != ALL_ONES) {
                         ind->index = mb_info.index_bp_11;
                         found_pawn_file = true;
@@ -10171,7 +10171,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_21_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_21_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_21_PAWNS) {
                     if (mb_info.index_op_21 != ALL_ONES) {
                         ind->index = mb_info.index_op_21;
                         found_pawn_file = true;
@@ -10179,7 +10179,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_12_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_12_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_12_PAWNS) {
                     if (mb_info.index_op_12 != ALL_ONES) {
                         ind->index = mb_info.index_op_12;
                         found_pawn_file = true;
@@ -10189,7 +10189,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 if (!found_pawn_file &&
                     (mb_info.pawn_file_type == OP_22_PAWNS ||
                      mb_info.pawn_file_type == DP_22_PAWNS) &&
-                    fcache_high_dtz->pawn_file_type == OP_22_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_22_PAWNS) {
                     if (mb_info.index_op_22 != ALL_ONES) {
                         ind->index = mb_info.index_op_22;
                         found_pawn_file = true;
@@ -10197,7 +10197,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == DP_22_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == DP_22_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == DP_22_PAWNS) {
                     if (mb_info.index_dp_22 != ALL_ONES) {
                         ind->index = mb_info.index_dp_22;
                         found_pawn_file = true;
@@ -10205,7 +10205,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_31_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_31_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_31_PAWNS) {
                     if (mb_info.index_op_31 != ALL_ONES) {
                         ind->index = mb_info.index_op_31;
                         found_pawn_file = true;
@@ -10213,7 +10213,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_13_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_13_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_13_PAWNS) {
                     if (mb_info.index_op_13 != ALL_ONES) {
                         ind->index = mb_info.index_op_13;
                         found_pawn_file = true;
@@ -10221,7 +10221,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_41_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_41_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_41_PAWNS) {
                     if (mb_info.index_op_41 != ALL_ONES) {
                         ind->index = mb_info.index_op_41;
                         found_pawn_file = true;
@@ -10229,7 +10229,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_14_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_14_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_14_PAWNS) {
                     if (mb_info.index_op_14 != ALL_ONES) {
                         ind->index = mb_info.index_op_14;
                         found_pawn_file = true;
@@ -10237,7 +10237,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_32_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_32_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_32_PAWNS) {
                     if (mb_info.index_op_32 != ALL_ONES) {
                         ind->index = mb_info.index_op_32;
                         found_pawn_file = true;
@@ -10245,7 +10245,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_23_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_23_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_23_PAWNS) {
                     if (mb_info.index_op_23 != ALL_ONES) {
                         ind->index = mb_info.index_op_23;
                         found_pawn_file = true;
@@ -10253,7 +10253,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_33_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_33_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_33_PAWNS) {
                     if (mb_info.index_op_33 != ALL_ONES) {
                         ind->index = mb_info.index_op_33;
                         found_pawn_file = true;
@@ -10261,7 +10261,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_42_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_42_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_42_PAWNS) {
                     if (mb_info.index_op_42 != ALL_ONES) {
                         ind->index = mb_info.index_op_42;
                         found_pawn_file = true;
@@ -10269,7 +10269,7 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                 }
 
                 if (!found_pawn_file && mb_info.pawn_file_type == OP_24_PAWNS &&
-                    fcache_high_dtz->pawn_file_type == OP_24_PAWNS) {
+                    fcache_high_dtc->pawn_file_type == OP_24_PAWNS) {
                     if (mb_info.index_op_24 != ALL_ONES) {
                         ind->index = mb_info.index_op_24;
                         found_pawn_file = true;
@@ -10284,11 +10284,11 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
             // move file to front of queue so it is tried first next time
             if (n > 0) {
                 for (int i = n; i > 0; i--) {
-                    cached_file_high_dtz_lru[i][side] =
-                        cached_file_high_dtz_lru[i - 1][side];
+                    cached_file_high_dtc_lru[i][side] =
+                        cached_file_high_dtc_lru[i - 1][side];
                 }
             }
-            cached_file_high_dtz_lru[0][side] = file_index;
+            cached_file_high_dtc_lru[0][side] = file_index;
             break;
         }
 
@@ -10426,131 +10426,131 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
                     pawn_file_type = OP_24_PAWNS;
                 }
                 if (file_mb == NULL)
-                    return HIGH_DTZ_MISSING;
+                    return HIGH_DTC_MISSING;
             }
 
-            if (num_cached_files_high_dtz[side] < MAX_FILES_HIGH_DTZ) {
-                file_index = num_cached_files_high_dtz[side];
-                num_cached_files_high_dtz[side]++;
+            if (num_cached_files_high_dtc[side] < MAX_FILES_HIGH_DTC) {
+                file_index = num_cached_files_high_dtc[side];
+                num_cached_files_high_dtc[side]++;
             } else
                 file_index =
-                    cached_file_high_dtz_lru[MAX_FILES_HIGH_DTZ - 1][side];
+                    cached_file_high_dtc_lru[MAX_FILES_HIGH_DTC - 1][side];
 
-            fcache_high_dtz = &FileCacheHighDTZ[file_index][side];
+            fcache_high_dtc = &FileCacheHighDTZ[file_index][side];
 
-            if (fcache_high_dtz->fp != NULL) {
-                f_close(fcache_high_dtz->fp);
+            if (fcache_high_dtc->fp != NULL) {
+                f_close(fcache_high_dtc->fp);
             }
 
-            fcache_high_dtz->fp = file_mb;
-            f_read(&fcache_high_dtz->header, sizeof(HEADER),
-                   fcache_high_dtz->fp, 0);
+            fcache_high_dtc->fp = file_mb;
+            f_read(&fcache_high_dtc->header, sizeof(HEADER),
+                   fcache_high_dtc->fp, 0);
 
-            if (fcache_high_dtz->header.list_element_size != sizeof(HIGH_DTZ)) {
-                return HIGH_DTZ_MISSING;
+            if (fcache_high_dtc->header.list_element_size != sizeof(HIGH_DTC)) {
+                return HIGH_DTC_MISSING;
             }
 
-            if (fcache_high_dtz->header.num_blocks >
-                fcache_high_dtz->max_num_blocks) {
-                if (fcache_high_dtz->max_num_blocks > 0) {
-                    MyFree(fcache_high_dtz->offsets);
-                    MyFree(fcache_high_dtz->starting_index);
+            if (fcache_high_dtc->header.num_blocks >
+                fcache_high_dtc->max_num_blocks) {
+                if (fcache_high_dtc->max_num_blocks > 0) {
+                    MyFree(fcache_high_dtc->offsets);
+                    MyFree(fcache_high_dtc->starting_index);
                 }
-                fcache_high_dtz->max_num_blocks =
-                    fcache_high_dtz->header.num_blocks;
-                fcache_high_dtz->offsets = (INDEX *)MyMalloc(
-                    (fcache_high_dtz->max_num_blocks + 1) * sizeof(INDEX));
-                fcache_high_dtz->starting_index = (ZINDEX *)MyMalloc(
-                    (fcache_high_dtz->max_num_blocks + 1) * sizeof(ZINDEX));
+                fcache_high_dtc->max_num_blocks =
+                    fcache_high_dtc->header.num_blocks;
+                fcache_high_dtc->offsets = (INDEX *)MyMalloc(
+                    (fcache_high_dtc->max_num_blocks + 1) * sizeof(INDEX));
+                fcache_high_dtc->starting_index = (ZINDEX *)MyMalloc(
+                    (fcache_high_dtc->max_num_blocks + 1) * sizeof(ZINDEX));
             }
 
             INDEX l_offset = sizeof(HEADER);
-            f_read(fcache_high_dtz->offsets,
-                   (fcache_high_dtz->header.num_blocks + 1) * sizeof(INDEX),
-                   fcache_high_dtz->fp, l_offset);
+            f_read(fcache_high_dtc->offsets,
+                   (fcache_high_dtc->header.num_blocks + 1) * sizeof(INDEX),
+                   fcache_high_dtc->fp, l_offset);
             l_offset +=
-                (fcache_high_dtz->header.num_blocks + 1) * sizeof(INDEX);
-            f_read(fcache_high_dtz->starting_index,
-                   (fcache_high_dtz->header.num_blocks + 1) * sizeof(ZINDEX),
-                   fcache_high_dtz->fp, l_offset);
-            uint32_t block_size = fcache_high_dtz->header.block_size;
+                (fcache_high_dtc->header.num_blocks + 1) * sizeof(INDEX);
+            f_read(fcache_high_dtc->starting_index,
+                   (fcache_high_dtc->header.num_blocks + 1) * sizeof(ZINDEX),
+                   fcache_high_dtc->fp, l_offset);
+            uint32_t block_size = fcache_high_dtc->header.block_size;
             if (block_size > ctx->block_buffer_size) {
                 ctx->block_buffer =
                     (uint8_t *)MyRealloc(ctx->block_buffer, block_size);
                 ctx->block_buffer_size = block_size;
             }
-            fcache_high_dtz->kk_index = mb_info.kk_index;
-            memcpy(fcache_high_dtz->piece_type_count, mb_info.piece_type_count,
+            fcache_high_dtc->kk_index = mb_info.kk_index;
+            memcpy(fcache_high_dtc->piece_type_count, mb_info.piece_type_count,
                    sizeof(mb_info.piece_type_count));
-            memcpy(fcache_high_dtz->bishop_parity, bishop_parity,
+            memcpy(fcache_high_dtc->bishop_parity, bishop_parity,
                    sizeof(bishop_parity));
-            fcache_high_dtz->pawn_file_type = pawn_file_type;
+            fcache_high_dtc->pawn_file_type = pawn_file_type;
 
-            if (num_cached_files_high_dtz[side] > 1) {
-                for (int i = num_cached_files_high_dtz[side] - 1; i > 0; i--) {
-                    cached_file_high_dtz_lru[i][side] =
-                        cached_file_high_dtz_lru[i - 1][side];
+            if (num_cached_files_high_dtc[side] > 1) {
+                for (int i = num_cached_files_high_dtc[side] - 1; i > 0; i--) {
+                    cached_file_high_dtc_lru[i][side] =
+                        cached_file_high_dtc_lru[i - 1][side];
                 }
             }
-            cached_file_high_dtz_lru[0][side] = file_index;
+            cached_file_high_dtc_lru[0][side] = file_index;
         }
 
         // if index is outside range of all indices with depth > 254, depth is
         // 254
-        if (ind->index < fcache_high_dtz->starting_index[0] ||
+        if (ind->index < fcache_high_dtc->starting_index[0] ||
             ind->index >
-                fcache_high_dtz
-                    ->starting_index[fcache_high_dtz->header.num_blocks]) {
+                fcache_high_dtc
+                    ->starting_index[fcache_high_dtc->header.num_blocks]) {
             return 254;
         }
 
-        n_per_block = fcache_high_dtz->header.block_size /
-                      fcache_high_dtz->header.list_element_size;
+        n_per_block = fcache_high_dtc->header.block_size /
+                      fcache_high_dtc->header.list_element_size;
 
         // read block from file.
         // do binary search to find which block of indices the depth would
         // be
-        uint32_t block_index = 0, r = fcache_high_dtz->header.num_blocks;
+        uint32_t block_index = 0, r = fcache_high_dtc->header.num_blocks;
         while (block_index < r) {
             int m = (block_index + r) / 2;
-            if (fcache_high_dtz->starting_index[m] < ind->index)
+            if (fcache_high_dtc->starting_index[m] < ind->index)
                 block_index = m + 1;
             else
                 r = m;
         }
-        if ((block_index == fcache_high_dtz->header.num_blocks) ||
-            (fcache_high_dtz->starting_index[block_index] > ind->index))
+        if ((block_index == fcache_high_dtc->header.num_blocks) ||
+            (fcache_high_dtc->starting_index[block_index] > ind->index))
             block_index--;
         // now read block from file
-        uint32_t length = fcache_high_dtz->offsets[block_index + 1] -
-                          fcache_high_dtz->offsets[block_index];
+        uint32_t length = fcache_high_dtc->offsets[block_index + 1] -
+                          fcache_high_dtc->offsets[block_index];
         if (length > ctx->compressed_buffer_size) {
             ctx->compressed_buffer =
                 (uint8_t *)MyRealloc(ctx->compressed_buffer, length);
             ctx->compressed_buffer_size = length;
         }
-        f_read(ctx->compressed_buffer, length, fcache_high_dtz->fp,
-               fcache_high_dtz->offsets[block_index]);
+        f_read(ctx->compressed_buffer, length, fcache_high_dtc->fp,
+               fcache_high_dtc->offsets[block_index]);
         uint32_t n_per_block_cached = n_per_block;
-        if (block_index == fcache_high_dtz->header.num_blocks - 1) {
-            uint32_t rem = fcache_high_dtz->header.n_elements % n_per_block;
+        if (block_index == fcache_high_dtc->header.num_blocks - 1) {
+            uint32_t rem = fcache_high_dtc->header.n_elements % n_per_block;
             if (rem != 0)
                 n_per_block_cached = rem;
         }
-        uint32_t tmp_zone_size = n_per_block_cached * sizeof(HIGH_DTZ);
+        uint32_t tmp_zone_size = n_per_block_cached * sizeof(HIGH_DTC);
         MyUncompress(ctx, (uint8_t *)ctx->block_buffer, &tmp_zone_size,
                      ctx->compressed_buffer, length,
-                     fcache_high_dtz->header.compression_method);
-        assert(tmp_zone_size == n_per_block_cached * sizeof(HIGH_DTZ));
+                     fcache_high_dtc->header.compression_method);
+        assert(tmp_zone_size == n_per_block_cached * sizeof(HIGH_DTC));
 
         // now perform binary search on block that may contain score
         // corresponding to index
-        HIGH_DTZ key;
+        HIGH_DTC key;
         key.index = ind->index;
 
-        HIGH_DTZ *kptr =
-            (HIGH_DTZ *)bsearch(&key, ctx->block_buffer, n_per_block_cached,
-                                sizeof(HIGH_DTZ), high_dtz_compar);
+        HIGH_DTC *kptr =
+            (HIGH_DTC *)bsearch(&key, ctx->block_buffer, n_per_block_cached,
+                                sizeof(HIGH_DTC), high_dtc_compar);
 
         if (kptr == NULL)
             result = 254;
@@ -10567,9 +10567,9 @@ static int GetMBResult(CONTEXT *ctx, const BOARD *Board, INDEX_DATA *ind) {
 /*
  * ScorePosition returns either the following constants:
  *
- * UNKNOWN, LOST, DRAW, NOT_LOST, NOT_WON, WON, high_dtz
+ * UNKNOWN, LOST, DRAW, NOT_LOST, NOT_WON, WON, high_dtc
  * or a positive integer n denoting "won in n", or a negative integer
- * denoting "lost in n".  high_dtz means the position is won (or
+ * denoting "lost in n".  high_dtc means the position is won (or
  * lost) in 254 or more moves, but the exact number could not be
  * obtained (usually due to a missing database.)
  *
@@ -10606,7 +10606,7 @@ static int ScorePosition(CONTEXT *ctx, const BOARD *BoardIn,
     // if we have definite result, can return right away
     if (!(result < 0 || result == UNRESOLVED)) {
         if ((Board.side == WHITE) || result == LOST || result == WON ||
-            result == HIGH_DTZ_MISSING) {
+            result == HIGH_DTC_MISSING) {
             return result;
         }
         return -result;
@@ -10628,7 +10628,7 @@ static int ScorePosition(CONTEXT *ctx, const BOARD *BoardIn,
     int result_flipped = GetMBResult(ctx, &Board, &index2);
 
     if (result_flipped == WON || result_flipped == LOST ||
-        result_flipped == HIGH_DTZ_MISSING)
+        result_flipped == HIGH_DTC_MISSING)
         return result_flipped;
     else if (result_flipped >= 0 && result_flipped != UNRESOLVED) {
         if (Board.side == WHITE)

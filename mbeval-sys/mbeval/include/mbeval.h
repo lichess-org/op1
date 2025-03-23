@@ -30,7 +30,7 @@ enum {
     STALE_MATE,
     NOT_LOST,
     NOT_WON,
-    HIGH_DTZ_MISSING,
+    HIGH_DTC_MISSING,
     WON,
     CHECK_MATE,
     ILLEGAL,
