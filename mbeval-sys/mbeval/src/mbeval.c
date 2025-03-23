@@ -833,16 +833,6 @@ static ZINDEX N7_Index_Function(int a, int b, int c, int d, int e, int f,
     return k7_tab[a] + N6_Index_Function(b, c, d, e, f, g);
 }
 
-#if defined(USE_PERMUTATION_FUNCTIONS)
-
-#define N2_Index(a, b) N2_Index_Function(a, b)
-#define N3_Index(a, b, c) N3_Index_Function(a, b, c)
-#define N4_Index(a, b, c, d) N4_Index_Function(a, b, c, d)
-
-#define N2_2_Index(a, b) N2_2_Index_Function(a, b)
-
-#else // Use permutation tables
-
 static int *k2_tab = NULL, *k3_tab = NULL, *k4_tab = NULL;
 static int *p2_tab = NULL, *p3_tab = NULL, *p4_tab = NULL, *p4_tab_mb = NULL;
 static int *k2_even_tab = NULL, *p2_even_tab = NULL;
@@ -915,8 +905,6 @@ static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
     (k2_2_opposing_tab[a + (NSQUARES) *                                        \
                                (b + (NSQUARES) * (c + (NSQUARES) * (d)))])
 #endif // 8x8 board
-
-#endif // Permutation tables
 
 #define N5_Index(a, b, c, d, e) N5_Index_Function(a, b, c, d, e)
 #define N6_Index(a, b, c, d, e, f) N6_Index_Function(a, b, c, d, e, f)
@@ -2342,22 +2330,14 @@ static void InitPermutationTables(void) {
     InitN6Tables();
     InitN7Tables();
 
-#if defined(USE_PERMUTATION_FUNCTIONS)
-    InitN4Tables(NULL, NULL);
-#else
     k4_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * NSQUARES *
                              sizeof(int));
     p4_tab = (int *)MyMalloc(N4 * sizeof(int));
     InitN4Tables(k4_tab, p4_tab);
-#endif
 
-#if defined(USE_PERMUTATION_FUNCTIONS)
-    InitN3Tables(NULL, NULL);
-#else
     k3_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
     p3_tab = (int *)MyMalloc(N3 * sizeof(int));
     InitN3Tables(k3_tab, p3_tab);
-#endif
 
 #if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
     k3_even_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
@@ -2369,13 +2349,9 @@ static void InitPermutationTables(void) {
     InitN3OddTables(k3_odd_tab, p3_odd_tab);
 #endif
 
-#if defined(USE_PERMUTATION_FUNCTIONS)
-    InitN2Tables(NULL, NULL);
-#else
     k2_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
     p2_tab = (int *)MyMalloc(N2 * sizeof(int));
     InitN2Tables(k2_tab, p2_tab);
-#endif
 
 #if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
     k2_even_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
