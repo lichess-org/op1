@@ -1008,13 +1008,8 @@ static bool IsWhiteSquare[NSQUARES];
 static void InitN2Tables(int *tab, int *pos) {
     int index = 0, score;
 
-#if defined(MB_INDEX)
-    for (int p2 = 1; p2 < NSQUARES; p2++) {
-        for (int p1 = 0; p1 <= p2; p1++) {
-#else // index used by Konoval
     for (int p1 = 0; p1 < NSQUARES; p1++) {
         for (int p2 = p1; p2 < NSQUARES; p2++) {
-#endif
             if (p1 == p2)
                 score = -1;
             else {
@@ -2036,15 +2031,9 @@ static void InitN4OpposingTables(int *tab, int *pos) {
 static void InitN3Tables(int *tab, int *pos) {
     int index = 0, score;
 
-#if defined(MB_INDEX)
-    for (int p3 = 2; p3 < NSQUARES; p3++) {
-        for (int p2 = 1; p2 <= p3; p2++) {
-            for (int p1 = 0; p1 <= p2; p1++) {
-#else // index used by Yakov Konoval
     for (int p1 = 0; p1 < NSQUARES; p1++) {
         for (int p2 = p1; p2 < NSQUARES; p2++) {
             for (int p3 = p2; p3 < NSQUARES; p3++) {
-#endif
                 if (p1 == p2 || p1 == p3 || p2 == p3) {
                     score = -1;
                 } else {
@@ -2071,17 +2060,10 @@ static void InitN3Tables(int *tab, int *pos) {
 static void InitN4Tables(int *tab, int *pos) {
     int index = 0, score;
 
-#if defined(MB_INDEX)
-    for (int p4 = 3; p4 < NSQUARES; p4++) {
-        for (int p3 = 2; p3 <= p4; p3++) {
-            for (int p2 = 1; p2 <= p3; p2++) {
-                for (int p1 = 0; p1 <= p2; p1++) {
-#else // index used by Yakov Konoval
     for (int p1 = 0; p1 < NSQUARES; p1++) {
         for (int p2 = p1; p2 < NSQUARES; p2++) {
             for (int p3 = p2; p3 < NSQUARES; p3++) {
                 for (int p4 = p3; p4 < NSQUARES; p4++) {
-#endif
                     if (p1 == p2 || p1 == p3 || p1 == p4 || p2 == p3 ||
                         p2 == p4 || p3 == p4) {
                         score = -1;
