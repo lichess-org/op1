@@ -23,7 +23,7 @@
 
 #if (NROWS == 8) && (NCOLS == 8)
 #define Row(sq) ((sq) >> 3)
-#define Column(sq) ((sq) & 07)
+#define Column(sq) ((sq)&07)
 #define SquareMake(row, col) (((row) << 3) | (col))
 #else
 #define Row(sq) ((sq) / (NCOLS))
@@ -688,7 +688,6 @@ static int WhiteSquare[NSQUARES / 2], BlackSquare[NSQUARES / 2];
 
 typedef struct {
     int etype, op_type, sub_type;
-    bool (*PosFromIndex)(ZINDEX index, int *pos);
     ZINDEX (*IndexFromPos)(const int *pos);
 } IndexType;
 
@@ -874,7 +873,7 @@ static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
 #define N3_Even_Index(a, b, c) (k3_even_tab[(a) | ((b) << 6) | ((c) << 12)])
 #define N2_Opposing_Index(a, b) (k2_opposing_tab[(a) | ((b) << 6)])
 #define N4_Opposing_Index(a, b, c, d)                                          \
-    (k4_opposing_tab[((a) >> 3) | ((b) & 070) | ((c) << 6) | ((d) << 12)])
+    (k4_opposing_tab[((a) >> 3) | ((b)&070) | ((c) << 6) | ((d) << 12)])
 
 #define N2_1_Opposing_Index(a, b, c)                                           \
     (k2_1_opposing_tab[(a) | ((b) << 6) | ((c) << 12)])
@@ -902,18 +901,16 @@ static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
 #define N2_Opposing_Index(a, b) (k2_opposing_tab[a + (NSQUARES) * (b)])
 #define N4_Opposing_Index(a, b, c, d)                                          \
     (k4_opposing_tab[Row(a) +                                                  \
-                     (NROWS) * (Row(b) + (NROWS) * (c + (NSQUARES) * d))])
+                     (NROWS) * (Row(b) + (NROWS) * (c + (NSQUARES)*d))])
 
 #define N2_1_Opposing_Index(a, b, c)                                           \
-    (k2_1_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * c)])
+    (k2_1_opposing_tab[a + (NSQUARES) * (b + (NSQUARES)*c)])
 #define N1_2_Opposing_Index(a, b, c)                                           \
-    (k1_2_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * c)])
+    (k1_2_opposing_tab[a + (NSQUARES) * (b + (NSQUARES)*c)])
 #define N3_1_Opposing_Index(a, b, c, d)                                        \
-    (k3_1_opposing_tab[a +                                                     \
-                       (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES) * d))])
+    (k3_1_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES)*d))])
 #define N1_3_Opposing_Index(a, b, c, d)                                        \
-    (k1_3_opposing_tab[a +                                                     \
-                       (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES) * d))])
+    (k1_3_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES)*d))])
 #define N2_2_Opposing_Index(a, b, c, d)                                        \
     (k2_2_opposing_tab[a + (NSQUARES) *                                        \
                                (b + (NSQUARES) * (c + (NSQUARES) * (d)))])
@@ -2391,60 +2388,7 @@ static void InitPermutationTables(void) {
     InitN2OddTables(k2_odd_tab, p2_odd_tab);
 }
 
-static int BinarySearchLeftmost(ZINDEX *arr, int n, ZINDEX x) {
-    int l = 0, r = n;
-    while (l < r) {
-        int m = (l + r) / 2;
-        if (arr[m] < x)
-            l = m + 1;
-        else
-            r = m;
-    }
-    return l;
-}
-
-static int LargestSquareInSeptuplet(ZINDEX *index) {
-    if (*index == 0)
-        return 6;
-
-    int m = BinarySearchLeftmost(k7_tab, NSQUARES, *index);
-    if (k7_tab[m] > *index)
-        m--;
-
-    *index -= k7_tab[m];
-    return m;
-}
-
-static int LargestSquareInSextuplet(ZINDEX *index) {
-    if (*index == 0)
-        return 5;
-
-    int m = BinarySearchLeftmost(k6_tab, NSQUARES, *index);
-    if (k6_tab[m] > *index)
-        m--;
-
-    *index -= k6_tab[m];
-    return m;
-}
-
-static int LargestSquareInQuintuplet(ZINDEX *index) {
-    if (*index == 0)
-        return 4;
-
-    int m = BinarySearchLeftmost(k5_tab, NSQUARES, *index);
-    if (k5_tab[m] > *index)
-        m--;
-
-    *index -= k5_tab[m];
-    return m;
-}
-
 static ZINDEX Index1(const int *pos) { return pos[2]; }
-
-static bool Pos1(ZINDEX index, int *pos) {
-    pos[2] = index;
-    return true;
-}
 
 static ZINDEX Index11(const int *pos) { return pos[3] + NSQUARES * pos[2]; }
 
@@ -2454,28 +2398,6 @@ static ZINDEX IndexOP11(const int *pos) {
     int index = N2_Opposing_Index(pos[3], pos[2]);
     assert(index != -1);
     return index;
-}
-
-static bool Pos11(ZINDEX index, int *pos) {
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index;
-    return true;
-}
-
-static bool PosBP11(ZINDEX index, int *pos) {
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP11(ZINDEX index, int *pos) {
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    int p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
 }
 
 static ZINDEX Index111(const int *pos) {
@@ -2488,34 +2410,6 @@ static ZINDEX IndexOP111(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[4] + NSQUARES * id2;
-}
-
-static bool Pos111(ZINDEX index, int *pos) {
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index;
-    return true;
-}
-
-static bool PosBP111(ZINDEX index, int *pos) {
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP111(ZINDEX index, int *pos) {
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    int p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
 }
 
 static ZINDEX Index1111(const int *pos) {
@@ -2531,43 +2425,6 @@ static ZINDEX IndexOP1111(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[5] + NSQUARES * (pos[4] + NSQUARES * id2);
-}
-
-static bool Pos1111(ZINDEX index, int *pos) {
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index;
-    return true;
-}
-
-static bool PosBP1111(ZINDEX index, int *pos) {
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-
-    return true;
-}
-
-static bool PosOP1111(ZINDEX index, int *pos) {
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    int p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-
-    return true;
 }
 
 static ZINDEX Index11111(const int *pos) {
@@ -2589,72 +2446,10 @@ static ZINDEX IndexOP11111(const int *pos) {
            NSQUARES * (pos[5] + NSQUARES * (pos[4] + NSQUARES * (id2)));
 }
 
-static bool Pos11111(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index;
-    return true;
-}
-
-static bool PosBP11111(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-
-    return true;
-}
-
-static bool PosOP11111(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    int p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-
-    return true;
-}
-
 static ZINDEX Index2(const int *pos) { return N2_Index(pos[3], pos[2]); }
-
-static bool Pos2(ZINDEX index, int *pos) {
-    int p2;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
 
 static ZINDEX Index2_1100(const int *pos) {
     return N2_Odd_Index(pos[3], pos[2]);
-}
-
-static bool Pos2_1100(ZINDEX index, int *pos) {
-    int p2;
-    assert(index < N2_ODD_PARITY);
-    p2 = p2_odd_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
 }
 
 static ZINDEX Index21(const int *pos) {
@@ -2670,32 +2465,6 @@ static ZINDEX IndexOP21(const int *pos) {
     return (ZINDEX)index;
 }
 
-static bool Pos21(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosOP21(ZINDEX index, int *pos) {
-    assert(index < N2_1_OPPOSING);
-    int p3 = p2_1_opposing_tab[index];
-    assert(p3 != -1);
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    assert(p3 < NSQUARES);
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index12(const int *pos) {
     return pos[2] + NSQUARES * N2_Index(pos[4], pos[3]);
 }
@@ -2709,32 +2478,6 @@ static ZINDEX IndexOP12(const int *pos) {
     return (ZINDEX)index;
 }
 
-static bool Pos12(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
-static bool PosOP12(ZINDEX index, int *pos) {
-    assert(index < N1_2_OPPOSING);
-    int p3 = p1_2_opposing_tab[index];
-    assert(p3 != -1);
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    assert(p3 < NSQUARES);
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index211(const int *pos) {
     return pos[5] + NSQUARES * (pos[4] + NSQUARES * N2_Index(pos[3], pos[2]));
 }
@@ -2746,30 +2489,6 @@ static ZINDEX IndexOP211(const int *pos) {
     return pos[5] + NSQUARES * op21;
 }
 
-static bool Pos211(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosOP211(ZINDEX index, int *pos) {
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N2_1_OPPOSING);
-
-    return PosOP21(index, pos);
-}
-
 static ZINDEX Index121(const int *pos) {
     return pos[5] + NSQUARES * (pos[2] + NSQUARES * N2_Index(pos[4], pos[3]));
 }
@@ -2779,30 +2498,6 @@ static ZINDEX IndexOP121(const int *pos) {
     if (op12 == ALL_ONES)
         return ALL_ONES;
     return pos[5] + NSQUARES * op12;
-}
-
-static bool Pos121(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
-static bool PosOP121(ZINDEX index, int *pos) {
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N1_2_OPPOSING);
-
-    return PosOP12(index, pos);
 }
 
 static ZINDEX Index112(const int *pos) {
@@ -2819,59 +2514,6 @@ static ZINDEX IndexOP112(const int *pos) {
     return N2_Offset * id2 + N2_Index(pos[5], pos[4]);
 }
 
-static bool Pos112(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
-}
-
-static bool PosBP112(ZINDEX index, int *pos) {
-    int p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-
-    pos[5] = p2 % NSQUARES;
-    pos[4] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-
-    assert(index < NSQUARES);
-
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-
-    return true;
-}
-
-static bool PosOP112(ZINDEX index, int *pos) {
-    int p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-
-    pos[5] = p2 % NSQUARES;
-    pos[4] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-
-    p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-
-    return true;
-}
-
 static ZINDEX Index2111(const int *pos) {
     return pos[6] +
            NSQUARES *
@@ -2886,34 +2528,6 @@ static ZINDEX IndexOP2111(const int *pos) {
     return pos[6] + NSQUARES * (ZINDEX)(pos[5] + NSQUARES * op21);
 }
 
-static bool Pos2111(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosOP2111(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N2_1_OPPOSING);
-
-    return PosOP21(index, pos);
-}
-
 static ZINDEX Index1211(const int *pos) {
     return pos[6] +
            NSQUARES *
@@ -2926,34 +2540,6 @@ static ZINDEX IndexOP1211(const int *pos) {
     if (op12 == ALL_ONES)
         return ALL_ONES;
     return pos[6] + NSQUARES * (ZINDEX)(pos[5] + NSQUARES * op12);
-}
-
-static bool Pos1211(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
-static bool PosOP1211(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N1_2_OPPOSING);
-
-    return PosOP12(index, pos);
 }
 
 static ZINDEX Index1121(const int *pos) {
@@ -2973,67 +2559,6 @@ static ZINDEX IndexOP1121(const int *pos) {
     return pos[6] + NSQUARES * (N2_Index(pos[5], pos[4]) + N2_Offset * id2);
 }
 
-static bool Pos1121(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
-}
-
-static bool PosBP1121(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-    pos[5] = p2 % NSQUARES;
-    pos[4] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-
-    assert(index < NSQUARES);
-
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-
-    return true;
-}
-
-static bool PosOP1121(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-    pos[5] = p2 % NSQUARES;
-    pos[4] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-
-    p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-
-    return true;
-}
-
 static ZINDEX Index1112(const int *pos) {
     return pos[4] +
            NSQUARES *
@@ -3049,73 +2574,6 @@ static ZINDEX IndexOP1112(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[4] + NSQUARES * (N2_Index(pos[6], pos[5]) + N2_Offset * id2);
-}
-
-static bool Pos1112(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[index];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    return true;
-}
-
-static bool PosBP1112(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-
-    p2 = p2_tab[p2];
-
-    pos[6] = p2 % NSQUARES;
-    pos[5] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-
-    assert(index < NSQUARES);
-
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-
-    return true;
-}
-
-static bool PosOP1112(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-
-    p2 = p2_tab[p2];
-
-    pos[6] = p2 % NSQUARES;
-    pos[5] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-
-    p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-
-    return true;
 }
 
 static ZINDEX Index22(const int *pos) {
@@ -3148,56 +2606,6 @@ static ZINDEX IndexDP22(const int *pos) {
     return ALL_ONES;
 }
 
-static bool Pos22(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    id2 = index % N2_Offset;
-    assert(id2 < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosDP22(ZINDEX index, int *pos) {
-    assert(index < N4_OPPOSING);
-    int p4 = p4_opposing_tab[index];
-    int b2_row = p4 % NROWS;
-    p4 /= NROWS;
-    int b1_row = p4 % NROWS;
-    p4 /= NROWS;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4 % NSQUARES;
-    pos[5] = SquareMake(b2_row, Column(pos[3]));
-    assert(b2_row > Row(pos[3]));
-    pos[4] = SquareMake(b1_row, Column(pos[2]));
-    assert(b1_row > Row(pos[2]));
-    return true;
-}
-
-static bool PosOP22(ZINDEX index, int *pos) {
-    assert(index < N2_2_OPPOSING);
-    int p4 = p2_2_opposing_tab[index];
-    assert(p4 != -1);
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    assert(p4 < NSQUARES);
-    pos[2] = p4;
-    return true;
-}
-
 static ZINDEX Index221(const int *pos) {
     return pos[6] + NSQUARES * (N2_Index(pos[5], pos[4]) +
                                 N2_Offset * N2_Index(pos[3], pos[2]));
@@ -3217,44 +2625,6 @@ static ZINDEX IndexDP221(const int *pos) {
     return pos[6] + NSQUARES * op22;
 }
 
-static bool Pos221(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosDP221(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N4_OPPOSING);
-
-    return PosDP22(index, pos);
-}
-
-static bool PosOP221(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N2_2_OPPOSING);
-
-    return PosOP22(index, pos);
-}
-
 static ZINDEX Index212(const int *pos) {
     return pos[4] + NSQUARES * (N2_Index(pos[6], pos[5]) +
                                 N2_Offset * N2_Index(pos[3], pos[2]));
@@ -3265,39 +2635,6 @@ static ZINDEX IndexOP212(const int *pos) {
     if (op21 == ALL_ONES)
         return ALL_ONES;
     return N2_Index(pos[6], pos[5]) + N2_Offset * op21;
-}
-
-static bool Pos212(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosOP212(ZINDEX index, int *pos) {
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    pos[5] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-    assert(index < N2_1_OPPOSING);
-
-    return PosOP21(index, pos);
 }
 
 static ZINDEX Index122(const int *pos) {
@@ -3312,71 +2649,12 @@ static ZINDEX IndexOP122(const int *pos) {
     return N2_Index(pos[6], pos[5]) + N2_Offset * op12;
 }
 
-static bool Pos122(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) / 2);
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
-static bool PosOP122(ZINDEX index, int *pos) {
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    pos[5] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-    assert(index < N1_2_OPPOSING);
-
-    return PosOP12(index, pos);
-}
-
 static ZINDEX Index3(const int *pos) {
     return N3_Index(pos[4], pos[3], pos[2]);
 }
 
-static bool Pos3(ZINDEX index, int *pos) {
-    int p3;
-
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index3_1100(const int *pos) {
     return N3_Odd_Index(pos[4], pos[3], pos[2]);
-}
-
-static bool Pos3_1100(ZINDEX index, int *pos) {
-    int p3;
-
-    assert(index < N3_ODD_PARITY);
-    p3 = p3_odd_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
 }
 
 static ZINDEX Index31(const int *pos) {
@@ -3392,36 +2670,6 @@ static ZINDEX IndexOP31(const int *pos) {
     return (ZINDEX)index;
 }
 
-static bool Pos31(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
-static bool PosOP31(ZINDEX index, int *pos) {
-    assert(index < N3_1_OPPOSING);
-    int p4 = p3_1_opposing_tab[index];
-    assert(p4 != -1);
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    assert(p4 < NSQUARES);
-    pos[2] = p4;
-    return true;
-}
-
 static ZINDEX Index13(const int *pos) {
     return pos[2] + NSQUARES * N3_Index(pos[5], pos[4], pos[3]);
 }
@@ -3433,36 +2681,6 @@ static ZINDEX IndexOP13(const int *pos) {
         return ALL_ONES;
 
     return (ZINDEX)index;
-}
-
-static bool Pos13(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
-}
-
-static bool PosOP13(ZINDEX index, int *pos) {
-    assert(index < N1_3_OPPOSING);
-    int p4 = p1_3_opposing_tab[index];
-    assert(p4 != -1);
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    assert(p4 < NSQUARES);
-    pos[2] = p4;
-    return true;
 }
 
 static ZINDEX Index311(const int *pos) {
@@ -3477,32 +2695,6 @@ static ZINDEX IndexOP311(const int *pos) {
     return pos[6] + NSQUARES * op31;
 }
 
-static bool Pos311(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
-static bool PosOP311(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N3_1_OPPOSING);
-
-    return PosOP31(index, pos);
-}
-
 static ZINDEX Index131(const int *pos) {
     return pos[6] +
            NSQUARES * (pos[2] + NSQUARES * N3_Index(pos[5], pos[4], pos[3]));
@@ -3513,32 +2705,6 @@ static ZINDEX IndexOP131(const int *pos) {
     if (op13 == ALL_ONES)
         return ALL_ONES;
     return pos[6] + NSQUARES * op13;
-}
-
-static bool Pos131(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
-}
-
-static bool PosOP131(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N1_3_OPPOSING);
-
-    return PosOP13(index, pos);
 }
 
 static ZINDEX Index113(const int *pos) {
@@ -3556,88 +2722,9 @@ static ZINDEX IndexOP113(const int *pos) {
     return N3_Index(pos[6], pos[5], pos[4]) + N3_Offset * id2;
 }
 
-static bool Pos113(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    return true;
-}
-
-static bool PosBP113(ZINDEX index, int *pos) {
-    int p3;
-
-    p3 = index % N3_Offset;
-    assert(p3 < N3);
-
-    p3 = p3_tab[p3];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    index /= N3_Offset;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-
-    return true;
-}
-
-static bool PosOP113(ZINDEX index, int *pos) {
-    int p3;
-
-    p3 = index % N3_Offset;
-    assert(p3 < N3);
-
-    p3 = p3_tab[p3];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    index /= N3_Offset;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    int p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-
-    return true;
-}
-
 static ZINDEX Index32(const int *pos) {
     return N2_Index(pos[6], pos[5]) +
            N2_Offset * N3_Index(pos[4], pos[3], pos[2]);
-}
-
-static bool Pos32(ZINDEX index, int *pos) {
-    int p3, p2, id2;
-
-    id2 = index % N2_Offset;
-    assert(id2 < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
 }
 
 static ZINDEX Index23(const int *pos) {
@@ -3645,85 +2732,16 @@ static ZINDEX Index23(const int *pos) {
            N2_Offset * N3_Index(pos[6], pos[5], pos[4]);
 }
 
-static bool Pos23(ZINDEX index, int *pos) {
-    int p3, p2, id2;
-
-    id2 = index % N2_Offset;
-    assert(id2 < NSQUARES * (NSQUARES - 1) / 2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    return true;
-}
-
 static ZINDEX Index4(const int *pos) {
     return N4_Index(pos[5], pos[4], pos[3], pos[2]);
-}
-
-static bool Pos4(ZINDEX index, int *pos) {
-    int p4;
-
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
 }
 
 static ZINDEX Index41(const int *pos) {
     return pos[6] + NSQUARES * N4_Index(pos[5], pos[4], pos[3], pos[2]);
 }
 
-static bool Pos41(ZINDEX index, int *pos) {
-    int p4;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
-}
-
 static ZINDEX Index14(const int *pos) {
     return pos[2] + NSQUARES * N4_Index(pos[6], pos[5], pos[4], pos[3]);
-}
-
-static bool Pos14(ZINDEX index, int *pos) {
-    int p4;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4;
-    return true;
 }
 
 static ZINDEX Index5(const int *pos) {
@@ -3732,41 +2750,12 @@ static ZINDEX Index5(const int *pos) {
                                (NSQUARES - 1) - pos[6]);
 }
 
-static bool Pos5(ZINDEX index, int *pos) {
-    int p4;
-
-    assert(index < N5);
-    index = (N5 - 1) - index;
-    pos[2] = (NSQUARES - 1) - LargestSquareInQuintuplet(&index);
-    p4 = p4_tab_mb[index];
-    pos[3] = (NSQUARES - 1) - (p4 % NSQUARES);
-    p4 /= NSQUARES;
-    pos[4] = (NSQUARES - 1) - (p4 % NSQUARES);
-    p4 /= NSQUARES;
-    pos[5] = (NSQUARES - 1) - (p4 % NSQUARES);
-    p4 /= NSQUARES;
-    pos[6] = (NSQUARES - 1) - p4;
-    return true;
-}
-
 static ZINDEX Index51(const int *pos) {
     return pos[7] + NSQUARES * Index5(pos);
 }
 
-static bool Pos51(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    return Pos5(index, pos);
-}
-
 static ZINDEX Index15(const int *pos) {
     return pos[2] + NSQUARES * Index5(pos + 1);
-}
-
-static bool Pos15(ZINDEX index, int *pos) {
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    return Pos5(index, pos + 1);
 }
 
 static ZINDEX Index6(const int *pos) {
@@ -3776,25 +2765,11 @@ static ZINDEX Index6(const int *pos) {
                                (NSQUARES - 1) - pos[7]);
 }
 
-static bool Pos6(ZINDEX index, int *pos) {
-    assert(index < N6);
-    index = (N6 - 1) - index;
-    pos[2] = (NSQUARES - 1) - LargestSquareInSextuplet(&index);
-    return Pos5((N5 - 1) - index, pos + 1);
-}
-
 static ZINDEX Index7(const int *pos) {
     return (N7 - 1) - N7_Index((NSQUARES - 1) - pos[2], (NSQUARES - 1) - pos[3],
                                (NSQUARES - 1) - pos[4], (NSQUARES - 1) - pos[5],
                                (NSQUARES - 1) - pos[6], (NSQUARES - 1) - pos[7],
                                (NSQUARES - 1) - pos[8]);
-}
-
-static bool Pos7(ZINDEX index, int *pos) {
-    assert(index < N7);
-    index = (N7 - 1) - index;
-    pos[2] = (NSQUARES - 1) - LargestSquareInSeptuplet(&index);
-    return Pos6((N6 - 1) - index, pos + 1);
 }
 
 /* index functions for 8-man endings require 64 bit zone sizes */
@@ -3828,53 +2803,6 @@ static ZINDEX IndexOP111111(const int *pos) {
                             (pos[5] + NSQUARES * (pos[4] + NSQUARES * (id2))));
 }
 
-static bool Pos111111(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index;
-    return true;
-}
-
-static bool PosBP111111(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP111111(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    int p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
 static ZINDEX Index11112(const int *pos) {
     return pos[5] +
            NSQUARES *
@@ -3897,67 +2825,6 @@ static ZINDEX IndexOP11112(const int *pos) {
     return pos[5] +
            NSQUARES * (ZINDEX)(pos[4] + NSQUARES * (N2_Index(pos[7], pos[6]) +
                                                     N2_Offset * id2));
-}
-
-static bool Pos11112(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    return true;
-}
-
-static bool PosBP11112(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP11112(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
 }
 
 static ZINDEX Index11121(const int *pos) {
@@ -3984,67 +2851,6 @@ static ZINDEX IndexOP11121(const int *pos) {
                                                     N2_Offset * id2));
 }
 
-static bool Pos11121(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    return true;
-}
-
-static bool PosBP11121(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2 % NSQUARES;
-    index /= N2_Offset;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP11121(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2 % NSQUARES;
-    index /= N2_Offset;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
 static ZINDEX Index11211(const int *pos) {
     return pos[7] +
            NSQUARES *
@@ -4069,65 +2875,6 @@ static ZINDEX IndexOP11211(const int *pos) {
                                                     N2_Offset * id2));
 }
 
-static bool Pos11211(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
-}
-
-static bool PosBP11211(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-    pos[5] = p2 % NSQUARES;
-    pos[4] = p2 / NSQUARES;
-    index /= N2_Offset;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP11211(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    p2 = index % N2_Offset;
-    assert(p2 < N2);
-    p2 = p2_tab[p2];
-    pos[5] = p2 % NSQUARES;
-    pos[4] = p2 / NSQUARES;
-    index /= N2_Offset;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
 static ZINDEX Index12111(const int *pos) {
     return pos[7] +
            NSQUARES *
@@ -4146,38 +2893,6 @@ static ZINDEX IndexOP12111(const int *pos) {
            NSQUARES * (ZINDEX)(pos[6] + NSQUARES * (pos[5] + NSQUARES * op12));
 }
 
-static bool Pos12111(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
-static bool PosOP12111(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N1_2_OPPOSING);
-
-    return PosOP12(index, pos);
-}
-
 static ZINDEX Index21111(const int *pos) {
     return pos[7] +
            NSQUARES *
@@ -4194,38 +2909,6 @@ static ZINDEX IndexOP21111(const int *pos) {
         return ALL_ONES;
     return pos[7] +
            NSQUARES * (ZINDEX)(pos[6] + NSQUARES * (pos[5] + NSQUARES * op21));
-}
-
-static bool Pos21111(ZINDEX index, int *pos) {
-    int p2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosOP21111(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N2_1_OPPOSING);
-
-    return PosOP21(index, pos);
 }
 
 static ZINDEX Index2211(const int *pos) {
@@ -4250,50 +2933,6 @@ static ZINDEX IndexOP2211(const int *pos) {
     return pos[7] + NSQUARES * (ZINDEX)(pos[6] + NSQUARES * op22);
 }
 
-static bool Pos2211(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < N2);
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosDP2211(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N4_OPPOSING);
-
-    return PosDP22(index, pos);
-}
-
-static bool PosOP2211(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N2_2_OPPOSING);
-
-    return PosOP22(index, pos);
-}
-
 static ZINDEX Index2211_1100(const int *pos) {
     return pos[7] +
            NSQUARES *
@@ -4302,56 +2941,12 @@ static ZINDEX Index2211_1100(const int *pos) {
                                                  N2_Index(pos[5], pos[4])));
 }
 
-static bool Pos2211_1100(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_ODD_PARITY_Offset;
-    assert(id2 < N2_ODD_PARITY);
-    p2 = p2_odd_tab[id2];
-    index /= N2_ODD_PARITY_Offset;
-    assert(index < N2);
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
-}
-
 static ZINDEX Index2211_1000(const int *pos) {
     return pos[7] +
            NSQUARES *
                (ZINDEX)(pos[6] + NSQUARES * (N2_Even_Index(pos[3], pos[2]) +
                                              N2_EVEN_PARITY_Offset *
                                                  N2_Index(pos[5], pos[4])));
-}
-
-static bool Pos2211_1000(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_EVEN_PARITY_Offset;
-    assert(id2 < N2_EVEN_PARITY);
-    p2 = p2_even_tab[id2];
-    index /= N2_EVEN_PARITY_Offset;
-    assert(index < N2);
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
 }
 
 static ZINDEX Index2121(const int *pos) {
@@ -4370,41 +2965,6 @@ static ZINDEX IndexOP2121(const int *pos) {
            NSQUARES * (ZINDEX)(N2_Index(pos[6], pos[5]) + N2_Offset * op21);
 }
 
-static bool Pos2121(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < N2);
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosOP2121(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_Offset;
-    return PosOP21(index, pos);
-}
-
 static ZINDEX Index2112(const int *pos) {
     return pos[5] +
            NSQUARES *
@@ -4419,42 +2979,6 @@ static ZINDEX IndexOP2112(const int *pos) {
         return ALL_ONES;
     return pos[5] +
            NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) + N2_Offset * op21);
-}
-
-static bool Pos2112(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < N2);
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosOP2112(ZINDEX index, int *pos) {
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    index /= N2_Offset;
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    assert(index < N2_1_OPPOSING);
-    return PosOP21(index, pos);
 }
 
 static ZINDEX Index1221(const int *pos) {
@@ -4473,42 +2997,6 @@ static ZINDEX IndexOP1221(const int *pos) {
            NSQUARES * (ZINDEX)(N2_Index(pos[6], pos[5]) + N2_Offset * op12);
 }
 
-static bool Pos1221(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < N2);
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
-static bool PosOP1221(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_Offset;
-    assert(index < N1_2_OPPOSING);
-    return PosOP12(index, pos);
-}
-
 static ZINDEX Index1212(const int *pos) {
     return pos[5] +
            NSQUARES *
@@ -4523,42 +3011,6 @@ static ZINDEX IndexOP1212(const int *pos) {
         return ALL_ONES;
     return pos[5] +
            NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) + N2_Offset * op12);
-}
-
-static bool Pos1212(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < N2);
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
-static bool PosOP1212(ZINDEX index, int *pos) {
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    index /= N2_Offset;
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    assert(index < N1_2_OPPOSING);
-    return PosOP12(index, pos);
 }
 
 static ZINDEX Index1122(const int *pos) {
@@ -4581,74 +3033,6 @@ static ZINDEX IndexOP1122(const int *pos) {
            N2_Offset * (ZINDEX)(N2_Index(pos[5], pos[4]) + N2_Offset * id2);
 }
 
-static bool Pos1122(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    assert(index < N2);
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
-}
-
-static bool PosBP1122(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    pos[7] = p2 % NSQUARES;
-    pos[6] = p2 / NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP1122(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    pos[7] = p2 % NSQUARES;
-    pos[6] = p2 / NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    index /= N2_Offset;
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
 static ZINDEX Index222(const int *pos) {
     return N2_Index(pos[7], pos[6]) +
            N2_Offset * (ZINDEX)(N2_Index(pos[5], pos[4]) +
@@ -4668,57 +3052,6 @@ static ZINDEX IndexDP222(const int *pos) {
     return N2_Index(pos[7], pos[6]) + N2_Offset * dp22;
 }
 
-static bool Pos222(ZINDEX index, int *pos) {
-    int p2, id2, id3;
-
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    index /= N2_Offset;
-    id3 = index % N2_Offset;
-    assert(id3 < N2);
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    p2 = p2_tab[id3];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosDP222(ZINDEX index, int *pos) {
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    pos[6] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-    assert(index < N4_OPPOSING);
-
-    return PosDP22(index, pos);
-}
-
-static bool PosOP222(ZINDEX index, int *pos) {
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    pos[6] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-    assert(index < N2_2_OPPOSING);
-
-    return PosOP22(index, pos);
-}
-
 static ZINDEX Index3111(const int *pos) {
     return pos[7] +
            NSQUARES *
@@ -4734,36 +3067,6 @@ static ZINDEX IndexOP3111(const int *pos) {
     return pos[7] + NSQUARES * (ZINDEX)(pos[6] + NSQUARES * op31);
 }
 
-static bool Pos3111(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
-static bool PosOP3111(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N3_1_OPPOSING);
-
-    return PosOP31(index, pos);
-}
-
 static ZINDEX Index1311(const int *pos) {
     return pos[7] +
            NSQUARES *
@@ -4777,36 +3080,6 @@ static ZINDEX IndexOP1311(const int *pos) {
     if (op13 == ALL_ONES)
         return ALL_ONES;
     return pos[7] + NSQUARES * (ZINDEX)(pos[6] + NSQUARES * op13);
-}
-
-static bool Pos1311(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
-}
-
-static bool PosOP1311(ZINDEX index, int *pos) {
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N1_3_OPPOSING);
-
-    return PosOP13(index, pos);
 }
 
 static ZINDEX Index1131(const int *pos) {
@@ -4829,67 +3102,6 @@ static ZINDEX IndexOP1131(const int *pos) {
                                         N3_Offset * id2);
 }
 
-static bool Pos1131(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    return true;
-}
-
-static bool PosBP1131(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    p3 = index % N3_Offset;
-    assert(p3 < N3);
-    p3 = p3_tab[p3];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    index /= N3_Offset;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP1131(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    p3 = index % N3_Offset;
-    assert(p3 < N3);
-    p3 = p3_tab[p3];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    index /= N3_Offset;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    int p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
 static ZINDEX Index1113(const int *pos) {
     return pos[4] +
            NSQUARES *
@@ -4910,67 +3122,6 @@ static ZINDEX IndexOP1113(const int *pos) {
                                         N3_Offset * id2);
 }
 
-static bool Pos1113(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    return true;
-}
-
-static bool PosBP1113(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    p3 = index % N3_Offset;
-    assert(p3 < N3);
-    p3 = p3_tab[p3];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    index /= N3_Offset;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP1113(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    p3 = index % N3_Offset;
-    assert(p3 < N3);
-    p3 = p3_tab[p3];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    index /= N3_Offset;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    int p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
 static ZINDEX Index123(const int *pos) {
     return pos[2] +
            NSQUARES * (ZINDEX)(N2_Index(pos[4], pos[3]) +
@@ -4982,42 +3133,6 @@ static ZINDEX IndexOP123(const int *pos) {
     if (op12 == ALL_ONES)
         return ALL_ONES;
     return N3_Index(pos[7], pos[6], pos[5]) + N3_Offset * op12;
-}
-
-static bool Pos123(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    return true;
-}
-
-static bool PosOP123(ZINDEX index, int *pos) {
-    int id3 = index % N3_Offset;
-    assert(id3 < N3);
-    index /= N3_Offset;
-    assert(index < N1_2_OPPOSING);
-    int p3 = p3_tab[id3];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    return PosOP12(index, pos);
 }
 
 static ZINDEX Index132(const int *pos) {
@@ -5033,41 +3148,6 @@ static ZINDEX IndexOP132(const int *pos) {
     return N2_Index(pos[7], pos[6]) + N2_Offset * op13;
 }
 
-static bool Pos132(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
-}
-
-static bool PosOP132(ZINDEX index, int *pos) {
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    pos[6] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-    assert(index < N1_3_OPPOSING);
-
-    return PosOP13(index, pos);
-}
-
 static ZINDEX Index213(const int *pos) {
     return pos[4] +
            NSQUARES * (ZINDEX)(N2_Index(pos[3], pos[2]) +
@@ -5081,68 +3161,10 @@ static ZINDEX IndexOP213(const int *pos) {
     return N3_Index(pos[7], pos[6], pos[5]) + N3_Offset * op21;
 }
 
-static bool Pos213(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    return true;
-}
-
-static bool PosOP213(ZINDEX index, int *pos) {
-    int id3 = index % N3_Offset;
-    assert(id3 < N3);
-    index /= N3_Offset;
-    assert(index < N2_1_OPPOSING);
-    int p3 = p3_tab[id3];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    return PosOP21(index, pos);
-}
-
 static ZINDEX Index231(const int *pos) {
     return pos[7] +
            NSQUARES * (ZINDEX)(N2_Index(pos[3], pos[2]) +
                                N2_Offset * N3_Index(pos[6], pos[5], pos[4]));
-}
-
-static bool Pos231(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    return true;
 }
 
 static ZINDEX Index312(const int *pos) {
@@ -5158,94 +3180,15 @@ static ZINDEX IndexOP312(const int *pos) {
     return N2_Index(pos[7], pos[6]) + N2_Offset * op31;
 }
 
-static bool Pos312(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
-static bool PosOP312(ZINDEX index, int *pos) {
-    int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    int p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    pos[6] = p2 / NSQUARES;
-
-    index /= N2_Offset;
-    assert(index < N3_1_OPPOSING);
-
-    return PosOP31(index, pos);
-}
-
 static ZINDEX Index321(const int *pos) {
     return pos[7] +
            NSQUARES * (ZINDEX)(N2_Index(pos[6], pos[5]) +
                                N2_Offset * N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static bool Pos321(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index33(const int *pos) {
     return N3_Index(pos[7], pos[6], pos[5]) +
            N3_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]);
-}
-
-static bool Pos33(ZINDEX index, int *pos) {
-    int p3, id3;
-
-    id3 = index % N3_Offset;
-    assert(id3 < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[id3];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    index /= N3_Offset;
-    assert(index < NSQUARES * (NSQUARES - 1) * (NSQUARES - 2) / 6);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
 }
 
 static ZINDEX Index411(const int *pos) {
@@ -5254,48 +3197,10 @@ static ZINDEX Index411(const int *pos) {
                                                             pos[3], pos[2]));
 }
 
-static bool Pos411(ZINDEX index, int *pos) {
-    int p4;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
-}
-
 static ZINDEX Index141(const int *pos) {
     return pos[7] +
            NSQUARES * (ZINDEX)(pos[2] + NSQUARES * N4_Index(pos[6], pos[5],
                                                             pos[4], pos[3]));
-}
-
-static bool Pos141(ZINDEX index, int *pos) {
-    int p4;
-
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4;
-    return true;
 }
 
 static ZINDEX Index114(const int *pos) {
@@ -5315,119 +3220,14 @@ static ZINDEX IndexOP114(const int *pos) {
     return N4_Index(pos[7], pos[6], pos[5], pos[4]) + N4_Offset * (ZINDEX)id2;
 }
 
-static bool Pos114(ZINDEX index, int *pos) {
-    int p4;
-
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4;
-    return true;
-}
-
-static bool PosBP114(ZINDEX index, int *pos) {
-    int p4;
-
-    p4 = index % N4_Offset;
-    assert(p4 < N4);
-    p4 = p4_tab[p4];
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4;
-    index /= N4_Offset;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    pos[3] = pos[2] + NCOLS;
-    return true;
-}
-
-static bool PosOP114(ZINDEX index, int *pos) {
-    int p4;
-
-    p4 = index % N4_Offset;
-    assert(p4 < N4);
-    p4 = p4_tab[p4];
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4;
-    index /= N4_Offset;
-    assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
-    int p2 = p2_opposing_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
 static ZINDEX Index42(const int *pos) {
     return N2_Index(pos[7], pos[6]) +
            N2_Offset * (ZINDEX)N4_Index(pos[5], pos[4], pos[3], pos[2]);
 }
 
-static bool Pos42(ZINDEX index, int *pos) {
-    int p4, id2, p2;
-
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    index /= N2_Offset;
-    assert(index < N4);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
-}
-
 static ZINDEX Index24(const int *pos) {
     return N2_Index(pos[3], pos[2]) +
            N2_Offset * (ZINDEX)N4_Index(pos[7], pos[6], pos[5], pos[4]);
-}
-
-static bool Pos24(ZINDEX index, int *pos) {
-    int p4, id2, p2;
-
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    index /= N2_Offset;
-    assert(index < N4);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    p4 = p4_tab[index];
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4;
-    return true;
 }
 
 // 9-pieces
@@ -5446,24 +3246,6 @@ static ZINDEX Index1111111(const int *pos) {
                                            (pos[3] + NSQUARES * pos[2])))));
 }
 
-static bool Pos1111111(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < NSQUARES);
-    pos[2] = index;
-    return true;
-}
-
 static ZINDEX Index211111(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -5475,25 +3257,6 @@ static ZINDEX Index211111(const int *pos) {
                                   NSQUARES *
                                       (pos[4] +
                                        NSQUARES * N2_Index(pos[3], pos[2])))));
-}
-
-static bool Pos211111(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    int p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
 }
 
 static ZINDEX Index121111(const int *pos) {
@@ -5509,25 +3272,6 @@ static ZINDEX Index121111(const int *pos) {
                                        NSQUARES * N2_Index(pos[4], pos[3])))));
 }
 
-static bool Pos121111(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    int p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
 static ZINDEX Index112111(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -5539,25 +3283,6 @@ static ZINDEX Index112111(const int *pos) {
                                   NSQUARES *
                                       (pos[2] +
                                        NSQUARES * N2_Index(pos[5], pos[4])))));
-}
-
-static bool Pos112111(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    int p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
 }
 
 static ZINDEX Index111211(const int *pos) {
@@ -5573,25 +3298,6 @@ static ZINDEX Index111211(const int *pos) {
                                        NSQUARES * N2_Index(pos[6], pos[5])))));
 }
 
-static bool Pos111211(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    int p2 = p2_tab[index];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    return true;
-}
-
 static ZINDEX Index111121(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -5605,25 +3311,6 @@ static ZINDEX Index111121(const int *pos) {
                                        NSQUARES * N2_Index(pos[7], pos[6])))));
 }
 
-static bool Pos111121(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    int p2 = p2_tab[index];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    return true;
-}
-
 static ZINDEX Index111112(const int *pos) {
     return pos[6] +
            NSQUARES *
@@ -5635,25 +3322,6 @@ static ZINDEX Index111112(const int *pos) {
                                   NSQUARES *
                                       (pos[2] +
                                        NSQUARES * N2_Index(pos[8], pos[7])))));
-}
-
-static bool Pos111112(ZINDEX index, int *pos) {
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N2);
-    int p2 = p2_tab[index];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    return true;
 }
 
 static ZINDEX Index22111(const int *pos) {
@@ -5673,43 +3341,6 @@ static ZINDEX IndexDP22111(const int *pos) {
     return pos[8] + NSQUARES * (pos[7] + NSQUARES * (pos[6] + NSQUARES * dp22));
 }
 
-static bool Pos22111(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosDP22111(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-
-    assert(index < N4_OPPOSING);
-
-    return PosDP22(index, pos);
-}
-
 static ZINDEX Index21211(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -5718,30 +3349,6 @@ static ZINDEX Index21211(const int *pos) {
                             NSQUARES * (ZINDEX)(N2_Index(pos[6], pos[5]) +
                                                 N2_Offset *
                                                     N2_Index(pos[3], pos[2]))));
-}
-
-static bool Pos21211(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
 }
 
 static ZINDEX Index21121(const int *pos) {
@@ -5754,30 +3361,6 @@ static ZINDEX Index21121(const int *pos) {
                                                     N2_Index(pos[3], pos[2]))));
 }
 
-static bool Pos21121(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
 static ZINDEX Index21112(const int *pos) {
     return pos[6] +
            NSQUARES *
@@ -5786,30 +3369,6 @@ static ZINDEX Index21112(const int *pos) {
                             NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
                                                 N2_Offset *
                                                     N2_Index(pos[3], pos[2]))));
-}
-
-static bool Pos21112(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
 }
 
 static ZINDEX Index12211(const int *pos) {
@@ -5822,30 +3381,6 @@ static ZINDEX Index12211(const int *pos) {
                                                     N2_Index(pos[4], pos[3]))));
 }
 
-static bool Pos12211(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
 static ZINDEX Index12121(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -5854,30 +3389,6 @@ static ZINDEX Index12121(const int *pos) {
                             NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) +
                                                 N2_Offset *
                                                     N2_Index(pos[4], pos[3]))));
-}
-
-static bool Pos12121(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
 }
 
 static ZINDEX Index12112(const int *pos) {
@@ -5890,30 +3401,6 @@ static ZINDEX Index12112(const int *pos) {
                                                     N2_Index(pos[4], pos[3]))));
 }
 
-static bool Pos12112(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
-}
-
 static ZINDEX Index11221(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -5922,30 +3409,6 @@ static ZINDEX Index11221(const int *pos) {
                             NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) +
                                                 N2_Offset *
                                                     N2_Index(pos[5], pos[4]))));
-}
-
-static bool Pos11221(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
 }
 
 static ZINDEX Index11212(const int *pos) {
@@ -5958,30 +3421,6 @@ static ZINDEX Index11212(const int *pos) {
                                                     N2_Index(pos[5], pos[4]))));
 }
 
-static bool Pos11212(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
-}
-
 static ZINDEX Index11122(const int *pos) {
     return pos[4] +
            NSQUARES *
@@ -5990,30 +3429,6 @@ static ZINDEX Index11122(const int *pos) {
                             NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
                                                 N2_Offset *
                                                     N2_Index(pos[6], pos[5]))));
-}
-
-static bool Pos11122(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    return true;
 }
 
 static ZINDEX Index2221(const int *pos) {
@@ -6031,84 +3446,12 @@ static ZINDEX IndexDP2221(const int *pos) {
     return pos[8] + NSQUARES * (N2_Index(pos[7], pos[6]) + N2_Offset * dp22);
 }
 
-static bool Pos2221(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosDP2221(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-
-    assert(index < N4_OPPOSING);
-
-    return PosDP22(index, pos);
-}
-
 static ZINDEX Index2221_1131(const int *pos) {
     return pos[8] + NSQUARES * (N2_Odd_Index(pos[7], pos[6]) +
                                 N2_ODD_PARITY_Offset *
                                     (ZINDEX)(N2_Odd_Index(pos[3], pos[2]) +
                                              N2_ODD_PARITY_Offset *
                                                  N2_Index(pos[5], pos[4])));
-}
-
-static bool Pos2221_1131(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_ODD_PARITY_Offset;
-    assert(id2 < N2_ODD_PARITY);
-    p2 = p2_odd_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_ODD_PARITY_Offset;
-    id2 = index % N2_ODD_PARITY_Offset;
-    assert(id2 < N2_ODD_PARITY);
-    p2 = p2_odd_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_ODD_PARITY_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
 }
 
 static ZINDEX Index2221_1130(const int *pos) {
@@ -6119,66 +3462,12 @@ static ZINDEX Index2221_1130(const int *pos) {
                                                  N2_Index(pos[5], pos[4])));
 }
 
-static bool Pos2221_1130(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_EVEN_PARITY_Offset;
-    assert(id2 < N2_EVEN_PARITY);
-    p2 = p2_even_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_EVEN_PARITY_Offset;
-    id2 = index % N2_ODD_PARITY_Offset;
-    assert(id2 < N2_ODD_PARITY);
-    p2 = p2_odd_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_ODD_PARITY_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
-}
-
 static ZINDEX Index2221_1030(const int *pos) {
     return pos[8] + NSQUARES * (N2_Even_Index(pos[7], pos[6]) +
                                 N2_EVEN_PARITY_Offset *
                                     (ZINDEX)(N2_Even_Index(pos[3], pos[2]) +
                                              N2_EVEN_PARITY_Offset *
                                                  N2_Index(pos[5], pos[4])));
-}
-
-static bool Pos2221_1030(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_EVEN_PARITY_Offset;
-    assert(id2 < N2_EVEN_PARITY);
-    p2 = p2_even_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_EVEN_PARITY_Offset;
-    id2 = index % N2_EVEN_PARITY_Offset;
-    assert(id2 < N2_EVEN_PARITY);
-    p2 = p2_even_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_EVEN_PARITY_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    return true;
 }
 
 static ZINDEX Index2212(const int *pos) {
@@ -6196,51 +3485,6 @@ static ZINDEX IndexDP2212(const int *pos) {
     return pos[6] + NSQUARES * (N2_Index(pos[8], pos[7]) + N2_Offset * dp22);
 }
 
-static bool Pos2212(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
-static bool PosDP2212(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-
-    assert(index < N4_OPPOSING);
-
-    return PosDP22(index, pos);
-}
-
 static ZINDEX Index2122(const int *pos) {
     return pos[4] +
            NSQUARES *
@@ -6249,66 +3493,12 @@ static ZINDEX Index2122(const int *pos) {
                                      N2_Offset * N2_Index(pos[3], pos[2])));
 }
 
-static bool Pos2122(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    return true;
-}
-
 static ZINDEX Index1222(const int *pos) {
     return pos[2] +
            NSQUARES *
                (N2_Index(pos[8], pos[7]) +
                 N2_Offset * (ZINDEX)(N2_Index(pos[6], pos[5]) +
                                      N2_Offset * N2_Index(pos[4], pos[3])));
-}
-
-static bool Pos1222(ZINDEX index, int *pos) {
-    int p2, id2;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_Offset;
-    assert(index < N2);
-    p2 = p2_tab[index];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    return true;
 }
 
 static ZINDEX Index31111(const int *pos) {
@@ -6322,27 +3512,6 @@ static ZINDEX Index31111(const int *pos) {
                                                                pos[2]))));
 }
 
-static bool Pos31111(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index13111(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -6352,27 +3521,6 @@ static ZINDEX Index13111(const int *pos) {
                              NSQUARES *
                                  (pos[2] + NSQUARES * N3_Index(pos[5], pos[4],
                                                                pos[3]))));
-}
-
-static bool Pos13111(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
 }
 
 static ZINDEX Index11311(const int *pos) {
@@ -6386,27 +3534,6 @@ static ZINDEX Index11311(const int *pos) {
                                                                pos[4]))));
 }
 
-static bool Pos11311(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    return true;
-}
-
 static ZINDEX Index11131(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -6416,27 +3543,6 @@ static ZINDEX Index11131(const int *pos) {
                              NSQUARES *
                                  (pos[2] + NSQUARES * N3_Index(pos[7], pos[6],
                                                                pos[5]))));
-}
-
-static bool Pos11131(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    return true;
 }
 
 static ZINDEX Index11113(const int *pos) {
@@ -6450,27 +3556,6 @@ static ZINDEX Index11113(const int *pos) {
                                                                pos[6]))));
 }
 
-static bool Pos11113(ZINDEX index, int *pos) {
-    int p3;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    return true;
-}
-
 static ZINDEX Index3211(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -6478,30 +3563,6 @@ static ZINDEX Index3211(const int *pos) {
                 (NSQUARES) *
                     (ZINDEX)(N2_Index(pos[6], pos[5]) +
                              N2_Offset * N3_Index(pos[4], pos[3], pos[2])));
-}
-
-static bool Pos3211(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
 }
 
 static ZINDEX Index3121(const int *pos) {
@@ -6513,30 +3574,6 @@ static ZINDEX Index3121(const int *pos) {
                              N2_Offset * N3_Index(pos[4], pos[3], pos[2])));
 }
 
-static bool Pos3121(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index3121_1100(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -6544,30 +3581,6 @@ static ZINDEX Index3121_1100(const int *pos) {
                 (NSQUARES) *
                     (ZINDEX)(N2_Index(pos[7], pos[6]) +
                              N2_Offset * N3_Odd_Index(pos[4], pos[3], pos[2])));
-}
-
-static bool Pos3121_1100(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < N3_ODD_PARITY);
-    p3 = p3_odd_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
 }
 
 static ZINDEX Index3121_1111(const int *pos) {
@@ -6579,30 +3592,6 @@ static ZINDEX Index3121_1111(const int *pos) {
                                         N3_Odd_Index(pos[4], pos[3], pos[2])));
 }
 
-static bool Pos3121_1111(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_ODD_PARITY_Offset;
-    assert(id2 < N2_ODD_PARITY);
-    p2 = p2_odd_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_ODD_PARITY_Offset;
-    assert(index < N3_ODD_PARITY);
-    p3 = p3_odd_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index3121_1110(const int *pos) {
     return pos[8] +
            NSQUARES * (pos[5] +
@@ -6610,30 +3599,6 @@ static ZINDEX Index3121_1110(const int *pos) {
                            (ZINDEX)(N2_Even_Index(pos[7], pos[6]) +
                                     N2_EVEN_PARITY_Offset *
                                         N3_Odd_Index(pos[4], pos[3], pos[2])));
-}
-
-static bool Pos3121_1110(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_EVEN_PARITY_Offset;
-    assert(id2 < N2_EVEN_PARITY);
-    p2 = p2_even_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_EVEN_PARITY_Offset;
-    assert(index < N3_ODD_PARITY);
-    p3 = p3_odd_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
 }
 
 static ZINDEX Index3112(const int *pos) {
@@ -6645,30 +3610,6 @@ static ZINDEX Index3112(const int *pos) {
                              N2_Offset * N3_Index(pos[4], pos[3], pos[2])));
 }
 
-static bool Pos3112(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index2311(const int *pos) {
     return pos[8] +
            NSQUARES *
@@ -6676,30 +3617,6 @@ static ZINDEX Index2311(const int *pos) {
                 (NSQUARES) *
                     (ZINDEX)(N2_Index(pos[3], pos[2]) +
                              N2_Offset * N3_Index(pos[6], pos[5], pos[4])));
-}
-
-static bool Pos2311(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    return true;
 }
 
 static ZINDEX Index2131(const int *pos) {
@@ -6711,30 +3628,6 @@ static ZINDEX Index2131(const int *pos) {
                              N2_Offset * N3_Index(pos[7], pos[6], pos[5])));
 }
 
-static bool Pos2131(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    return true;
-}
-
 static ZINDEX Index2113(const int *pos) {
     return pos[5] +
            NSQUARES *
@@ -6742,30 +3635,6 @@ static ZINDEX Index2113(const int *pos) {
                 (NSQUARES) *
                     (ZINDEX)(N2_Index(pos[3], pos[2]) +
                              N2_Offset * N3_Index(pos[8], pos[7], pos[6])));
-}
-
-static bool Pos2113(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    return true;
 }
 
 static ZINDEX Index1321(const int *pos) {
@@ -6777,30 +3646,6 @@ static ZINDEX Index1321(const int *pos) {
                              N2_Offset * N3_Index(pos[5], pos[4], pos[3])));
 }
 
-static bool Pos1321(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
-}
-
 static ZINDEX Index1312(const int *pos) {
     return pos[6] +
            NSQUARES *
@@ -6808,30 +3653,6 @@ static ZINDEX Index1312(const int *pos) {
                 (NSQUARES) *
                     (ZINDEX)(N2_Index(pos[8], pos[7]) +
                              N2_Offset * N3_Index(pos[5], pos[4], pos[3])));
-}
-
-static bool Pos1312(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
 }
 
 static ZINDEX Index1312_0010(const int *pos) {
@@ -6843,30 +3664,6 @@ static ZINDEX Index1312_0010(const int *pos) {
                                           N3_Index(pos[5], pos[4], pos[3])));
 }
 
-static bool Pos1312_0010(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_EVEN_PARITY_Offset;
-    assert(id2 < N2_EVEN_PARITY);
-    p2 = p2_even_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_EVEN_PARITY_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
-}
-
 static ZINDEX Index1312_0011(const int *pos) {
     return pos[6] +
            NSQUARES *
@@ -6874,30 +3671,6 @@ static ZINDEX Index1312_0011(const int *pos) {
                 (NSQUARES) * (ZINDEX)(N2_Odd_Index(pos[8], pos[7]) +
                                       N2_ODD_PARITY_Offset *
                                           N3_Index(pos[5], pos[4], pos[3])));
-}
-
-static bool Pos1312_0011(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_ODD_PARITY_Offset;
-    assert(id2 < N2_ODD_PARITY);
-    p2 = p2_odd_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_ODD_PARITY_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
 }
 
 static ZINDEX Index1231(const int *pos) {
@@ -6909,30 +3682,6 @@ static ZINDEX Index1231(const int *pos) {
                              N2_Offset * N3_Index(pos[7], pos[6], pos[5])));
 }
 
-static bool Pos1231(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    return true;
-}
-
 static ZINDEX Index1213(const int *pos) {
     return pos[5] +
            NSQUARES *
@@ -6940,30 +3689,6 @@ static ZINDEX Index1213(const int *pos) {
                 (NSQUARES) *
                     (ZINDEX)(N2_Index(pos[4], pos[3]) +
                              N2_Offset * N3_Index(pos[8], pos[7], pos[6])));
-}
-
-static bool Pos1213(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    return true;
 }
 
 static ZINDEX Index1132(const int *pos) {
@@ -6975,30 +3700,6 @@ static ZINDEX Index1132(const int *pos) {
                              N2_Offset * N3_Index(pos[6], pos[5], pos[4])));
 }
 
-static bool Pos1132(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    return true;
-}
-
 static ZINDEX Index1123(const int *pos) {
     return pos[3] +
            NSQUARES *
@@ -7008,58 +3709,10 @@ static ZINDEX Index1123(const int *pos) {
                              N2_Offset * N3_Index(pos[8], pos[7], pos[6])));
 }
 
-static bool Pos1123(ZINDEX index, int *pos) {
-    int p2, p3, id2;
-
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    p3 = p3_tab[index];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    return true;
-}
-
 static ZINDEX Index331(const int *pos) {
     return pos[8] +
            NSQUARES * (N3_Index(pos[7], pos[6], pos[5]) +
                        N3_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
-}
-
-static bool Pos331(ZINDEX index, int *pos) {
-    int id3, p3;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id3 = index % N3_Offset;
-    assert(id3 < N3);
-    index /= N3_Offset;
-    assert(index < N3);
-    p3 = p3_tab[id3];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
 }
 
 static ZINDEX Index331_0020(const int *pos) {
@@ -7068,58 +3721,10 @@ static ZINDEX Index331_0020(const int *pos) {
                                     (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static bool Pos331_0020(ZINDEX index, int *pos) {
-    int id3, p3;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id3 = index % N3_EVEN_PARITY_Offset;
-    assert(id3 < N3_EVEN_PARITY);
-    index /= N3_EVEN_PARITY_Offset;
-    assert(index < N3);
-    p3 = p3_even_tab[id3];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index331_0021(const int *pos) {
     return pos[8] + NSQUARES * (N3_Odd_Index(pos[7], pos[6], pos[5]) +
                                 N3_ODD_PARITY_Offset *
                                     (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
-}
-
-static bool Pos331_0021(ZINDEX index, int *pos) {
-    int id3, p3;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id3 = index % N3_ODD_PARITY_Offset;
-    assert(id3 < N3_ODD_PARITY);
-    index /= N3_ODD_PARITY_Offset;
-    assert(index < N3);
-    p3 = p3_odd_tab[id3];
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3;
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
 }
 
 static ZINDEX Index313(const int *pos) {
@@ -7128,89 +3733,16 @@ static ZINDEX Index313(const int *pos) {
                        N3_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static bool Pos313(ZINDEX index, int *pos) {
-    int id3, p3;
-
-    pos[5] = index % NSQUARES;
-    index /= NSQUARES;
-    id3 = index % N3_Offset;
-    assert(id3 < N3);
-    index /= N3_Offset;
-    assert(index < N3);
-    p3 = p3_tab[id3];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index133(const int *pos) {
     return pos[2] +
            NSQUARES * (N3_Index(pos[8], pos[7], pos[6]) +
                        N3_Offset * (ZINDEX)N3_Index(pos[5], pos[4], pos[3]));
 }
 
-static bool Pos133(ZINDEX index, int *pos) {
-    int id3, p3;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id3 = index % N3_Offset;
-    assert(id3 < N3);
-    index /= N3_Offset;
-    assert(index < N3);
-    p3 = p3_tab[id3];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    p3 = p3_tab[index];
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3;
-    return true;
-}
-
 static ZINDEX Index322(const int *pos) {
     return N2_Index(pos[8], pos[7]) +
            (N2_Offset) * (N2_Index(pos[6], pos[5]) +
                           N2_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
-}
-
-static bool Pos322(ZINDEX index, int *pos) {
-    unsigned int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    unsigned int p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    unsigned int p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
 }
 
 static ZINDEX Index322_0010(const int *pos) {
@@ -7220,31 +3752,6 @@ static ZINDEX Index322_0010(const int *pos) {
                 N2_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static bool Pos322_0010(ZINDEX index, int *pos) {
-    unsigned int id2 = index % N2_EVEN_PARITY_Offset;
-    assert(id2 < N2_EVEN_PARITY);
-    unsigned int p2 = p2_even_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_EVEN_PARITY_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    unsigned int p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index322_0011(const int *pos) {
     return N2_Odd_Index(pos[6], pos[5]) +
            (N2_ODD_PARITY_Offset) *
@@ -7252,60 +3759,10 @@ static ZINDEX Index322_0011(const int *pos) {
                 N2_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static bool Pos322_0011(ZINDEX index, int *pos) {
-    unsigned int id2 = index % N2_ODD_PARITY_Offset;
-    assert(id2 < N2_ODD_PARITY);
-    unsigned int p2 = p2_odd_tab[id2];
-    pos[6] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[5] = p2;
-    index /= N2_ODD_PARITY_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    unsigned int p3 = p3_tab[index];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    return true;
-}
-
 static ZINDEX Index232(const int *pos) {
     return N2_Index(pos[8], pos[7]) +
            (N2_Offset) * (N2_Index(pos[3], pos[2]) +
                           N2_Offset * (ZINDEX)N3_Index(pos[6], pos[5], pos[4]));
-}
-
-static bool Pos232(ZINDEX index, int *pos) {
-    unsigned int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    unsigned int p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    unsigned int p3 = p3_tab[index];
-    pos[6] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[5] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[4] = p3;
-    return true;
 }
 
 static ZINDEX Index223(const int *pos) {
@@ -7322,46 +3779,6 @@ static ZINDEX IndexDP223(const int *pos) {
     return N3_Index(pos[8], pos[7], pos[6]) + (N3_Offset)*dp22;
 }
 
-static bool Pos223(ZINDEX index, int *pos) {
-    unsigned int id2 = index % N2_Offset;
-    assert(id2 < N2);
-    unsigned int p2 = p2_tab[id2];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    index /= N2_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    unsigned int p3 = p3_tab[index];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    return true;
-}
-
-static bool PosDP223(ZINDEX index, int *pos) {
-    unsigned int id3 = index % N3_Offset;
-    assert(id3 < N3);
-    unsigned int p3 = p3_tab[id3];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    index /= N3_Offset;
-
-    assert(index < N4_OPPOSING);
-    return PosDP22(index, pos);
-}
-
 static ZINDEX Index223_1100(const int *pos) {
     return N2_Odd_Index(pos[3], pos[2]) +
            (N2_ODD_PARITY_Offset) *
@@ -7369,61 +3786,11 @@ static ZINDEX Index223_1100(const int *pos) {
                 (N2_Offset) * (ZINDEX)N3_Index(pos[8], pos[7], pos[6]));
 }
 
-static bool Pos223_1100(ZINDEX index, int *pos) {
-    unsigned int id2 = index % N2_ODD_PARITY_Offset;
-    assert(id2 < N2_ODD_PARITY);
-    unsigned int p2 = p2_odd_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_ODD_PARITY_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    unsigned int p3 = p3_tab[index];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    return true;
-}
-
 static ZINDEX Index223_1000(const int *pos) {
     return N2_Even_Index(pos[3], pos[2]) +
            (N2_EVEN_PARITY_Offset) *
                (N2_Index(pos[5], pos[4]) +
                 (N2_Offset) * (ZINDEX)N3_Index(pos[8], pos[7], pos[6]));
-}
-
-static bool Pos223_1000(ZINDEX index, int *pos) {
-    unsigned int id2 = index % N2_EVEN_PARITY_Offset;
-    assert(id2 < N2_EVEN_PARITY);
-    unsigned int p2 = p2_even_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_EVEN_PARITY_Offset;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[5] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[4] = p2;
-    index /= N2_Offset;
-    assert(index < N3);
-    unsigned int p3 = p3_tab[index];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    return true;
 }
 
 static ZINDEX Index4111(const int *pos) {
@@ -7435,27 +3802,6 @@ static ZINDEX Index4111(const int *pos) {
                                                             pos[3], pos[2])));
 }
 
-static bool Pos4111(ZINDEX index, int *pos) {
-    int p4;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
-}
-
 static ZINDEX Index1411(const int *pos) {
     return pos[8] +
            (NSQUARES) *
@@ -7463,27 +3809,6 @@ static ZINDEX Index1411(const int *pos) {
                 (NSQUARES) *
                     (pos[2] + (NSQUARES) * (ZINDEX)N4_Index(pos[6], pos[5],
                                                             pos[4], pos[3])));
-}
-
-static bool Pos1411(ZINDEX index, int *pos) {
-    int p4;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4;
-    return true;
 }
 
 static ZINDEX Index1141(const int *pos) {
@@ -7495,27 +3820,6 @@ static ZINDEX Index1141(const int *pos) {
                                                             pos[5], pos[4])));
 }
 
-static bool Pos1141(ZINDEX index, int *pos) {
-    int p4;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4;
-    return true;
-}
-
 static ZINDEX Index1114(const int *pos) {
     return pos[4] +
            (NSQUARES) *
@@ -7525,55 +3829,10 @@ static ZINDEX Index1114(const int *pos) {
                                                             pos[6], pos[5])));
 }
 
-static bool Pos1114(ZINDEX index, int *pos) {
-    int p4;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[8] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4;
-    return true;
-}
-
 static ZINDEX Index421(const int *pos) {
     return pos[8] + NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) +
                                         N2_Offset * N4_Index(pos[5], pos[4],
                                                              pos[3], pos[2]));
-}
-
-static bool Pos421(ZINDEX index, int *pos) {
-    int p2, p4, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_Offset;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
 }
 
 static ZINDEX Index421_0010(const int *pos) {
@@ -7581,30 +3840,6 @@ static ZINDEX Index421_0010(const int *pos) {
            NSQUARES * (ZINDEX)(N2_Even_Index(pos[7], pos[6]) +
                                N2_EVEN_PARITY_Offset *
                                    N4_Index(pos[5], pos[4], pos[3], pos[2]));
-}
-
-static bool Pos421_0010(ZINDEX index, int *pos) {
-    int p2, p4, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_EVEN_PARITY_Offset;
-    assert(id2 < N2_EVEN_PARITY);
-    p2 = p2_even_tab[id2];
-    pos[7] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[6] = p2;
-    index /= N2_EVEN_PARITY_Offset;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
 }
 
 static ZINDEX Index421_0011(const int *pos) {
@@ -7620,58 +3855,10 @@ static ZINDEX Index412(const int *pos) {
                                                              pos[3], pos[2]));
 }
 
-static bool Pos412(ZINDEX index, int *pos) {
-    int p2, p4, id2;
-
-    pos[6] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
-}
-
 static ZINDEX Index241(const int *pos) {
     return pos[8] + NSQUARES * (ZINDEX)(N2_Index(pos[3], pos[2]) +
                                         N2_Offset * N4_Index(pos[7], pos[6],
                                                              pos[5], pos[4]));
-}
-
-static bool Pos241(ZINDEX index, int *pos) {
-    int p2, p4, id2;
-
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4;
-    return true;
 }
 
 static ZINDEX Index214(const int *pos) {
@@ -7680,58 +3867,10 @@ static ZINDEX Index214(const int *pos) {
                                                              pos[6], pos[5]));
 }
 
-static bool Pos214(ZINDEX index, int *pos) {
-    int p2, p4, id2;
-
-    pos[4] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[8] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4;
-    return true;
-}
-
 static ZINDEX Index142(const int *pos) {
     return pos[2] + NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
                                         N2_Offset * N4_Index(pos[6], pos[5],
                                                              pos[4], pos[3]));
-}
-
-static bool Pos142(ZINDEX index, int *pos) {
-    int p2, p4, id2;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4;
-    return true;
 }
 
 static ZINDEX Index124(const int *pos) {
@@ -7740,57 +3879,9 @@ static ZINDEX Index124(const int *pos) {
                                                              pos[6], pos[5]));
 }
 
-static bool Pos124(ZINDEX index, int *pos) {
-    int p2, p4, id2;
-
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[4] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[3] = p2;
-    index /= N2_Offset;
-    assert(index < N4);
-    p4 = p4_tab[index];
-    pos[8] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4;
-    return true;
-}
-
 static ZINDEX Index43(const int *pos) {
     return N3_Index(pos[8], pos[7], pos[6]) +
            N3_Offset * (ZINDEX)N4_Index(pos[5], pos[4], pos[3], pos[2]);
-}
-
-static bool Pos43(ZINDEX index, int *pos) {
-    int p4, id3, p3;
-
-    id3 = index % N3_Offset;
-    assert(id3 < N3);
-    index /= N3_Offset;
-    assert(index < N4);
-    p3 = p3_tab[id3];
-    pos[8] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[7] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[6] = p3;
-    p4 = p4_tab[index];
-    pos[5] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[4] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[3] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[2] = p4;
-    return true;
 }
 
 static ZINDEX Index34(const int *pos) {
@@ -7798,336 +3889,249 @@ static ZINDEX Index34(const int *pos) {
            N3_Offset * (ZINDEX)N4_Index(pos[8], pos[7], pos[6], pos[5]);
 }
 
-static bool Pos34(ZINDEX index, int *pos) {
-    int p4, id3, p3;
-
-    id3 = index % N3_Offset;
-    assert(id3 < N3);
-    index /= N3_Offset;
-    assert(index < N4);
-    p3 = p3_tab[id3];
-    pos[4] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[3] = p3 % NSQUARES;
-    p3 /= NSQUARES;
-    pos[2] = p3;
-    p4 = p4_tab[index];
-    pos[8] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[7] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[6] = p4 % NSQUARES;
-    p4 /= NSQUARES;
-    pos[5] = p4;
-    return true;
-}
-
 static ZINDEX Index511(const int *pos) {
     return pos[8] + NSQUARES * (pos[7] + NSQUARES * (ZINDEX)Index5(pos));
-}
-
-static bool Pos511(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[7] = index % NSQUARES;
-    index /= NSQUARES;
-    return Pos5(index, pos);
 }
 
 static ZINDEX Index151(const int *pos) {
     return pos[8] + NSQUARES * (pos[2] + NSQUARES * (ZINDEX)Index5(pos + 1));
 }
 
-static bool Pos151(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    return Pos5(index, pos + 1);
-}
-
 static ZINDEX Index115(const int *pos) {
     return pos[3] + NSQUARES * (pos[2] + NSQUARES * (ZINDEX)Index5(pos + 2));
-}
-
-static bool Pos115(ZINDEX index, int *pos) {
-    pos[3] = index % NSQUARES;
-    index /= NSQUARES;
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    return Pos5(index, pos + 2);
 }
 
 static ZINDEX Index52(const int *pos) {
     return N2_Index(pos[8], pos[7]) + N2_Offset * ((ZINDEX)Index5(pos));
 }
 
-static bool Pos52(ZINDEX index, int *pos) {
-    unsigned int p2, id2;
-
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[8] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[7] = p2;
-    index /= N2_Offset;
-    return Pos5(index, pos);
-}
-
 static ZINDEX Index25(const int *pos) {
     return N2_Index(pos[3], pos[2]) + N2_Offset * ((ZINDEX)Index5(pos + 2));
-}
-
-static bool Pos25(ZINDEX index, int *pos) {
-    unsigned int p2, id2;
-
-    id2 = index % N2_Offset;
-    assert(id2 < N2);
-    p2 = p2_tab[id2];
-    pos[3] = p2 % NSQUARES;
-    p2 /= NSQUARES;
-    pos[2] = p2;
-    index /= N2_Offset;
-    return Pos5(index, pos + 2);
 }
 
 static ZINDEX Index61(const int *pos) {
     return pos[8] + NSQUARES * ((ZINDEX)Index6(pos));
 }
 
-static bool Pos61(ZINDEX index, int *pos) {
-    pos[8] = index % NSQUARES;
-    index /= NSQUARES;
-    return Pos6(index, pos);
-}
-
 static ZINDEX Index16(const int *pos) {
     return pos[2] + NSQUARES * ((ZINDEX)Index6(pos + 1));
 }
 
-static bool Pos16(ZINDEX index, int *pos) {
-    pos[2] = index % NSQUARES;
-    index /= NSQUARES;
-    return Pos6(index, pos + 1);
-}
-
-static const IndexType IndexTable[] = {
-    {111111, FREE_PAWNS, 0, Pos111111, Index111111},
-    {111111, BP_11_PAWNS, 0, PosBP111111, IndexBP111111},
-    {111111, OP_11_PAWNS, 0, PosOP111111, IndexOP111111},
-    {21111, FREE_PAWNS, 0, Pos21111, Index21111},
-    {21111, OP_21_PAWNS, 0, PosOP21111, IndexOP21111},
-    {12111, FREE_PAWNS, 0, Pos12111, Index12111},
-    {12111, OP_12_PAWNS, 0, PosOP12111, IndexOP12111},
-    {11211, FREE_PAWNS, 0, Pos11211, Index11211},
-    {11211, BP_11_PAWNS, 0, PosBP11211, IndexBP11211},
-    {11211, OP_11_PAWNS, 0, PosOP11211, IndexOP11211},
-    {11121, FREE_PAWNS, 0, Pos11121, Index11121},
-    {11121, BP_11_PAWNS, 0, PosBP11121, IndexBP11121},
-    {11121, OP_11_PAWNS, 0, PosOP11121, IndexOP11121},
-    {11112, FREE_PAWNS, 0, Pos11112, Index11112},
-    {11112, BP_11_PAWNS, 0, PosBP11112, IndexBP11112},
-    {11112, OP_11_PAWNS, 0, PosOP11112, IndexOP11112},
-    {2211, FREE_PAWNS, 0, Pos2211, Index2211},
-    {2211, DP_22_PAWNS, 0, PosDP2211, IndexDP2211},
-    {2211, OP_22_PAWNS, 0, PosOP2211, IndexOP2211},
-    {2211, FREE_PAWNS, 1100, Pos2211_1100, Index2211_1100},
-    {2211, FREE_PAWNS, 1000, Pos2211_1000, Index2211_1000},
-    {2121, FREE_PAWNS, 0, Pos2121, Index2121},
-    {2121, OP_21_PAWNS, 0, PosOP2121, IndexOP2121},
-    {1221, FREE_PAWNS, 0, Pos1221, Index1221},
-    {1221, OP_12_PAWNS, 0, PosOP1221, IndexOP1221},
-    {2112, FREE_PAWNS, 0, Pos2112, Index2112},
-    {2112, OP_21_PAWNS, 0, PosOP2112, IndexOP2112},
-    {1212, FREE_PAWNS, 0, Pos1212, Index1212},
-    {1212, OP_12_PAWNS, 0, PosOP1212, IndexOP1212},
-    {1122, FREE_PAWNS, 0, Pos1122, Index1122},
-    {1122, BP_11_PAWNS, 0, PosBP1122, IndexBP1122},
-    {1122, OP_11_PAWNS, 0, PosOP1122, IndexOP1122},
-    {222, FREE_PAWNS, 0, Pos222, Index222},
-    {222, DP_22_PAWNS, 0, PosDP222, IndexDP222},
-    {222, OP_22_PAWNS, 0, PosOP222, IndexOP222},
-    {3111, FREE_PAWNS, 0, Pos3111, Index3111},
-    {3111, OP_31_PAWNS, 0, PosOP3111, IndexOP3111},
-    {1311, FREE_PAWNS, 0, Pos1311, Index1311},
-    {1311, OP_13_PAWNS, 0, PosOP1311, IndexOP1311},
-    {1131, FREE_PAWNS, 0, Pos1131, Index1131},
-    {1131, BP_11_PAWNS, 0, PosBP1131, IndexBP1131},
-    {1131, OP_11_PAWNS, 0, PosOP1131, IndexOP1131},
-    {1113, FREE_PAWNS, 0, Pos1113, Index1113},
-    {1113, BP_11_PAWNS, 0, PosBP1113, IndexBP1113},
-    {1113, OP_11_PAWNS, 0, PosOP1113, IndexOP1113},
-    {123, FREE_PAWNS, 0, Pos123, Index123},
-    {123, OP_12_PAWNS, 0, PosOP123, IndexOP123},
-    {213, FREE_PAWNS, 0, Pos213, Index213},
-    {213, OP_21_PAWNS, 0, PosOP213, IndexOP213},
-    {132, FREE_PAWNS, 0, Pos132, Index132},
-    {132, OP_13_PAWNS, 0, PosOP132, IndexOP132},
-    {231, FREE_PAWNS, 0, Pos231, Index231},
-    {312, FREE_PAWNS, 0, Pos312, Index312},
-    {312, OP_31_PAWNS, 0, PosOP312, IndexOP312},
-    {321, FREE_PAWNS, 0, Pos321, Index321},
-    {33, FREE_PAWNS, 0, Pos33, Index33},
-    {411, FREE_PAWNS, 0, Pos411, Index411},
-    {141, FREE_PAWNS, 0, Pos141, Index141},
-    {114, FREE_PAWNS, 0, Pos114, Index114},
-    {114, BP_11_PAWNS, 0, PosBP114, IndexBP114},
-    {114, OP_11_PAWNS, 0, PosOP114, IndexOP114},
-    {42, FREE_PAWNS, 0, Pos42, Index42},
-    {24, FREE_PAWNS, 0, Pos24, Index24},
-    {1111111, FREE_PAWNS, 0, Pos1111111, Index1111111},
-    {211111, FREE_PAWNS, 0, Pos211111, Index211111},
-    {121111, FREE_PAWNS, 0, Pos121111, Index121111},
-    {112111, FREE_PAWNS, 0, Pos112111, Index112111},
-    {111211, FREE_PAWNS, 0, Pos111211, Index111211},
-    {111121, FREE_PAWNS, 0, Pos111121, Index111121},
-    {111112, FREE_PAWNS, 0, Pos111112, Index111112},
-    {22111, FREE_PAWNS, 0, Pos22111, Index22111},
-    {22111, DP_22_PAWNS, 0, PosDP22111, IndexDP22111},
-    {21211, FREE_PAWNS, 0, Pos21211, Index21211},
-    {21121, FREE_PAWNS, 0, Pos21121, Index21121},
-    {21112, FREE_PAWNS, 0, Pos21112, Index21112},
-    {12211, FREE_PAWNS, 0, Pos12211, Index12211},
-    {12121, FREE_PAWNS, 0, Pos12121, Index12121},
-    {12112, FREE_PAWNS, 0, Pos12112, Index12112},
-    {11221, FREE_PAWNS, 0, Pos11221, Index11221},
-    {11212, FREE_PAWNS, 0, Pos11212, Index11212},
-    {11122, FREE_PAWNS, 0, Pos11122, Index11122},
-    {2221, FREE_PAWNS, 0, Pos2221, Index2221},
-    {2221, DP_22_PAWNS, 0, PosDP2221, IndexDP2221},
-    {2221, FREE_PAWNS, 1131, Pos2221_1131, Index2221_1131},
-    {2221, FREE_PAWNS, 1130, Pos2221_1130, Index2221_1130},
-    {2221, FREE_PAWNS, 1030, Pos2221_1030, Index2221_1030},
-    {2212, FREE_PAWNS, 0, Pos2212, Index2212},
-    {2212, DP_22_PAWNS, 0, PosDP2212, IndexDP2212},
-    {2122, FREE_PAWNS, 0, Pos2122, Index2122},
-    {1222, FREE_PAWNS, 0, Pos1222, Index1222},
-    {31111, FREE_PAWNS, 0, Pos31111, Index31111},
-    {13111, FREE_PAWNS, 0, Pos13111, Index13111},
-    {11311, FREE_PAWNS, 0, Pos11311, Index11311},
-    {11131, FREE_PAWNS, 0, Pos11131, Index11131},
-    {11113, FREE_PAWNS, 0, Pos11113, Index11113},
-    {3211, FREE_PAWNS, 0, Pos3211, Index3211},
-    {3121, FREE_PAWNS, 0, Pos3121, Index3121},
-    {3121, FREE_PAWNS, 1100, Pos3121_1100, Index3121_1100},
-    {3121, FREE_PAWNS, 1111, Pos3121_1111, Index3121_1111},
-    {3121, FREE_PAWNS, 1110, Pos3121_1110, Index3121_1110},
-    {3112, FREE_PAWNS, 0, Pos3112, Index3112},
-    {2311, FREE_PAWNS, 0, Pos2311, Index2311},
-    {2131, FREE_PAWNS, 0, Pos2131, Index2131},
-    {2113, FREE_PAWNS, 0, Pos2113, Index2113},
-    {1321, FREE_PAWNS, 0, Pos1321, Index1321},
-    {1312, FREE_PAWNS, 0, Pos1312, Index1312},
-    {1312, FREE_PAWNS, 10, Pos1312_0010, Index1312_0010},
-    {1312, FREE_PAWNS, 11, Pos1312_0011, Index1312_0011},
-    {1231, FREE_PAWNS, 0, Pos1231, Index1231},
-    {1213, FREE_PAWNS, 0, Pos1213, Index1213},
-    {1132, FREE_PAWNS, 0, Pos1132, Index1132},
-    {1123, FREE_PAWNS, 0, Pos1123, Index1123},
-    {322, FREE_PAWNS, 0, Pos322, Index322},
-    {322, FREE_PAWNS, 10, Pos322_0010, Index322_0010},
-    {322, FREE_PAWNS, 11, Pos322_0011, Index322_0011},
-    {232, FREE_PAWNS, 0, Pos232, Index232},
-    {223, FREE_PAWNS, 0, Pos223, Index223},
-    {223, DP_22_PAWNS, 0, PosDP223, IndexDP223},
-    {223, FREE_PAWNS, 1100, Pos223_1100, Index223_1100},
-    {223, FREE_PAWNS, 1000, Pos223_1000, Index223_1000},
-    {331, FREE_PAWNS, 0, Pos331, Index331},
-    {331, FREE_PAWNS, 20, Pos331_0020, Index331_0020},
-    {331, FREE_PAWNS, 21, Pos331_0021, Index331_0021},
-    {313, FREE_PAWNS, 0, Pos313, Index313},
-    {133, FREE_PAWNS, 0, Pos133, Index133},
-    {4111, FREE_PAWNS, 0, Pos4111, Index4111},
-    {1411, FREE_PAWNS, 0, Pos1411, Index1411},
-    {1141, FREE_PAWNS, 0, Pos1141, Index1141},
-    {1114, FREE_PAWNS, 0, Pos1114, Index1114},
-    {421, FREE_PAWNS, 0, Pos421, Index421},
-    {421, FREE_PAWNS, 10, Pos421_0010, Index421_0010},
-    {421, FREE_PAWNS, 11, Pos421_0010, Index421_0011},
-    {412, FREE_PAWNS, 0, Pos412, Index412},
-    {241, FREE_PAWNS, 0, Pos241, Index241},
-    {214, FREE_PAWNS, 0, Pos214, Index214},
-    {142, FREE_PAWNS, 0, Pos142, Index142},
-    {124, FREE_PAWNS, 0, Pos124, Index124},
-    {43, FREE_PAWNS, 0, Pos43, Index43},
-    {34, FREE_PAWNS, 0, Pos34, Index34},
-    {511, FREE_PAWNS, 0, Pos511, Index511},
-    {151, FREE_PAWNS, 0, Pos151, Index151},
-    {115, FREE_PAWNS, 0, Pos115, Index115},
-    {52, FREE_PAWNS, 0, Pos52, Index52},
-    {25, FREE_PAWNS, 0, Pos25, Index25},
-    {61, FREE_PAWNS, 0, Pos61, Index61},
-    {16, FREE_PAWNS, 0, Pos16, Index16},
-    {1, FREE_PAWNS, 0, Pos1, Index1},
-    {11, FREE_PAWNS, 0, Pos11, Index11},
-    {11, BP_11_PAWNS, 0, PosBP11, IndexBP11},
-    {11, OP_11_PAWNS, 0, PosOP11, IndexOP11},
-    {111, FREE_PAWNS, 0, Pos111, Index111},
-    {111, BP_11_PAWNS, 0, PosBP111, IndexBP111},
-    {111, OP_11_PAWNS, 0, PosOP111, IndexOP111},
-    {1111, FREE_PAWNS, 0, Pos1111, Index1111},
-    {1111, BP_11_PAWNS, 0, PosBP1111, IndexBP1111},
-    {1111, OP_11_PAWNS, 0, PosOP1111, IndexOP1111},
-    {11111, FREE_PAWNS, 0, Pos11111, Index11111},
-    {11111, BP_11_PAWNS, 0, PosBP11111, IndexBP11111},
-    {11111, OP_11_PAWNS, 0, PosOP11111, IndexOP11111},
-    {2, FREE_PAWNS, 0, Pos2, Index2},
-    {2, FREE_PAWNS, 1100, Pos2_1100, Index2_1100},
-    {21, FREE_PAWNS, 0, Pos21, Index21},
-    {21, OP_21_PAWNS, 0, PosOP21, IndexOP21},
-    {12, FREE_PAWNS, 0, Pos12, Index12},
-    {12, OP_12_PAWNS, 0, PosOP12, IndexOP12},
-    {211, FREE_PAWNS, 0, Pos211, Index211},
-    {211, OP_21_PAWNS, 0, PosOP211, IndexOP211},
-    {121, FREE_PAWNS, 0, Pos121, Index121},
-    {121, OP_12_PAWNS, 0, PosOP121, IndexOP121},
-    {112, FREE_PAWNS, 0, Pos112, Index112},
-    {112, BP_11_PAWNS, 0, PosBP112, IndexBP112},
-    {112, OP_11_PAWNS, 0, PosOP112, IndexOP112},
-    {2111, FREE_PAWNS, 0, Pos2111, Index2111},
-    {2111, OP_21_PAWNS, 0, PosOP2111, IndexOP2111},
-    {1211, FREE_PAWNS, 0, Pos1211, Index1211},
-    {1211, OP_12_PAWNS, 0, PosOP1211, IndexOP1211},
-    {1121, FREE_PAWNS, 0, Pos1121, Index1121},
-    {1121, BP_11_PAWNS, 0, PosBP1121, IndexBP1121},
-    {1121, OP_11_PAWNS, 0, PosOP1121, IndexOP1121},
-    {1112, FREE_PAWNS, 0, Pos1112, Index1112},
-    {1112, BP_11_PAWNS, 0, PosBP1112, IndexBP1112},
-    {1112, OP_11_PAWNS, 0, PosOP1112, IndexOP1112},
-    {22, FREE_PAWNS, 0, Pos22, Index22},
-    {22, DP_22_PAWNS, 0, PosDP22, IndexDP22},
-    {22, OP_22_PAWNS, 0, PosOP22, IndexOP22},
-    {221, FREE_PAWNS, 0, Pos221, Index221},
-    {221, DP_22_PAWNS, 0, PosDP221, IndexDP221},
-    {221, OP_22_PAWNS, 0, PosOP221, IndexOP221},
-    {212, FREE_PAWNS, 0, Pos212, Index212},
-    {212, OP_21_PAWNS, 0, PosOP212, IndexOP212},
-    {122, FREE_PAWNS, 0, Pos122, Index122},
-    {122, OP_12_PAWNS, 0, PosOP122, IndexOP122},
-    {3, FREE_PAWNS, 0, Pos3, Index3},
-    {3, FREE_PAWNS, 1100, Pos3_1100, Index3_1100},
-    {31, FREE_PAWNS, 0, Pos31, Index31},
-    {31, OP_31_PAWNS, 0, PosOP31, IndexOP31},
-    {13, FREE_PAWNS, 0, Pos13, Index13},
-    {13, OP_13_PAWNS, 0, PosOP13, IndexOP13},
-    {311, FREE_PAWNS, 0, Pos311, Index311},
-    {311, OP_31_PAWNS, 0, PosOP311, IndexOP311},
-    {131, FREE_PAWNS, 0, Pos131, Index131},
-    {131, OP_13_PAWNS, 0, PosOP131, IndexOP131},
-    {113, FREE_PAWNS, 0, Pos113, Index113},
-    {113, BP_11_PAWNS, 0, PosBP113, IndexBP113},
-    {113, OP_11_PAWNS, 0, PosOP113, IndexOP113},
-    {32, FREE_PAWNS, 0, Pos32, Index32},
-    {23, FREE_PAWNS, 0, Pos23, Index23},
-    {4, FREE_PAWNS, 0, Pos4, Index4},
-    {41, FREE_PAWNS, 0, Pos41, Index41},
-    {14, FREE_PAWNS, 0, Pos14, Index14},
-    {5, FREE_PAWNS, 0, Pos5, Index5},
-    {51, FREE_PAWNS, 0, Pos51, Index51},
-    {15, FREE_PAWNS, 0, Pos15, Index15},
-    {6, FREE_PAWNS, 0, Pos6, Index6},
-    {7, FREE_PAWNS, 0, Pos7, Index7}};
+static const IndexType IndexTable[] = {{111111, FREE_PAWNS, 0, Index111111},
+                                       {111111, BP_11_PAWNS, 0, IndexBP111111},
+                                       {111111, OP_11_PAWNS, 0, IndexOP111111},
+                                       {21111, FREE_PAWNS, 0, Index21111},
+                                       {21111, OP_21_PAWNS, 0, IndexOP21111},
+                                       {12111, FREE_PAWNS, 0, Index12111},
+                                       {12111, OP_12_PAWNS, 0, IndexOP12111},
+                                       {11211, FREE_PAWNS, 0, Index11211},
+                                       {11211, BP_11_PAWNS, 0, IndexBP11211},
+                                       {11211, OP_11_PAWNS, 0, IndexOP11211},
+                                       {11121, FREE_PAWNS, 0, Index11121},
+                                       {11121, BP_11_PAWNS, 0, IndexBP11121},
+                                       {11121, OP_11_PAWNS, 0, IndexOP11121},
+                                       {11112, FREE_PAWNS, 0, Index11112},
+                                       {11112, BP_11_PAWNS, 0, IndexBP11112},
+                                       {11112, OP_11_PAWNS, 0, IndexOP11112},
+                                       {2211, FREE_PAWNS, 0, Index2211},
+                                       {2211, DP_22_PAWNS, 0, IndexDP2211},
+                                       {2211, OP_22_PAWNS, 0, IndexOP2211},
+                                       {2211, FREE_PAWNS, 1100, Index2211_1100},
+                                       {2211, FREE_PAWNS, 1000, Index2211_1000},
+                                       {2121, FREE_PAWNS, 0, Index2121},
+                                       {2121, OP_21_PAWNS, 0, IndexOP2121},
+                                       {1221, FREE_PAWNS, 0, Index1221},
+                                       {1221, OP_12_PAWNS, 0, IndexOP1221},
+                                       {2112, FREE_PAWNS, 0, Index2112},
+                                       {2112, OP_21_PAWNS, 0, IndexOP2112},
+                                       {1212, FREE_PAWNS, 0, Index1212},
+                                       {1212, OP_12_PAWNS, 0, IndexOP1212},
+                                       {1122, FREE_PAWNS, 0, Index1122},
+                                       {1122, BP_11_PAWNS, 0, IndexBP1122},
+                                       {1122, OP_11_PAWNS, 0, IndexOP1122},
+                                       {222, FREE_PAWNS, 0, Index222},
+                                       {222, DP_22_PAWNS, 0, IndexDP222},
+                                       {222, OP_22_PAWNS, 0, IndexOP222},
+                                       {3111, FREE_PAWNS, 0, Index3111},
+                                       {3111, OP_31_PAWNS, 0, IndexOP3111},
+                                       {1311, FREE_PAWNS, 0, Index1311},
+                                       {1311, OP_13_PAWNS, 0, IndexOP1311},
+                                       {1131, FREE_PAWNS, 0, Index1131},
+                                       {1131, BP_11_PAWNS, 0, IndexBP1131},
+                                       {1131, OP_11_PAWNS, 0, IndexOP1131},
+                                       {1113, FREE_PAWNS, 0, Index1113},
+                                       {1113, BP_11_PAWNS, 0, IndexBP1113},
+                                       {1113, OP_11_PAWNS, 0, IndexOP1113},
+                                       {123, FREE_PAWNS, 0, Index123},
+                                       {123, OP_12_PAWNS, 0, IndexOP123},
+                                       {213, FREE_PAWNS, 0, Index213},
+                                       {213, OP_21_PAWNS, 0, IndexOP213},
+                                       {132, FREE_PAWNS, 0, Index132},
+                                       {132, OP_13_PAWNS, 0, IndexOP132},
+                                       {231, FREE_PAWNS, 0, Index231},
+                                       {312, FREE_PAWNS, 0, Index312},
+                                       {312, OP_31_PAWNS, 0, IndexOP312},
+                                       {321, FREE_PAWNS, 0, Index321},
+                                       {33, FREE_PAWNS, 0, Index33},
+                                       {411, FREE_PAWNS, 0, Index411},
+                                       {141, FREE_PAWNS, 0, Index141},
+                                       {114, FREE_PAWNS, 0, Index114},
+                                       {114, BP_11_PAWNS, 0, IndexBP114},
+                                       {114, OP_11_PAWNS, 0, IndexOP114},
+                                       {42, FREE_PAWNS, 0, Index42},
+                                       {24, FREE_PAWNS, 0, Index24},
+                                       {1111111, FREE_PAWNS, 0, Index1111111},
+                                       {211111, FREE_PAWNS, 0, Index211111},
+                                       {121111, FREE_PAWNS, 0, Index121111},
+                                       {112111, FREE_PAWNS, 0, Index112111},
+                                       {111211, FREE_PAWNS, 0, Index111211},
+                                       {111121, FREE_PAWNS, 0, Index111121},
+                                       {111112, FREE_PAWNS, 0, Index111112},
+                                       {22111, FREE_PAWNS, 0, Index22111},
+                                       {22111, DP_22_PAWNS, 0, IndexDP22111},
+                                       {21211, FREE_PAWNS, 0, Index21211},
+                                       {21121, FREE_PAWNS, 0, Index21121},
+                                       {21112, FREE_PAWNS, 0, Index21112},
+                                       {12211, FREE_PAWNS, 0, Index12211},
+                                       {12121, FREE_PAWNS, 0, Index12121},
+                                       {12112, FREE_PAWNS, 0, Index12112},
+                                       {11221, FREE_PAWNS, 0, Index11221},
+                                       {11212, FREE_PAWNS, 0, Index11212},
+                                       {11122, FREE_PAWNS, 0, Index11122},
+                                       {2221, FREE_PAWNS, 0, Index2221},
+                                       {2221, DP_22_PAWNS, 0, IndexDP2221},
+                                       {2221, FREE_PAWNS, 1131, Index2221_1131},
+                                       {2221, FREE_PAWNS, 1130, Index2221_1130},
+                                       {2221, FREE_PAWNS, 1030, Index2221_1030},
+                                       {2212, FREE_PAWNS, 0, Index2212},
+                                       {2212, DP_22_PAWNS, 0, IndexDP2212},
+                                       {2122, FREE_PAWNS, 0, Index2122},
+                                       {1222, FREE_PAWNS, 0, Index1222},
+                                       {31111, FREE_PAWNS, 0, Index31111},
+                                       {13111, FREE_PAWNS, 0, Index13111},
+                                       {11311, FREE_PAWNS, 0, Index11311},
+                                       {11131, FREE_PAWNS, 0, Index11131},
+                                       {11113, FREE_PAWNS, 0, Index11113},
+                                       {3211, FREE_PAWNS, 0, Index3211},
+                                       {3121, FREE_PAWNS, 0, Index3121},
+                                       {3121, FREE_PAWNS, 1100, Index3121_1100},
+                                       {3121, FREE_PAWNS, 1111, Index3121_1111},
+                                       {3121, FREE_PAWNS, 1110, Index3121_1110},
+                                       {3112, FREE_PAWNS, 0, Index3112},
+                                       {2311, FREE_PAWNS, 0, Index2311},
+                                       {2131, FREE_PAWNS, 0, Index2131},
+                                       {2113, FREE_PAWNS, 0, Index2113},
+                                       {1321, FREE_PAWNS, 0, Index1321},
+                                       {1312, FREE_PAWNS, 0, Index1312},
+                                       {1312, FREE_PAWNS, 10, Index1312_0010},
+                                       {1312, FREE_PAWNS, 11, Index1312_0011},
+                                       {1231, FREE_PAWNS, 0, Index1231},
+                                       {1213, FREE_PAWNS, 0, Index1213},
+                                       {1132, FREE_PAWNS, 0, Index1132},
+                                       {1123, FREE_PAWNS, 0, Index1123},
+                                       {322, FREE_PAWNS, 0, Index322},
+                                       {322, FREE_PAWNS, 10, Index322_0010},
+                                       {322, FREE_PAWNS, 11, Index322_0011},
+                                       {232, FREE_PAWNS, 0, Index232},
+                                       {223, FREE_PAWNS, 0, Index223},
+                                       {223, DP_22_PAWNS, 0, IndexDP223},
+                                       {223, FREE_PAWNS, 1100, Index223_1100},
+                                       {223, FREE_PAWNS, 1000, Index223_1000},
+                                       {331, FREE_PAWNS, 0, Index331},
+                                       {331, FREE_PAWNS, 20, Index331_0020},
+                                       {331, FREE_PAWNS, 21, Index331_0021},
+                                       {313, FREE_PAWNS, 0, Index313},
+                                       {133, FREE_PAWNS, 0, Index133},
+                                       {4111, FREE_PAWNS, 0, Index4111},
+                                       {1411, FREE_PAWNS, 0, Index1411},
+                                       {1141, FREE_PAWNS, 0, Index1141},
+                                       {1114, FREE_PAWNS, 0, Index1114},
+                                       {421, FREE_PAWNS, 0, Index421},
+                                       {421, FREE_PAWNS, 10, Index421_0010},
+                                       {421, FREE_PAWNS, 11, Index421_0011},
+                                       {412, FREE_PAWNS, 0, Index412},
+                                       {241, FREE_PAWNS, 0, Index241},
+                                       {214, FREE_PAWNS, 0, Index214},
+                                       {142, FREE_PAWNS, 0, Index142},
+                                       {124, FREE_PAWNS, 0, Index124},
+                                       {43, FREE_PAWNS, 0, Index43},
+                                       {34, FREE_PAWNS, 0, Index34},
+                                       {511, FREE_PAWNS, 0, Index511},
+                                       {151, FREE_PAWNS, 0, Index151},
+                                       {115, FREE_PAWNS, 0, Index115},
+                                       {52, FREE_PAWNS, 0, Index52},
+                                       {25, FREE_PAWNS, 0, Index25},
+                                       {61, FREE_PAWNS, 0, Index61},
+                                       {16, FREE_PAWNS, 0, Index16},
+                                       {1, FREE_PAWNS, 0, Index1},
+                                       {11, FREE_PAWNS, 0, Index11},
+                                       {11, BP_11_PAWNS, 0, IndexBP11},
+                                       {11, OP_11_PAWNS, 0, IndexOP11},
+                                       {111, FREE_PAWNS, 0, Index111},
+                                       {111, BP_11_PAWNS, 0, IndexBP111},
+                                       {111, OP_11_PAWNS, 0, IndexOP111},
+                                       {1111, FREE_PAWNS, 0, Index1111},
+                                       {1111, BP_11_PAWNS, 0, IndexBP1111},
+                                       {1111, OP_11_PAWNS, 0, IndexOP1111},
+                                       {11111, FREE_PAWNS, 0, Index11111},
+                                       {11111, BP_11_PAWNS, 0, IndexBP11111},
+                                       {11111, OP_11_PAWNS, 0, IndexOP11111},
+                                       {2, FREE_PAWNS, 0, Index2},
+                                       {2, FREE_PAWNS, 1100, Index2_1100},
+                                       {21, FREE_PAWNS, 0, Index21},
+                                       {21, OP_21_PAWNS, 0, IndexOP21},
+                                       {12, FREE_PAWNS, 0, Index12},
+                                       {12, OP_12_PAWNS, 0, IndexOP12},
+                                       {211, FREE_PAWNS, 0, Index211},
+                                       {211, OP_21_PAWNS, 0, IndexOP211},
+                                       {121, FREE_PAWNS, 0, Index121},
+                                       {121, OP_12_PAWNS, 0, IndexOP121},
+                                       {112, FREE_PAWNS, 0, Index112},
+                                       {112, BP_11_PAWNS, 0, IndexBP112},
+                                       {112, OP_11_PAWNS, 0, IndexOP112},
+                                       {2111, FREE_PAWNS, 0, Index2111},
+                                       {2111, OP_21_PAWNS, 0, IndexOP2111},
+                                       {1211, FREE_PAWNS, 0, Index1211},
+                                       {1211, OP_12_PAWNS, 0, IndexOP1211},
+                                       {1121, FREE_PAWNS, 0, Index1121},
+                                       {1121, BP_11_PAWNS, 0, IndexBP1121},
+                                       {1121, OP_11_PAWNS, 0, IndexOP1121},
+                                       {1112, FREE_PAWNS, 0, Index1112},
+                                       {1112, BP_11_PAWNS, 0, IndexBP1112},
+                                       {1112, OP_11_PAWNS, 0, IndexOP1112},
+                                       {22, FREE_PAWNS, 0, Index22},
+                                       {22, DP_22_PAWNS, 0, IndexDP22},
+                                       {22, OP_22_PAWNS, 0, IndexOP22},
+                                       {221, FREE_PAWNS, 0, Index221},
+                                       {221, DP_22_PAWNS, 0, IndexDP221},
+                                       {221, OP_22_PAWNS, 0, IndexOP221},
+                                       {212, FREE_PAWNS, 0, Index212},
+                                       {212, OP_21_PAWNS, 0, IndexOP212},
+                                       {122, FREE_PAWNS, 0, Index122},
+                                       {122, OP_12_PAWNS, 0, IndexOP122},
+                                       {3, FREE_PAWNS, 0, Index3},
+                                       {3, FREE_PAWNS, 1100, Index3_1100},
+                                       {31, FREE_PAWNS, 0, Index31},
+                                       {31, OP_31_PAWNS, 0, IndexOP31},
+                                       {13, FREE_PAWNS, 0, Index13},
+                                       {13, OP_13_PAWNS, 0, IndexOP13},
+                                       {311, FREE_PAWNS, 0, Index311},
+                                       {311, OP_31_PAWNS, 0, IndexOP311},
+                                       {131, FREE_PAWNS, 0, Index131},
+                                       {131, OP_13_PAWNS, 0, IndexOP131},
+                                       {113, FREE_PAWNS, 0, Index113},
+                                       {113, BP_11_PAWNS, 0, IndexBP113},
+                                       {113, OP_11_PAWNS, 0, IndexOP113},
+                                       {32, FREE_PAWNS, 0, Index32},
+                                       {23, FREE_PAWNS, 0, Index23},
+                                       {4, FREE_PAWNS, 0, Index4},
+                                       {41, FREE_PAWNS, 0, Index41},
+                                       {14, FREE_PAWNS, 0, Index14},
+                                       {5, FREE_PAWNS, 0, Index5},
+                                       {51, FREE_PAWNS, 0, Index51},
+                                       {15, FREE_PAWNS, 0, Index15},
+                                       {6, FREE_PAWNS, 0, Index6},
+                                       {7, FREE_PAWNS, 0, Index7}};
 
 #define NumIndexTypes (sizeof(IndexTable) / sizeof(IndexTable[0]))
 
@@ -9633,8 +5637,8 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
         else if (b_parity == 11 || b_parity == 21 || b_parity == 12)
             bishop_parity[BLACK] = ODD;
 
-        // for odd-sized boards, can't do any parities for triples, and only
-        // odd parities for doubles
+            // for odd-sized boards, can't do any parities for triples, and only
+            // odd parities for doubles
 
 #if (NROWS % 2) && (NCOLS % 2)
         if (bishop_parity[WHITE] != NONE) {
