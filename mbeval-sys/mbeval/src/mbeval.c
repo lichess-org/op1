@@ -794,8 +794,6 @@ static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
 #define N2_2_Index(a, b)                                                       \
     (k2_same_color_tab[(a) / 2 + (NUM_BLACK_SQUARES) * ((b) / 2)])
 
-#if (NROWS == 8) && (NCOLS == 8)
-
 #define N2_Index(a, b) (k2_tab[(a) | ((b) << 6)])
 #define N3_Index(a, b, c) (k3_tab[(a) | ((b) << 6) | ((c) << 12)])
 #define N4_Index(a, b, c, d)                                                   \
@@ -818,36 +816,6 @@ static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
     (k1_3_opposing_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)])
 #define N2_2_Opposing_Index(a, b, c, d)                                        \
     (k2_2_opposing_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)])
-
-#else // not 8x8 board
-
-#define N2_Index(a, b) (k2_tab[a + (NSQUARES) * (b)])
-#define N3_Index(a, b, c) (k3_tab[a + (NSQUARES) * (b + (NSQUARES) * (c))])
-#define N4_Index(a, b, c, d)                                                   \
-    (k4_tab[a + (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES) * (d)))])
-#define N2_Odd_Index(a, b) (k2_odd_tab[a + (NSQUARES) * (b)])
-#define N2_Even_Index(a, b) (k2_even_tab[a + (NSQUARES) * (b)])
-#define N3_Odd_Index(a, b, c)                                                  \
-    (k3_odd_tab[a + (NSQUARES) * (b + (NSQUARES) * (c))])
-#define N3_Even_Index(a, b, c)                                                 \
-    (k3_even_tab[a + (NSQUARES) * (b + (NSQUARES * (c)))])
-#define N2_Opposing_Index(a, b) (k2_opposing_tab[a + (NSQUARES) * (b)])
-#define N4_Opposing_Index(a, b, c, d)                                          \
-    (k4_opposing_tab[Row(a) +                                                  \
-                     (NROWS) * (Row(b) + (NROWS) * (c + (NSQUARES)*d))])
-
-#define N2_1_Opposing_Index(a, b, c)                                           \
-    (k2_1_opposing_tab[a + (NSQUARES) * (b + (NSQUARES)*c)])
-#define N1_2_Opposing_Index(a, b, c)                                           \
-    (k1_2_opposing_tab[a + (NSQUARES) * (b + (NSQUARES)*c)])
-#define N3_1_Opposing_Index(a, b, c, d)                                        \
-    (k3_1_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES)*d))])
-#define N1_3_Opposing_Index(a, b, c, d)                                        \
-    (k1_3_opposing_tab[a + (NSQUARES) * (b + (NSQUARES) * (c + (NSQUARES)*d))])
-#define N2_2_Opposing_Index(a, b, c, d)                                        \
-    (k2_2_opposing_tab[a + (NSQUARES) *                                        \
-                               (b + (NSQUARES) * (c + (NSQUARES) * (d)))])
-#endif // 8x8 board
 
 static int Identity[NSQUARES];
 static int ReflectV[NSQUARES];
