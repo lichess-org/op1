@@ -758,8 +758,7 @@ static ZINDEX N6_Index(int a, int b, int c, int d, int e, int f) {
 
 static ZINDEX k7_tab[NSQUARES + 1];
 
-static ZINDEX N7_Index(int a, int b, int c, int d, int e, int f,
-                                int g) {
+static ZINDEX N7_Index(int a, int b, int c, int d, int e, int f, int g) {
     if (b > a)
         SWAP(a, b);
     if (c > a)
@@ -791,31 +790,45 @@ static int *k2_2_opposing_tab = NULL, *p2_2_opposing_tab = NULL;
 static int *k3_1_opposing_tab = NULL, *p3_1_opposing_tab = NULL;
 static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
 
-#define N2_2_Index(a, b)                                                       \
-    (k2_same_color_tab[(a) / 2 + (NUM_BLACK_SQUARES) * ((b) / 2)])
+static int N2_Index(int a, int b) { return (k2_tab[(a) | ((b) << 6)]); }
+static int N3_Index(int a, int b, int c) {
+    return (k3_tab[(a) | ((b) << 6) | ((c) << 12)]);
+}
+static int N4_Index(int a, int b, int c, int d) {
+    return (k4_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)]);
+}
+static int N2_Odd_Index(int a, int b) { return (k2_odd_tab[(a) | ((b) << 6)]); }
+static int N2_Even_Index(int a, int b) {
+    return (k2_even_tab[(a) | ((b) << 6)]);
+}
+static int N3_Odd_Index(int a, int b, int c) {
+    return (k3_odd_tab[(a) | ((b) << 6) | ((c) << 12)]);
+}
+static int N3_Even_Index(int a, int b, int c) {
+    return (k3_even_tab[(a) | ((b) << 6) | ((c) << 12)]);
+}
+static int N2_Opposing_Index(int a, int b) {
+    return (k2_opposing_tab[(a) | ((b) << 6)]);
+}
+static int N4_Opposing_Index(int a, int b, int c, int d) {
+    return (k4_opposing_tab[((a) >> 3) | ((b)&070) | ((c) << 6) | ((d) << 12)]);
+}
 
-#define N2_Index(a, b) (k2_tab[(a) | ((b) << 6)])
-#define N3_Index(a, b, c) (k3_tab[(a) | ((b) << 6) | ((c) << 12)])
-#define N4_Index(a, b, c, d)                                                   \
-    (k4_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)])
-#define N2_Odd_Index(a, b) (k2_odd_tab[(a) | ((b) << 6)])
-#define N2_Even_Index(a, b) (k2_even_tab[(a) | ((b) << 6)])
-#define N3_Odd_Index(a, b, c) (k3_odd_tab[(a) | ((b) << 6) | ((c) << 12)])
-#define N3_Even_Index(a, b, c) (k3_even_tab[(a) | ((b) << 6) | ((c) << 12)])
-#define N2_Opposing_Index(a, b) (k2_opposing_tab[(a) | ((b) << 6)])
-#define N4_Opposing_Index(a, b, c, d)                                          \
-    (k4_opposing_tab[((a) >> 3) | ((b)&070) | ((c) << 6) | ((d) << 12)])
-
-#define N2_1_Opposing_Index(a, b, c)                                           \
-    (k2_1_opposing_tab[(a) | ((b) << 6) | ((c) << 12)])
-#define N1_2_Opposing_Index(a, b, c)                                           \
-    (k1_2_opposing_tab[(a) | ((b) << 6) | ((c) << 12)])
-#define N3_1_Opposing_Index(a, b, c, d)                                        \
-    (k3_1_opposing_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)])
-#define N1_3_Opposing_Index(a, b, c, d)                                        \
-    (k1_3_opposing_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)])
-#define N2_2_Opposing_Index(a, b, c, d)                                        \
-    (k2_2_opposing_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)])
+static int N2_1_Opposing_Index(int a, int b, int c) {
+    return (k2_1_opposing_tab[(a) | ((b) << 6) | ((c) << 12)]);
+}
+static int N1_2_Opposing_Index(int a, int b, int c) {
+    return (k1_2_opposing_tab[(a) | ((b) << 6) | ((c) << 12)]);
+}
+static int N3_1_Opposing_Index(int a, int b, int c, int d) {
+    return (k3_1_opposing_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)]);
+}
+static int N1_3_Opposing_Index(int a, int b, int c, int d) {
+    return (k1_3_opposing_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)]);
+}
+static int N2_2_Opposing_Index(int a, int b, int c, int d) {
+    return (k2_2_opposing_tab[(a) | ((b) << 6) | ((c) << 12) | ((d) << 18)]);
+}
 
 static int Identity[NSQUARES];
 static int ReflectV[NSQUARES];
