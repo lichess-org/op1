@@ -696,7 +696,7 @@ typedef struct {
 
 static ZINDEX k5_tab[NSQUARES + 1];
 
-static ZINDEX N5_Index_Function(int a, int b, int c, int d, int e) {
+static ZINDEX N5_Index(int a, int b, int c, int d, int e) {
     // Sort a >= b >= c >= d >= e
 
     if (a < b)
@@ -741,7 +741,7 @@ static ZINDEX N5_Index_Function(int a, int b, int c, int d, int e) {
 
 static ZINDEX k6_tab[NSQUARES + 1];
 
-static ZINDEX N6_Index_Function(int a, int b, int c, int d, int e, int f) {
+static ZINDEX N6_Index(int a, int b, int c, int d, int e, int f) {
     if (b > a)
         SWAP(a, b);
     if (c > a)
@@ -753,12 +753,12 @@ static ZINDEX N6_Index_Function(int a, int b, int c, int d, int e, int f) {
     if (f > a)
         SWAP(a, f);
 
-    return k6_tab[a] + N5_Index_Function(b, c, d, e, f);
+    return k6_tab[a] + N5_Index(b, c, d, e, f);
 }
 
 static ZINDEX k7_tab[NSQUARES + 1];
 
-static ZINDEX N7_Index_Function(int a, int b, int c, int d, int e, int f,
+static ZINDEX N7_Index(int a, int b, int c, int d, int e, int f,
                                 int g) {
     if (b > a)
         SWAP(a, b);
@@ -773,7 +773,7 @@ static ZINDEX N7_Index_Function(int a, int b, int c, int d, int e, int f,
     if (g > a)
         SWAP(a, g);
 
-    return k7_tab[a] + N6_Index_Function(b, c, d, e, f, g);
+    return k7_tab[a] + N6_Index(b, c, d, e, f, g);
 }
 
 static int *k2_tab = NULL, *k3_tab = NULL, *k4_tab = NULL;
@@ -848,10 +848,6 @@ static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
     (k2_2_opposing_tab[a + (NSQUARES) *                                        \
                                (b + (NSQUARES) * (c + (NSQUARES) * (d)))])
 #endif // 8x8 board
-
-#define N5_Index(a, b, c, d, e) N5_Index_Function(a, b, c, d, e)
-#define N6_Index(a, b, c, d, e, f) N6_Index_Function(a, b, c, d, e, f)
-#define N7_Index(a, b, c, d, e, f, g) N7_Index_Function(a, b, c, d, e, f, g);
 
 static int Identity[NSQUARES];
 static int ReflectV[NSQUARES];
