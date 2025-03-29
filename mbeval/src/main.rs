@@ -31,8 +31,6 @@ use tokio::{
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
-mod permutations;
-
 struct Context {
     ctx: *mut CONTEXT,
 }
