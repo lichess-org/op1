@@ -16,14 +16,9 @@ use axum::{
 };
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
-use mbeval_sys::{
-    CONTEXT, mbeval_add_path, mbeval_context_create, mbeval_context_destroy, mbeval_context_probe,
-    mbeval_init,
-};
+use mbeval_sys::{mbeval_add_path, mbeval_init};
 use serde::{Deserialize, Serialize};
-use shakmaty::{
-    CastlingMode, Chess, EnPassantMode, Position, PositionError, Role, fen::Fen, uci::UciMove,
-};
+use shakmaty::{CastlingMode, Chess, Position, PositionError, fen::Fen, uci::UciMove};
 use tokio::{
     net::{TcpListener, UnixListener},
     task,
@@ -31,67 +26,8 @@ use tokio::{
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
-struct Context {
-    ctx: *mut CONTEXT,
-}
-
-impl Context {
-    pub unsafe fn new() -> Self {
-        Context {
-            ctx: unsafe { mbeval_context_create() },
-        }
-    }
-
-    pub fn probe(&mut self, pos: &Chess) -> Option<i32> {
-        if pos.castles().any() {
-            return None;
-        }
-
-        let mut squares = [0; 64];
-        for (sq, piece) in pos.board() {
-            let role = match piece.role {
-                Role::Pawn => mbeval_sys::PAWN,
-                Role::Knight => mbeval_sys::KNIGHT,
-                Role::Bishop => mbeval_sys::BISHOP,
-                Role::Rook => mbeval_sys::ROOK,
-                Role::Queen => mbeval_sys::QUEEN,
-                Role::King => mbeval_sys::KING,
-            } as c_int;
-            squares[usize::from(sq)] = piece.color.fold_wb(role, -role);
-        }
-        let result = unsafe {
-            mbeval_context_probe(
-                self.ctx,
-                squares.as_ptr(),
-                pos.turn()
-                    .fold_wb(mbeval_sys::WHITE as c_int, mbeval_sys::BLACK as c_int),
-                pos.ep_square(EnPassantMode::Legal).map_or(0, c_int::from),
-                0,
-                0,
-                1,
-            )
-        };
-
-        Some(match result {
-            0 => return None,
-            v if v == mbeval_sys::DRAW as c_int => 0,
-            v if v >= mbeval_sys::LOST as c_int => return None,
-            v if v <= -(mbeval_sys::LOST as c_int) => return None,
-            v => v,
-        })
-    }
-}
-
-impl Drop for Context {
-    fn drop(&mut self) {
-        unsafe {
-            mbeval_context_destroy(self.ctx);
-        }
-    }
-}
-
-unsafe impl Send for Context {}
-unsafe impl Sync for Context {}
+mod probe;
+use crate::probe::{Context, Score};
 
 #[derive(Parser, Debug)]
 struct Opt {
@@ -148,10 +84,13 @@ async fn handle_probe(
         for m in legals {
             let mut after = pos.clone();
             after.play_unchecked(&m);
-            children.insert(m.to_uci(CastlingMode::Chess960), ctx.probe(&after));
+            children.insert(
+                m.to_uci(CastlingMode::Chess960),
+                ctx.score_position(after).unwrap().dtc(),
+            );
         }
         ProbeResponse {
-            parent: ctx.probe(&pos),
+            parent: ctx.score_position(pos).unwrap().dtc(),
             children,
         }
     })
@@ -225,14 +164,14 @@ async fn main() {
 mod tests {
     use super::*;
 
-    fn assert_score(ctx: &mut Context, fen: &str, expected: Option<c_int>) {
+    fn assert_score(ctx: &mut Context, fen: &str, expected: Score) {
         let pos: Chess = fen
             .parse::<Fen>()
             .unwrap()
             .into_position(CastlingMode::Chess960)
             .unwrap();
 
-        assert_eq!(ctx.probe(&pos), expected);
+        assert_eq!(ctx.score_position(pos).unwrap(), expected);
     }
 
     #[test]
@@ -243,14 +182,50 @@ mod tests {
         }
 
         let mut ctx = unsafe { Context::new() };
-        assert_score(&mut ctx, "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1", Some(-3));
-        assert_score(&mut ctx, "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1", Some(-1));
-        assert_score(&mut ctx, "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1", Some(-2));
-        assert_score(&mut ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1", Some(-7));
-        assert_score(&mut ctx, "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", Some(6));
-        assert_score(&mut ctx, "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1", Some(4));
-        assert_score(&mut ctx, "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1", Some(0));
-        assert_score(&mut ctx, "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", None);
-        assert_score(&mut ctx, "8/4p3/8/6P1/4PP2/5b2/7P/5k1K w - - 1 3", None);
+        assert_score(
+            &mut ctx,
+            "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1",
+            Score::Dtc(-3),
+        );
+        assert_score(
+            &mut ctx,
+            "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1",
+            Score::Dtc(-1),
+        );
+        assert_score(
+            &mut ctx,
+            "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1",
+            Score::Dtc(-2),
+        );
+        assert_score(
+            &mut ctx,
+            "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1",
+            Score::Dtc(-7),
+        );
+        assert_score(
+            &mut ctx,
+            "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
+            Score::Dtc(6),
+        );
+        assert_score(
+            &mut ctx,
+            "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
+            Score::Dtc(4),
+        );
+        assert_score(
+            &mut ctx,
+            "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1",
+            Score::Draw,
+        );
+        assert_score(
+            &mut ctx,
+            "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1",
+            Score::Unknown,
+        );
+        assert_score(
+            &mut ctx,
+            "8/4p3/8/6P1/4PP2/5b2/7P/5k1K w - - 1 3",
+            Score::Dtc(0), // checkmate
+        );
     }
 }

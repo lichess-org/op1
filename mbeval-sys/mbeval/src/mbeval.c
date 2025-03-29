@@ -6444,3 +6444,15 @@ int mbeval_context_probe(CONTEXT *ctx, const int pieces[NSQUARES], int side,
     INDEX_DATA index = {0};
     return ScorePosition(ctx, &ctx->board, &index);
 }
+
+int mbeval_context_get_mb_result(CONTEXT *ctx, const int pieces[NSQUARES], int side,
+                                 int ep_square, int castle, int half_move,
+                                 int full_move) {
+    assert(ctx != NULL);
+
+    SetBoard(&ctx->board, pieces, side, ep_square, castle, half_move,
+             full_move);
+
+    INDEX_DATA index = {0};
+    return GetMBResult(ctx, &ctx->board, &index);
+}
