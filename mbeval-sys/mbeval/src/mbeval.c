@@ -691,63 +691,6 @@ typedef struct {
     ZINDEX (*IndexFromPos)(const int *pos);
 } IndexType;
 
-#define N2_Index_Function(a, b)                                                \
-    ((a) > (b) ? ((b) * ((2 * NSQUARES - 3) - b) / 2 + a - 1)                  \
-               : ((a) * ((2 * NSQUARES - 3) - a) / 2 + b - 1))
-
-static int N3_Index_Function(int a, int b, int c) {
-    if (a < b)
-        SWAP(a, b);
-    if (a < c)
-        SWAP(a, c);
-    if (b < c)
-        SWAP(b, c);
-
-    b -= (c + 1);
-    a -= (c + 1);
-
-    return c *
-               (((3 * NSQUARES * (NSQUARES - 2) + 2) - 6 * b) +
-                c * (-3 * (NSQUARES - 1) + c)) /
-               6 +
-           b * ((2 * (NSQUARES - 1) - 3) - b) / 2 + a - 1;
-}
-
-static int N4_Index_Function(int a, int b, int c, int d) {
-    if (a < b)
-        SWAP(a, b);
-    if (c < d)
-        SWAP(c, d);
-    if (a < c)
-        SWAP(a, c);
-    if (b < d)
-        SWAP(b, d);
-    if (b < c)
-        SWAP(b, c);
-
-    int b4 = d *
-             ((-6 + NSQUARES * (22 + NSQUARES * (-18 + 4 * NSQUARES))) +
-              d * ((-11 + NSQUARES * (18 - 6 * NSQUARES)) +
-                   d * ((4 * NSQUARES - 6) - d))) /
-             24;
-
-    a -= (c + 1);
-    b -= (c + 1);
-
-    int c2 = c - (d + 1);
-
-    int b3 = c2 *
-             ((3 * (NSQUARES - d - 1) * (NSQUARES - d - 3) + 2) +
-              c2 * ((-3 * (NSQUARES - d - 2)) + c2)) /
-             6;
-
-    return b4 + b3 + b * (2 * (NSQUARES - c - 1) - 3 - b) / 2 + a - 1;
-}
-
-#define N2_2_Index_Function(a, b)                                              \
-    ((a) > (b) ? (((a) / 2) * ((a) / 2 - 1) / 2 + (b) / 2)                     \
-               : (((b) / 2) * ((b) / 2 - 1) / 2 + (a) / 2))
-
 // For 5 or more identical pieces, always compute index rather than creating
 // lookup table
 
@@ -1014,8 +957,6 @@ static void InitN2Tables(int *tab, int *pos) {
                 score = -1;
             else {
                 pos[index] = p2 + NSQUARES * p1;
-                int g_index = N2_Index_Function(p2, p1);
-                assert(index == g_index);
                 score = index++;
             }
             tab[p1 + NSQUARES * p2] = score;
@@ -2038,8 +1979,6 @@ static void InitN3Tables(int *tab, int *pos) {
                     score = -1;
                 } else {
                     pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
-                    int g_index = N3_Index_Function(p3, p2, p1);
-                    assert(index == g_index);
                     score = index++;
                 }
                 tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
@@ -2071,8 +2010,6 @@ static void InitN4Tables(int *tab, int *pos) {
                         pos[index] =
                             p4 +
                             NSQUARES * (p3 + NSQUARES * (p2 + NSQUARES * p1));
-                        int g_index = N4_Index_Function(p4, p3, p2, p1);
-                        assert(index == g_index);
                         score = index++;
                     }
                     tab[p1 +
@@ -2187,58 +2124,17 @@ static void InitN4TablesMB(int *pos) {
 }
 
 static void InitN5Tables() {
-    unsigned int index = 0;
-
     for (unsigned int i = 0; i <= NSQUARES; i++)
         k5_tab[i] = i * (i - 1) * (i - 2) * (i - 3) * (i - 4) / 120;
-
-    for (int p5 = 4; p5 < NSQUARES; p5++) {
-        for (int p4 = 3; p4 < p5; p4++) {
-            for (int p3 = 2; p3 < p4; p3++) {
-                for (int p2 = 1; p2 < p3; p2++) {
-                    for (int p1 = 0; p1 < p2; p1++) {
-                        ZINDEX g_index = N5_Index_Function(p5, p4, p3, p2, p1);
-                        assert(index == g_index);
-                        index++;
-                    }
-                }
-            }
-        }
-    }
-
-    assert(index == N5);
 }
 
 static void InitN6Tables() {
-    unsigned int index = 0;
-
     for (unsigned int i = 0; i <= NSQUARES; i++)
         k6_tab[i] =
             (i * (i - 1) * (i - 2) * (i - 3) * (i - 4) / 120) * (i - 5) / 6;
-
-    for (int p6 = 5; p6 < NSQUARES; p6++) {
-        for (int p5 = 4; p5 < p6; p5++) {
-            for (int p4 = 3; p4 < p5; p4++) {
-                for (int p3 = 2; p3 < p4; p3++) {
-                    for (int p2 = 1; p2 < p3; p2++) {
-                        for (int p1 = 0; p1 < p2; p1++) {
-                            ZINDEX g_index =
-                                N6_Index_Function(p6, p5, p4, p3, p2, p1);
-                            assert(index == g_index);
-                            index++;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    assert(index == N6);
 }
 
 static void InitN7Tables() {
-    ZINDEX index = 0;
-
     for (unsigned int i = 0; i <= NSQUARES; i++) {
         ZINDEX itmp =
             (i * (i - 1) * (i - 2) * (i - 3) * (i - 4) / 120) * (i - 5) / 6;
@@ -2247,27 +2143,6 @@ static void InitN7Tables() {
         else
             k7_tab[i] = (itmp / 7) * (i - 6);
     }
-
-    for (int p7 = 6; p7 < NSQUARES; p7++) {
-        for (int p6 = 5; p6 < p7; p6++) {
-            for (int p5 = 4; p5 < p6; p5++) {
-                for (int p4 = 3; p4 < p5; p4++) {
-                    for (int p3 = 2; p3 < p4; p3++) {
-                        for (int p2 = 1; p2 < p3; p2++) {
-                            for (int p1 = 0; p1 < p2; p1++) {
-                                ZINDEX g_index = N7_Index_Function(
-                                    p7, p6, p5, p4, p3, p2, p1);
-                                assert(index == g_index);
-                                index++;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    assert(index == N7);
 }
 
 static void InitPermutationTables(void) {
