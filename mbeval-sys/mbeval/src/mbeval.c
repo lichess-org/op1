@@ -776,19 +776,18 @@ static ZINDEX N7_Index(int a, int b, int c, int d, int e, int f, int g) {
 }
 
 static int *k2_tab = NULL, *k3_tab = NULL, *k4_tab = NULL;
-static int *p2_tab = NULL, *p3_tab = NULL, *p4_tab = NULL, *p4_tab_mb = NULL;
-static int *k2_even_tab = NULL, *p2_even_tab = NULL;
-static int *k2_odd_tab = NULL, *p2_odd_tab = NULL;
-static int *k3_even_tab = NULL, *p3_even_tab = NULL;
-static int *k3_odd_tab = NULL, *p3_odd_tab = NULL;
+static int *k2_even_tab = NULL;
+static int *k2_odd_tab = NULL;
+static int *k3_even_tab = NULL;
+static int *k3_odd_tab = NULL;
 
-static int *k2_opposing_tab = NULL, *p2_opposing_tab = NULL;
-static int *k2_1_opposing_tab = NULL, *p2_1_opposing_tab = NULL;
-static int *k1_2_opposing_tab = NULL, *p1_2_opposing_tab = NULL;
-static int *k4_opposing_tab = NULL, *p4_opposing_tab = NULL;
-static int *k2_2_opposing_tab = NULL, *p2_2_opposing_tab = NULL;
-static int *k3_1_opposing_tab = NULL, *p3_1_opposing_tab = NULL;
-static int *k1_3_opposing_tab = NULL, *p1_3_opposing_tab = NULL;
+static int *k2_opposing_tab = NULL;
+static int *k2_1_opposing_tab = NULL;
+static int *k1_2_opposing_tab = NULL;
+static int *k4_opposing_tab = NULL;
+static int *k2_2_opposing_tab = NULL;
+static int *k3_1_opposing_tab = NULL;
+static int *k1_3_opposing_tab = NULL;
 
 static int N2_Index(int a, int b) { return (k2_tab[(a) | ((b) << 6)]); }
 static int N3_Index(int a, int b, int c) {
@@ -925,7 +924,7 @@ static int KK_Index_Table_NoPawns[NSQUARES][NSQUARES];
 static int WhiteSquares[NUM_WHITE_SQUARES], BlackSquares[NUM_BLACK_SQUARES];
 static bool IsWhiteSquare[NSQUARES];
 
-static void InitN2Tables(int *tab, int *pos) {
+static void InitN2Tables(int *tab) {
     int index = 0, score;
 
     for (int p1 = 0; p1 < NSQUARES; p1++) {
@@ -933,7 +932,6 @@ static void InitN2Tables(int *tab, int *pos) {
             if (p1 == p2)
                 score = -1;
             else {
-                pos[index] = p2 + NSQUARES * p1;
                 score = index++;
             }
             tab[p1 + NSQUARES * p2] = score;
@@ -944,7 +942,7 @@ static void InitN2Tables(int *tab, int *pos) {
     assert(index == N2);
 }
 
-static void InitN2OddTables(int *tab, int *pos) {
+static void InitN2OddTables(int *tab) {
     int index = 0, score;
 
     for (int p1 = 0; p1 < NSQUARES; p1++)
@@ -961,7 +959,6 @@ static void InitN2OddTables(int *tab, int *pos) {
             int parity2 = (row2 & 1) ^ (col2 & 1);
             if (parity1 == parity2)
                 continue;
-            pos[index] = p2 + NSQUARES * p1;
             score = index++;
             tab[p1 + NSQUARES * p2] = score;
             tab[p2 + NSQUARES * p1] = score;
@@ -971,7 +968,7 @@ static void InitN2OddTables(int *tab, int *pos) {
     assert(index == N2_ODD_PARITY);
 }
 
-static void InitN2EvenTables(int *tab, int *pos) {
+static void InitN2EvenTables(int *tab) {
     int index = 0, score;
 
     for (int p1 = 0; p1 < NSQUARES; p1++)
@@ -988,7 +985,6 @@ static void InitN2EvenTables(int *tab, int *pos) {
             int parity2 = (row2 & 1) ^ (col2 & 1);
             if (parity1 != parity2)
                 continue;
-            pos[index] = p2 + NSQUARES * p1;
             score = index++;
             tab[p1 + NSQUARES * p2] = score;
             tab[p2 + NSQUARES * p1] = score;
@@ -998,7 +994,7 @@ static void InitN2EvenTables(int *tab, int *pos) {
     assert(index == N2_EVEN_PARITY);
 }
 
-static void InitN3EvenTables(int *tab, int *pos) {
+static void InitN3EvenTables(int *tab) {
     int index = 0, score;
 
     for (int p1 = 0; p1 < NSQUARES; p1++)
@@ -1022,7 +1018,6 @@ static void InitN3EvenTables(int *tab, int *pos) {
                 int parity3 = (row3 & 1) ^ (col3 & 1);
                 if (parity3 != parity1)
                     continue;
-                pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
                 score = index++;
                 tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
                 tab[p1 + NSQUARES * (p3 + NSQUARES * p2)] = score;
@@ -1037,7 +1032,7 @@ static void InitN3EvenTables(int *tab, int *pos) {
     assert(index == N3_EVEN_PARITY);
 }
 
-static void InitN3OddTables(int *tab, int *pos) {
+static void InitN3OddTables(int *tab) {
     int index = 0, score;
 
     for (int p1 = 0; p1 < NSQUARES; p1++)
@@ -1059,7 +1054,6 @@ static void InitN3OddTables(int *tab, int *pos) {
                 int parity3 = (row3 & 1) ^ (col3 & 1);
                 if (parity1 == parity3 && parity1 == parity2)
                     continue;
-                pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
                 score = index++;
                 tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
                 tab[p1 + NSQUARES * (p3 + NSQUARES * p2)] = score;
@@ -1074,7 +1068,7 @@ static void InitN3OddTables(int *tab, int *pos) {
     assert(index == N3_ODD_PARITY);
 }
 
-static void InitN2OpposingTables(int *tab, int *pos) {
+static void InitN2OpposingTables(int *tab) {
     int index = 0;
 
     for (int sq1 = 0; sq1 < NSQUARES; sq1++) {
@@ -1090,7 +1084,6 @@ static void InitN2OpposingTables(int *tab, int *pos) {
             int sq2 = SquareMake(row2, col);
             assert(index < NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
             tab[sq2 + NSQUARES * sq1] = index;
-            pos[index] = sq2 + NSQUARES * sq1;
             index++;
         }
     }
@@ -1098,7 +1091,7 @@ static void InitN2OpposingTables(int *tab, int *pos) {
     assert(index == NCOLS * (NROWS - 2) * (NROWS - 3) / 2);
 }
 
-static void InitN2_1_OpposingTables(int *tab, int *pos) {
+static void InitN2_1_OpposingTables(int *tab) {
     int index = 0, board[NSQUARES];
 
     for (int i = 0; i < NSQUARES * NSQUARES * NSQUARES; i++) {
@@ -1182,7 +1175,6 @@ static void InitN2_1_OpposingTables(int *tab, int *pos) {
                     (Column(wp2) == Column(bp1_physical) &&
                      wp2 < bp1_physical)) {
                     assert(index < N2_1_OPPOSING);
-                    pos[index] = bp1 + NSQUARES * (wp2 + NSQUARES * wp1);
                     tab[bp1 + NSQUARES * (wp2 + NSQUARES * wp1)] = index;
                     tab[bp1 + NSQUARES * (wp1 + NSQUARES * wp2)] = index;
                     index++;
@@ -1197,7 +1189,7 @@ static void InitN2_1_OpposingTables(int *tab, int *pos) {
     assert(index == N2_1_OPPOSING);
 }
 
-static void InitN1_2_OpposingTables(int *tab, int *pos) {
+static void InitN1_2_OpposingTables(int *tab) {
     int index = 0, board[NSQUARES];
 
     for (int i = 0; i < NSQUARES * NSQUARES * NSQUARES; i++) {
@@ -1282,7 +1274,6 @@ static void InitN1_2_OpposingTables(int *tab, int *pos) {
                     (Column(wp1_physical) == Column(bp2_physical) &&
                      wp1_physical < bp2_physical)) {
                     assert(index < N1_2_OPPOSING);
-                    pos[index] = bp2 + NSQUARES * (bp1 + NSQUARES * wp1);
                     tab[bp2 + NSQUARES * (bp1 + NSQUARES * wp1)] = index;
                     tab[bp1 + NSQUARES * (bp2 + NSQUARES * wp1)] = index;
                     index++;
@@ -1297,7 +1288,7 @@ static void InitN1_2_OpposingTables(int *tab, int *pos) {
     assert(index == N1_2_OPPOSING);
 }
 
-static void InitN2_2_OpposingTables(int *tab, int *pos) {
+static void InitN2_2_OpposingTables(int *tab) {
     int index = 0, board[NSQUARES];
 
     for (int i = 0; i < NSQUARES * NSQUARES * NSQUARES * NSQUARES; i++) {
@@ -1440,9 +1431,6 @@ static void InitN2_2_OpposingTables(int *tab, int *pos) {
                         board[bp2_physical] = 0;
                         continue;
                     }
-                    pos[index] =
-                        bp2 +
-                        NSQUARES * (bp1 + NSQUARES * (wp2 + NSQUARES * wp1));
                     tab[bp2 +
                         NSQUARES * (bp1 + NSQUARES * (wp2 + NSQUARES * wp1))] =
                         index;
@@ -1468,7 +1456,7 @@ static void InitN2_2_OpposingTables(int *tab, int *pos) {
     assert(index == N2_2_OPPOSING);
 }
 
-static void InitN3_1_OpposingTables(int *tab, int *pos) {
+static void InitN3_1_OpposingTables(int *tab) {
     int index = 0, board[NSQUARES];
 
     for (int i = 0; i < NSQUARES * NSQUARES * NSQUARES * NSQUARES; i++) {
@@ -1589,9 +1577,6 @@ static void InitN3_1_OpposingTables(int *tab, int *pos) {
                         board[bp1_physical] = 0;
                         continue;
                     }
-                    pos[index] =
-                        bp1 +
-                        NSQUARES * (wp3 + NSQUARES * (wp2 + NSQUARES * wp1));
                     tab[bp1 +
                         NSQUARES * (wp3 + NSQUARES * (wp2 + NSQUARES * wp1))] =
                         index;
@@ -1623,7 +1608,7 @@ static void InitN3_1_OpposingTables(int *tab, int *pos) {
     assert(index == N3_1_OPPOSING);
 }
 
-static void InitN1_3_OpposingTables(int *tab, int *pos) {
+static void InitN1_3_OpposingTables(int *tab) {
     int index = 0, board[NSQUARES];
 
     for (int i = 0; i < NSQUARES * NSQUARES * NSQUARES * NSQUARES; i++) {
@@ -1744,9 +1729,6 @@ static void InitN1_3_OpposingTables(int *tab, int *pos) {
                         board[wp1_physical] = 0;
                         continue;
                     }
-                    pos[index] =
-                        bp3 +
-                        NSQUARES * (bp2 + NSQUARES * (bp1 + NSQUARES * wp1));
                     tab[bp3 +
                         NSQUARES * (bp2 + NSQUARES * (bp1 + NSQUARES * wp1))] =
                         index;
@@ -1844,7 +1826,7 @@ static int IsValidDP22(int w1, int w2, int b1, int b2) {
 
 static ZINDEX IndexDP22(const int *);
 
-static void InitN4OpposingTables(int *tab, int *pos) {
+static void InitN4OpposingTables(int *tab) {
     for (int w1 = 0; w1 < NSQUARES; w1++) {
         for (int w2 = 0; w2 < NSQUARES; w2++) {
             for (int b1_r = 0; b1_r < NROWS; b1_r++) {
@@ -1914,7 +1896,6 @@ static void InitN4OpposingTables(int *tab, int *pos) {
                                tab[pos_array_01] == index);
                         tab[pos_array_01] = index;
                     }
-                    pos[index] = pos_array_00;
                     index++;
                 }
             }
@@ -1946,7 +1927,7 @@ static void InitN4OpposingTables(int *tab, int *pos) {
     }
 }
 
-static void InitN3Tables(int *tab, int *pos) {
+static void InitN3Tables(int *tab) {
     int index = 0, score;
 
     for (int p1 = 0; p1 < NSQUARES; p1++) {
@@ -1955,7 +1936,6 @@ static void InitN3Tables(int *tab, int *pos) {
                 if (p1 == p2 || p1 == p3 || p2 == p3) {
                     score = -1;
                 } else {
-                    pos[index] = p3 + NSQUARES * (p2 + NSQUARES * p1);
                     score = index++;
                 }
                 tab[p1 + NSQUARES * (p2 + NSQUARES * p3)] = score;
@@ -1973,7 +1953,7 @@ static void InitN3Tables(int *tab, int *pos) {
     assert(index == N3);
 }
 
-static void InitN4Tables(int *tab, int *pos) {
+static void InitN4Tables(int *tab) {
     int index = 0, score;
 
     for (int p1 = 0; p1 < NSQUARES; p1++) {
@@ -1984,9 +1964,6 @@ static void InitN4Tables(int *tab, int *pos) {
                         p2 == p4 || p3 == p4) {
                         score = -1;
                     } else {
-                        pos[index] =
-                            p4 +
-                            NSQUARES * (p3 + NSQUARES * (p2 + NSQUARES * p1));
                         score = index++;
                     }
                     tab[p1 +
@@ -2072,34 +2049,6 @@ static void InitN4Tables(int *tab, int *pos) {
     assert(index == N4);
 }
 
-static void InitN4TablesMB(int *pos) {
-    int index = 0;
-
-    for (int p4 = 3; p4 < NSQUARES; p4++) {
-        for (int p3 = 2; p3 <= p4; p3++) {
-            for (int p2 = 1; p2 <= p3; p2++) {
-                for (int p1 = 0; p1 <= p2; p1++) {
-                    if (p1 == p2 || p1 == p3 || p1 == p4 || p2 == p3 ||
-                        p2 == p4 || p3 == p4) {
-                        // skip
-                    } else {
-                        pos[index] =
-                            p4 +
-                            NSQUARES * (p3 + NSQUARES * (p2 + NSQUARES * p1));
-                        int g_index = p4 * (p4 - 1) * (p4 - 2) * (p4 - 3) / 24 +
-                                      p3 * (p3 - 1) * (p3 - 2) / 6 +
-                                      p2 * (p2 - 1) / 2 + p1;
-                        assert(index == g_index);
-                        index++;
-                    }
-                }
-            }
-        }
-    }
-
-    assert(index == N4);
-}
-
 static void InitN5Tables() {
     for (unsigned int i = 0; i <= NSQUARES; i++)
         k5_tab[i] = i * (i - 1) * (i - 2) * (i - 3) * (i - 4) / 120;
@@ -2124,78 +2073,57 @@ static void InitN7Tables() {
 
 static void InitPermutationTables(void) {
     k2_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
-    p2_opposing_tab =
-        (int *)MyMalloc(NCOLS * (NROWS - 2) * (NROWS - 3) / 2 * sizeof(int));
-    InitN2OpposingTables(k2_opposing_tab, p2_opposing_tab);
+    InitN2OpposingTables(k2_opposing_tab);
 
     k2_1_opposing_tab =
         (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    p2_1_opposing_tab = (int *)MyMalloc(N2_1_OPPOSING * sizeof(int));
-    InitN2_1_OpposingTables(k2_1_opposing_tab, p2_1_opposing_tab);
+    InitN2_1_OpposingTables(k2_1_opposing_tab);
 
     k1_2_opposing_tab =
         (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    p1_2_opposing_tab = (int *)MyMalloc(N1_2_OPPOSING * sizeof(int));
-    InitN1_2_OpposingTables(k1_2_opposing_tab, p1_2_opposing_tab);
+    InitN1_2_OpposingTables(k1_2_opposing_tab);
 
     k2_2_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
                                         NSQUARES * sizeof(int));
-    p2_2_opposing_tab = (int *)MyMalloc(N2_2_OPPOSING * sizeof(int));
-    InitN2_2_OpposingTables(k2_2_opposing_tab, p2_2_opposing_tab);
+    InitN2_2_OpposingTables(k2_2_opposing_tab);
 
     k3_1_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
                                         NSQUARES * sizeof(int));
-    p3_1_opposing_tab = (int *)MyMalloc(N3_1_OPPOSING * sizeof(int));
-    InitN3_1_OpposingTables(k3_1_opposing_tab, p3_1_opposing_tab);
+    InitN3_1_OpposingTables(k3_1_opposing_tab);
 
     k1_3_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
                                         NSQUARES * sizeof(int));
-    p1_3_opposing_tab = (int *)MyMalloc(N1_3_OPPOSING * sizeof(int));
-    InitN1_3_OpposingTables(k1_3_opposing_tab, p1_3_opposing_tab);
+    InitN1_3_OpposingTables(k1_3_opposing_tab);
 
     k4_opposing_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES *
                                       NSQUARES * sizeof(int));
-    p4_opposing_tab = (int *)MyMalloc(N4_OPPOSING * sizeof(int));
-    InitN4OpposingTables(k4_opposing_tab, p4_opposing_tab);
+    InitN4OpposingTables(k4_opposing_tab);
 
-    p4_tab_mb = (int *)MyMalloc(N4 * sizeof(int));
-    InitN4TablesMB(p4_tab_mb);
     InitN5Tables();
     InitN6Tables();
     InitN7Tables();
 
     k4_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * NSQUARES *
                              sizeof(int));
-    p4_tab = (int *)MyMalloc(N4 * sizeof(int));
-    InitN4Tables(k4_tab, p4_tab);
+    InitN4Tables(k4_tab);
 
     k3_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    p3_tab = (int *)MyMalloc(N3 * sizeof(int));
-    InitN3Tables(k3_tab, p3_tab);
+    InitN3Tables(k3_tab);
 
-#if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
     k3_even_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    p3_even_tab = (int *)MyMalloc(N3_EVEN_PARITY * sizeof(int));
-    InitN3EvenTables(k3_even_tab, p3_even_tab);
+    InitN3EvenTables(k3_even_tab);
 
     k3_odd_tab = (int *)MyMalloc(NSQUARES * NSQUARES * NSQUARES * sizeof(int));
-    p3_odd_tab = (int *)MyMalloc(N3_ODD_PARITY * sizeof(int));
-    InitN3OddTables(k3_odd_tab, p3_odd_tab);
-#endif
+    InitN3OddTables(k3_odd_tab);
 
     k2_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
-    p2_tab = (int *)MyMalloc(N2 * sizeof(int));
-    InitN2Tables(k2_tab, p2_tab);
+    InitN2Tables(k2_tab);
 
-#if (NUM_WHITE_SQUARES) == (NUM_BLACK_SQUARES)
     k2_even_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
-    p2_even_tab = (int *)MyMalloc(N2_EVEN_PARITY * sizeof(int));
-    InitN2EvenTables(k2_even_tab, p2_even_tab);
-#endif
+    InitN2EvenTables(k2_even_tab);
 
     k2_odd_tab = (int *)MyMalloc(NSQUARES * NSQUARES * sizeof(int));
-    p2_odd_tab = (int *)MyMalloc(N2_ODD_PARITY * sizeof(int));
-    InitN2OddTables(k2_odd_tab, p2_odd_tab);
+    InitN2OddTables(k2_odd_tab);
 }
 
 static ZINDEX Index1(const int *pos) { return pos[2]; }
