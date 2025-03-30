@@ -139,7 +139,6 @@ impl Context {
         }
 
         pos = flip_position(pos);
-
         let result_flipped = self.get_mb_result(&pos)?;
 
         Ok(

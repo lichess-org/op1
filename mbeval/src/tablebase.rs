@@ -8,22 +8,15 @@ use std::{
 };
 
 use mbeval_sys::{mbeval_add_path, mbeval_init};
+use once_cell::sync::OnceCell;
 use shakmaty::{ByColor, ByRole, Color, Role};
+
+use crate::table::Table;
 
 static INIT_MBEVAL: Once = Once::new();
 
 pub struct Tablebase {
-    tables: HashMap<
-        (
-            Material,
-            PawnFileType,
-            ByColor<BishopParity>,
-            Color,
-            KkIndex,
-            TableType,
-        ),
-        PathBuf,
-    >,
+    tables: HashMap<TableKey, (PathBuf, OnceCell<Table>)>,
 }
 
 impl Tablebase {
@@ -60,15 +53,15 @@ impl Tablebase {
                     {
                         if dir_material == file_material {
                             self.tables.insert(
-                                (
-                                    file_material,
+                                TableKey {
+                                    material: file_material,
                                     pawn_file_type,
                                     bishop_parity,
                                     side,
                                     kk_index,
                                     table_type,
-                                ),
-                                file,
+                                },
+                                (file, OnceCell::new()),
                             );
                             num += 1;
                         }
@@ -78,6 +71,23 @@ impl Tablebase {
         }
         Ok(num)
     }
+
+    pub fn open_table(&self, key: &TableKey) -> io::Result<Option<&Table>> {
+        self.tables
+            .get(key)
+            .map(|(path, table)| table.get_or_try_init(|| Table::open(path)))
+            .transpose()
+    }
+}
+
+#[derive(Debug, Eq, Hash, PartialEq)]
+pub struct TableKey {
+    material: Material,
+    pawn_file_type: PawnFileType,
+    bishop_parity: ByColor<BishopParity>,
+    side: Color,
+    kk_index: KkIndex,
+    table_type: TableType,
 }
 
 type Material = ByColor<ByRole<u8>>;

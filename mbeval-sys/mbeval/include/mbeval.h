@@ -1,5 +1,9 @@
 #pragma once
 
+#include <stdint.h>
+
+#define MAX_PIECES_MB 9
+
 #define NROWS 8
 #define NCOLS 8
 
@@ -63,6 +67,37 @@ enum {
     BEST = 0x400
 };
 
+typedef uint64_t ZINDEX;
+
+typedef struct {
+    int etype, op_type, sub_type;
+    ZINDEX (*IndexFromPos)(const int *pos);
+} IndexType;
+
+typedef struct {
+    ZINDEX index;
+    const IndexType *eptr;
+    int bishop_parity[2];
+} PARITY_INDEX;
+
+typedef struct {
+    PARITY_INDEX parity_index[4];
+    int num_parities;
+    int mb_position[MAX_PIECES_MB], mb_piece_types[MAX_PIECES_MB];
+    int piece_type_count[2][KING];
+    int parity;
+    int pawn_file_type;
+    const IndexType *eptr_bp_11, *eptr_op_11, *eptr_op_21, *eptr_op_12,
+        *eptr_dp_22, *eptr_op_22, *eptr_op_31, *eptr_op_13, *eptr_op_41,
+        *eptr_op_14, *eptr_op_32, *eptr_op_23, *eptr_op_33, *eptr_op_42,
+        *eptr_op_24;
+    ZINDEX index_bp_11, index_op_11, index_op_21, index_op_12, index_dp_22,
+        index_op_22, index_op_31, index_op_13, index_op_41, index_op_14,
+        index_op_32, index_op_23, index_op_33, index_op_42, index_op_24;
+    int num_pieces;
+    int kk_index;
+} MB_INFO;
+
 void mbeval_init(void);
 
 void mbeval_add_path(const char *path);
@@ -75,3 +110,6 @@ int mbeval_context_probe(CONTEXT *ctx, const int pieces[NSQUARES], int side,
 int mbeval_context_get_mb_result(CONTEXT *ctx, const int pieces[NSQUARES], int side,
                          int ep_square, int castle, int half_move,
                          int full_move);
+int mbeval_context_get_mb_info(CONTEXT *ctx, const int pieces[NSQUARES], int side,
+                         int ep_square, int castle, int half_move,
+                         int full_move, MB_INFO* info);

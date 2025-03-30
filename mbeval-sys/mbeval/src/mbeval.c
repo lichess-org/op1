@@ -250,7 +250,6 @@ enum { ZLIB_YK = 0, BZIP_YK, LZMA_YK, ZSTD_YK, NO_COMPRESSION_YK };
 #endif
 
 #define MAX_PIECES 32
-#define MAX_PIECES_MB 9
 #define MAX_PIECES_YK 7
 #define MAX_IDENT_PIECES 10
 #define MAX_FILES 64
@@ -511,7 +510,6 @@ typedef uint64_t INDEX;
 #define SEPARATOR ":"
 #define DELIMITER "/"
 
-typedef uint64_t ZINDEX;
 #define DEC_ZINDEX_FORMAT "%" PRIu64
 #define DEC_ZINDEX_FORMAT_W(n) "%" #n "I64u"
 #define HEX_ZINDEX_FORMAT "%016I64X"
@@ -685,11 +683,6 @@ struct _CONTEXT {
 
 static int ParityTable[NSQUARES];
 static int WhiteSquare[NSQUARES / 2], BlackSquare[NSQUARES / 2];
-
-typedef struct {
-    int etype, op_type, sub_type;
-    ZINDEX (*IndexFromPos)(const int *pos);
-} IndexType;
 
 // For 5 or more identical pieces, always compute index rather than creating
 // lookup table
@@ -3874,34 +3867,10 @@ static const IndexType IndexTable[] = {{111111, FREE_PAWNS, 0, Index111111},
 #define NumIndexTypes (sizeof(IndexTable) / sizeof(IndexTable[0]))
 
 typedef struct {
-    ZINDEX index;
-    const IndexType *eptr;
-    int bishop_parity[2];
-} PARITY_INDEX;
-
-typedef struct {
     int kk_index;
     ZINDEX index;
     uint8_t metric;
 } INDEX_DATA;
-
-typedef struct {
-    PARITY_INDEX parity_index[4];
-    int num_parities;
-    int mb_position[MAX_PIECES_MB], mb_piece_types[MAX_PIECES_MB];
-    int piece_type_count[2][KING];
-    int parity;
-    int pawn_file_type;
-    const IndexType *eptr_bp_11, *eptr_op_11, *eptr_op_21, *eptr_op_12,
-        *eptr_dp_22, *eptr_op_22, *eptr_op_31, *eptr_op_13, *eptr_op_41,
-        *eptr_op_14, *eptr_op_32, *eptr_op_23, *eptr_op_33, *eptr_op_42,
-        *eptr_op_24;
-    ZINDEX index_bp_11, index_op_11, index_op_21, index_op_12, index_dp_22,
-        index_op_22, index_op_31, index_op_13, index_op_41, index_op_14,
-        index_op_32, index_op_23, index_op_33, index_op_42, index_op_24;
-    int num_pieces;
-    int kk_index;
-} MB_INFO;
 
 static int PieceStrengths[KING];
 
@@ -6455,4 +6424,17 @@ int mbeval_context_get_mb_result(CONTEXT *ctx, const int pieces[NSQUARES], int s
 
     INDEX_DATA index = {0};
     return GetMBResult(ctx, &ctx->board, &index);
+}
+
+int mbeval_context_get_mb_info(CONTEXT *ctx, const int pieces[NSQUARES], int side,
+                         int ep_square, int castle, int half_move,
+                         int full_move, MB_INFO* info)
+{
+    assert(ctx != NULL);
+
+    SetBoard(&ctx->board, pieces, side, ep_square, castle, half_move,
+             full_move);
+
+    memset(info, 0, sizeof(MB_INFO));
+    return GetMBInfo(&ctx->board, info);
 }

@@ -26,8 +26,11 @@ use tokio::{
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
+use crate::{probe::Context, tablebase::Tablebase};
+
 mod probe;
-use crate::probe::{Context, Score};
+mod table;
+mod tablebase;
 
 #[derive(Parser, Debug)]
 struct Opt {
@@ -38,6 +41,7 @@ struct Opt {
 }
 
 struct AppState {
+    tablebase: Tablebase,
     ctx: Mutex<Context>,
 }
 
@@ -117,26 +121,16 @@ async fn main() {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    // Initialize mbeval
-    unsafe {
-        mbeval_init();
-    }
-    tracing::info!("mbeval initialized");
-
-    // Add paths
+    // Initialize tablebase
+    let mut tablebase = Tablebase::new();
     for path in opt.path {
-        unsafe {
-            mbeval_add_path(
-                CString::new(path.into_os_string().as_bytes())
-                    .unwrap()
-                    .as_c_str()
-                    .as_ptr(),
-            );
-        }
+        let num = tablebase.add_path(&path).expect("add path");
+        tracing::info!("loaded {} tables from {}", num, path.display());
     }
 
     // Start server
     let state: &'static AppState = Box::leak(Box::new(AppState {
+        tablebase,
         ctx: Mutex::new(unsafe { Context::new() }),
     }));
 
@@ -163,6 +157,7 @@ async fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::probe::Score;
 
     fn assert_score(ctx: &mut Context, fen: &str, expected: Score) {
         let pos: Chess = fen

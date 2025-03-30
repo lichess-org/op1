@@ -8,6 +8,7 @@ axum = { version = "0.8.1", features = ["macros"] }
 clap = { version = "4.5.32", features = ["derive"] }
 listenfd = "1.0.2"
 mbeval-sys = { version = "0.1.0", path = "../mbeval-sys" }
+once_cell = "1.21.3"
 serde = { version = "1.0.219", features = ["derive"] }
 shakmaty = { version = "0.27.3", features = ["serde"] }
 tokio = { version = "1.44.1", features = ["full"] }
@@ -15,3 +16,4 @@ tower = "0.5.2"
 tower-http = { version = "0.6.2", features = ["trace"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
+zerocopy = { version = "0.8.24", features = ["derive", "std"] }
