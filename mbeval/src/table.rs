@@ -65,13 +65,13 @@ impl Table {
         self.file
             .read_exact_at(&mut compressed_block[..], compressed_block_start)?;
 
-        let block = match self.header.format_type {
+        let block = match dbg!(self.header.compression_method) {
             0 => compressed_block,
             2 => zstd::decode_all(&compressed_block[..])?,
-            format_type => {
+            compression_method => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("unexpected format: {format_type}"),
+                    format!("unexpected format: {compression_method}"),
                 ));
             }
         };
@@ -79,7 +79,7 @@ impl Table {
         block.get(byte_index as usize).copied().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::InvalidData,
-                "index not found in decompressed block",
+                format!("index {byte_index} not found in decompressed block"),
             )
         })
     }
