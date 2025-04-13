@@ -71,7 +71,7 @@ impl Table {
             format_type => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    "unexpected format: {format_type}",
+                    format!("unexpected format: {format_type}"),
                 ));
             }
         };

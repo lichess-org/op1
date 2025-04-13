@@ -615,8 +615,6 @@ static size_t f_read(void *pv, size_t cb, file fp, INDEX indStart) {
 #define ColorName(side) ((side) == WHITE ? "white" : "black")
 #define SideTm(side) ((side) == WHITE ? "wtm" : "btm")
 
-enum { NONE = 0, EVEN, ODD };
-
 #define QRBN_PROMOTIONS                                                        \
     ((1 << (KNIGHT)) | (1 << (BISHOP)) | (1 << (ROOK)) | (1 << (QUEEN)))
 #define QRN_PROMOTIONS ((1 << (KNIGHT)) | (1 << (ROOK)) | (1 << (QUEEN)))

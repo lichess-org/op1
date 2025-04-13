@@ -74,6 +74,8 @@ typedef struct {
     ZINDEX (*IndexFromPos)(const int *pos);
 } IndexType;
 
+enum { NONE = 0, EVEN, ODD };
+
 typedef struct {
     ZINDEX index;
     const IndexType *eptr;

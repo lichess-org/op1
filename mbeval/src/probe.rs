@@ -1,7 +1,8 @@
-use std::{ffi::c_int, ops::Neg};
+use std::{ffi::c_int, mem::MaybeUninit, ops::Neg};
 
 use mbeval_sys::{
-    CONTEXT, mbeval_context_create, mbeval_context_destroy, mbeval_context_get_mb_result,
+    CONTEXT, MB_INFO, mbeval_context_create, mbeval_context_destroy, mbeval_context_get_mb_info,
+    mbeval_context_get_mb_result,
 };
 use shakmaty::{Board, CastlingMode, Chess, Color, EnPassantMode, Position as _, Role};
 
@@ -57,6 +58,39 @@ impl Context {
         Context {
             ctx: unsafe { mbeval_context_create() },
         }
+    }
+
+    pub fn get_mb_info(&mut self, pos: &Chess) -> Result<MB_INFO, Error> {
+        let mut squares = [0; 64];
+        for (sq, piece) in pos.board() {
+            let role = match piece.role {
+                Role::Pawn => mbeval_sys::PAWN,
+                Role::Knight => mbeval_sys::KNIGHT,
+                Role::Bishop => mbeval_sys::BISHOP,
+                Role::Rook => mbeval_sys::ROOK,
+                Role::Queen => mbeval_sys::QUEEN,
+                Role::King => mbeval_sys::KING,
+            } as c_int;
+            squares[usize::from(sq)] = piece.color.fold_wb(role, -role);
+        }
+        let mut mb_info: MaybeUninit<MB_INFO> = MaybeUninit::zeroed();
+        let result = unsafe {
+            mbeval_context_get_mb_info(
+                self.ctx,
+                squares.as_ptr(),
+                pos.turn()
+                    .fold_wb(mbeval_sys::WHITE as c_int, mbeval_sys::BLACK as c_int),
+                pos.ep_square(EnPassantMode::Legal).map_or(0, c_int::from),
+                0,
+                0,
+                1,
+                mb_info.as_mut_ptr(),
+            )
+        };
+        if result != 0 {
+            return Err(Error {});
+        }
+        Ok(unsafe { mb_info.assume_init() })
     }
 
     fn get_mb_result(&mut self, pos: &Chess) -> Result<Score, Error> {

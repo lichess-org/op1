@@ -7,11 +7,11 @@ use std::{
     sync::Once,
 };
 
-use mbeval_sys::{mbeval_add_path, mbeval_init};
+use mbeval_sys::{MB_INFO, mbeval_add_path, mbeval_init};
 use once_cell::sync::OnceCell;
-use shakmaty::{ByColor, ByRole, Color, Role};
+use shakmaty::{ByColor, ByRole, Chess, Color, Position as _, Role};
 
-use crate::table::Table;
+use crate::{probe::Score, table::Table};
 
 static INIT_MBEVAL: Once = Once::new();
 
@@ -33,10 +33,10 @@ impl Tablebase {
         }
     }
 
-    pub fn add_path(&mut self, path: &Path) -> io::Result<usize> {
+    pub fn add_path(&mut self, path: impl AsRef<Path>) -> io::Result<usize> {
         unsafe {
             mbeval_add_path(
-                CString::new(path.to_owned().into_os_string().as_bytes())
+                CString::new(path.as_ref().to_owned().into_os_string().as_bytes())
                     .unwrap()
                     .as_c_str()
                     .as_ptr(),
@@ -44,7 +44,7 @@ impl Tablebase {
         }
 
         let mut num = 0;
-        for directory in path.read_dir()? {
+        for directory in path.as_ref().read_dir()? {
             let directory = directory?.path();
             if let Some((dir_material, pawn_file_type, bishop_parity)) = parse_dirname(&directory) {
                 for file in directory.read_dir()? {
@@ -78,6 +78,36 @@ impl Tablebase {
             .map(|(path, table)| table.get_or_try_init(|| Table::open(path)))
             .transpose()
     }
+
+    pub fn select_table(
+        &self,
+        pos: &Chess,
+        mb_info: &MB_INFO,
+    ) -> io::Result<Option<(&Table, u64)>> {
+        let material = pos.board().material();
+
+        for bishop_parity in &mb_info.parity_index[..mb_info.num_parities as usize] {
+            if let Some(table) = self.open_table(&TableKey {
+                material,
+                pawn_file_type: PawnFileType::Free,
+                bishop_parity: ByColor {
+                    white: bishop_parity.bishop_parity[0]
+                        .try_into()
+                        .expect("bishop parity"),
+                    black: bishop_parity.bishop_parity[1]
+                        .try_into()
+                        .expect("bishop parity"),
+                },
+                side: pos.turn(),
+                kk_index: KkIndex(mb_info.kk_index as u32),
+                table_type: TableType::Mb,
+            })? {
+                return Ok(Some((table, bishop_parity.index)));
+            }
+        }
+
+        todo!()
+    }
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
@@ -97,6 +127,19 @@ enum BishopParity {
     None,
     Even,
     Odd,
+}
+
+impl TryFrom<i32> for BishopParity {
+    type Error = i32;
+
+    fn try_from(value: i32) -> Result<BishopParity, i32> {
+        Ok(match value {
+            v if v as u32 == mbeval_sys::NONE => BishopParity::None,
+            v if v as u32 == mbeval_sys::EVEN => BishopParity::Even,
+            v if v as u32 == mbeval_sys::ODD => BishopParity::Odd,
+            v => return Err(v),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

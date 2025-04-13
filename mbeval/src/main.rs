@@ -1,11 +1,4 @@
-use std::{
-    collections::HashMap,
-    ffi::{CString, c_int},
-    net::SocketAddr,
-    os::unix::ffi::OsStrExt,
-    path::PathBuf,
-    sync::Mutex,
-};
+use std::{collections::HashMap, ffi::c_int, net::SocketAddr, path::PathBuf, sync::Mutex};
 
 use axum::{
     Json, Router,
@@ -16,7 +9,6 @@ use axum::{
 };
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
-use mbeval_sys::{mbeval_add_path, mbeval_init};
 use serde::{Deserialize, Serialize};
 use shakmaty::{CastlingMode, Chess, Position, PositionError, fen::Fen, uci::UciMove};
 use tokio::{
@@ -41,7 +33,7 @@ struct Opt {
 }
 
 struct AppState {
-    tablebase: Tablebase,
+    _tablebase: Tablebase,
     ctx: Mutex<Context>,
 }
 
@@ -130,7 +122,7 @@ async fn main() {
 
     // Start server
     let state: &'static AppState = Box::leak(Box::new(AppState {
-        tablebase,
+        _tablebase: tablebase,
         ctx: Mutex::new(unsafe { Context::new() }),
     }));
 
@@ -156,68 +148,83 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
+    use mbeval_sys::mbeval_add_path;
+
     use super::*;
     use crate::probe::Score;
 
-    fn assert_score(ctx: &mut Context, fen: &str, expected: Score) {
+    fn assert_score(tb: &Tablebase, ctx: &mut Context, fen: &str, expected: Score) {
         let pos: Chess = fen
             .parse::<Fen>()
             .unwrap()
             .into_position(CastlingMode::Chess960)
             .unwrap();
 
+        dbg!(ctx.get_mb_info(&pos).unwrap());
+
         assert_eq!(ctx.score_position(pos).unwrap(), expected);
     }
 
     #[test]
     fn test_kbpkpppp() {
+        let mut tb = Tablebase::new(); // Implies mveval_init
+
+        tb.add_path("..");
         unsafe {
-            mbeval_init();
             mbeval_add_path(c"..".as_ptr());
         }
 
         let mut ctx = unsafe { Context::new() };
         assert_score(
+            &tb,
             &mut ctx,
             "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1",
             Score::Dtc(-3),
         );
         assert_score(
+            &tb,
             &mut ctx,
             "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1",
             Score::Dtc(-1),
         );
         assert_score(
+            &tb,
             &mut ctx,
             "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1",
             Score::Dtc(-2),
         );
         assert_score(
+            &tb,
             &mut ctx,
             "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1",
             Score::Dtc(-7),
         );
         assert_score(
+            &tb,
             &mut ctx,
             "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
             Score::Dtc(6),
         );
         assert_score(
+            &tb,
             &mut ctx,
             "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
             Score::Dtc(4),
         );
         assert_score(
+            &tb,
             &mut ctx,
             "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1",
             Score::Draw,
         );
         assert_score(
+            &tb,
             &mut ctx,
             "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1",
             Score::Unknown,
         );
         assert_score(
+            &tb,
             &mut ctx,
             "8/4p3/8/6P1/4PP2/5b2/7P/5k1K w - - 1 3",
             Score::Dtc(0), // checkmate
