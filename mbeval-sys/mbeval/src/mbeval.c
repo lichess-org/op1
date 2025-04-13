@@ -31,7 +31,6 @@
 #define SquareMake(row, col) ((NCOLS) * (row) + (col))
 #endif
 
-enum { NO_COMPRESSION = 0, ZLIB, ZSTD, NUM_COMPRESSION_METHODS };
 enum { ZLIB_YK = 0, BZIP_YK, LZMA_YK, ZSTD_YK, NO_COMPRESSION_YK };
 
 #define COMPRESS_OK Z_OK

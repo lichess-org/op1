@@ -81,14 +81,19 @@ impl Tablebase {
             .transpose()
     }
 
-    fn select_table(&self, pos: &Chess, mb_info: &MB_INFO) -> io::Result<Option<(&Table, u64)>> {
+    fn select_table(
+        &self,
+        pos: &Chess,
+        mb_info: &MB_INFO,
+        table_type: TableType,
+    ) -> io::Result<Option<(&Table, u64)>> {
         let table_key = TableKey {
             material: pos.board().material(),
             pawn_file_type: PawnFileType::Free,
             bishop_parity: ByColor::new_with(|_| BishopParity::None),
             side: pos.turn(),
             kk_index: KkIndex(mb_info.kk_index as u32),
-            table_type: TableType::Mb,
+            table_type,
         };
 
         for bishop_parity in &mb_info.parity_index[..mb_info.num_parities as usize] {
@@ -162,7 +167,7 @@ impl Tablebase {
     }
 
     pub fn probe(&self, pos: &Chess, mb_info: &MB_INFO) -> Result<Option<u8>, io::Error> {
-        if let Some((table, index)) = self.select_table(pos, mb_info)? {
+        if let Some((table, index)) = self.select_table(pos, mb_info, TableType::Mb)? {
             Ok(Some(table.read_mb(index)?))
         } else {
             Ok(None)

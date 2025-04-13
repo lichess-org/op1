@@ -66,12 +66,12 @@ impl Table {
             .read_exact_at(&mut compressed_block[..], compressed_block_start)?;
 
         let block = match dbg!(self.header.compression_method) {
-            0 => compressed_block,
-            2 => zstd::decode_all(&compressed_block[..])?,
-            compression_method => {
+            m if m as u32 == mbeval_sys::NO_COMPRESSION => compressed_block,
+            m if m as u32 == mbeval_sys::ZSTD => zstd::decode_all(&compressed_block[..])?,
+            m => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("unexpected format: {compression_method}"),
+                    format!("unexpected format: {m}"),
                 ));
             }
         };
