@@ -13,6 +13,8 @@ use shakmaty::{ByColor, ByRole, Chess, Color, Position as _, Role};
 
 use crate::{probe::Score, table::Table};
 
+const ALL_ONES: u64 = !0;
+
 static INIT_MBEVAL: Once = Once::new();
 
 pub struct Tablebase {
@@ -72,24 +74,25 @@ impl Tablebase {
         Ok(num)
     }
 
-    pub fn open_table(&self, key: &TableKey) -> io::Result<Option<&Table>> {
+    fn open_table(&self, key: &TableKey) -> io::Result<Option<&Table>> {
         self.tables
             .get(key)
             .map(|(path, table)| table.get_or_try_init(|| Table::open(path)))
             .transpose()
     }
 
-    pub fn select_table(
-        &self,
-        pos: &Chess,
-        mb_info: &MB_INFO,
-    ) -> io::Result<Option<(&Table, u64)>> {
-        let material = pos.board().material();
+    fn select_table(&self, pos: &Chess, mb_info: &MB_INFO) -> io::Result<Option<(&Table, u64)>> {
+        let table_key = TableKey {
+            material: pos.board().material(),
+            pawn_file_type: PawnFileType::Free,
+            bishop_parity: ByColor::new_with(|_| BishopParity::None),
+            side: pos.turn(),
+            kk_index: KkIndex(mb_info.kk_index as u32),
+            table_type: TableType::Mb,
+        };
 
         for bishop_parity in &mb_info.parity_index[..mb_info.num_parities as usize] {
             if let Some(table) = self.open_table(&TableKey {
-                material,
-                pawn_file_type: PawnFileType::Free,
                 bishop_parity: ByColor {
                     white: bishop_parity.bishop_parity[0]
                         .try_into()
@@ -98,15 +101,72 @@ impl Tablebase {
                         .try_into()
                         .expect("bishop parity"),
                 },
-                side: pos.turn(),
-                kk_index: KkIndex(mb_info.kk_index as u32),
-                table_type: TableType::Mb,
+                ..table_key
             })? {
                 return Ok(Some((table, bishop_parity.index)));
             }
         }
 
-        todo!()
+        let pawn_file_type =
+            PawnFileType::try_from(mb_info.pawn_file_type).expect("pawn file type");
+
+        let index = match pawn_file_type {
+            PawnFileType::Free => ALL_ONES,
+            PawnFileType::Bp1 => {
+                if mb_info.index_op_11 != ALL_ONES {
+                    if let Some(table) = self.open_table(&TableKey {
+                        pawn_file_type: PawnFileType::Op1,
+                        ..table_key
+                    })? {
+                        return Ok(Some((table, mb_info.index_op_11)));
+                    }
+                }
+                mb_info.index_bp_11
+            }
+            PawnFileType::Op1 => mb_info.index_op_11,
+            PawnFileType::Op21 => mb_info.index_op_21,
+            PawnFileType::Op12 => mb_info.index_op_12,
+            PawnFileType::Op22 => mb_info.index_op_22,
+            PawnFileType::Dp2 => {
+                if mb_info.index_op_22 != ALL_ONES {
+                    if let Some(table) = self.open_table(&TableKey {
+                        pawn_file_type: PawnFileType::Op22,
+                        ..table_key
+                    })? {
+                        return Ok(Some((table, mb_info.index_op_22)));
+                    }
+                }
+                mb_info.index_dp_22
+            }
+            PawnFileType::Op31 => mb_info.index_op_31,
+            PawnFileType::Op13 => mb_info.index_op_13,
+            PawnFileType::Op41 => mb_info.index_op_41,
+            PawnFileType::Op14 => mb_info.index_op_14,
+            PawnFileType::Op32 => mb_info.index_op_32,
+            PawnFileType::Op23 => mb_info.index_op_23,
+            PawnFileType::Op33 => mb_info.index_op_33,
+            PawnFileType::Op42 => mb_info.index_op_42,
+            PawnFileType::Op24 => mb_info.index_op_24,
+        };
+
+        if dbg!(index) == ALL_ONES {
+            return Ok(None);
+        }
+
+        Ok(self
+            .open_table(dbg!(&TableKey {
+                pawn_file_type,
+                ..table_key
+            }))?
+            .map(|table| (table, index)))
+    }
+
+    pub fn probe(&self, pos: &Chess, mb_info: &MB_INFO) -> Result<Option<u8>, io::Error> {
+        if let Some((table, index)) = self.select_table(pos, mb_info)? {
+            Ok(Some(table.read_mb(index)?))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -297,13 +357,13 @@ fn parse_material(name: &str) -> Option<Material> {
         return None;
     }
     let mut material = Material::default();
-    let mut color = Color::White;
+    let mut color = Color::Black;
     for c in name.chars() {
         let role = Role::from_char(c)?;
-        material[color][role] += 1;
         if role == Role::King {
-            color = Color::Black;
+            color = !color;
         }
+        material[color][role] += 1;
     }
     Some(material)
 }

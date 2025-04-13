@@ -160,7 +160,8 @@ mod tests {
             .into_position(CastlingMode::Chess960)
             .unwrap();
 
-        dbg!(ctx.get_mb_info(&pos).unwrap());
+        let mb_info = ctx.get_mb_info(&pos).unwrap();
+        dbg!(tb.probe(&pos, &mb_info).unwrap());
 
         assert_eq!(ctx.score_position(pos).unwrap(), expected);
     }
@@ -169,7 +170,7 @@ mod tests {
     fn test_kbpkpppp() {
         let mut tb = Tablebase::new(); // Implies mveval_init
 
-        tb.add_path("..");
+        dbg!(tb.add_path("..").unwrap());
         unsafe {
             mbeval_add_path(c"..".as_ptr());
         }
