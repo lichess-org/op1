@@ -17,6 +17,13 @@ impl Table {
 
         let header = Header::read_from_io(&mut file)?;
 
+        if header.block_size == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "block size cannot be zero",
+            ));
+        }
+
         let mut offsets = vec![0; 8 * (header.num_blocks.get() as usize + 1)];
         file.read_exact(&mut offsets[..])?;
 
@@ -36,6 +43,45 @@ impl Table {
             .try_into()
             .expect("8 bytes");
         Ok(u64::from_le_bytes(encoded))
+    }
+
+    pub fn read_mb(&self, index: u64) -> io::Result<u8> {
+        let block_index = u32::try_from(index / u64::from(self.header.block_size))
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "index out of range"))?;
+        let byte_index = index % u64::from(self.header.block_size);
+
+        let compressed_block_start = self.block_offset(block_index)?;
+        let compressed_block_end =
+            self.block_offset(block_index.checked_add(1).ok_or_else(|| {
+                io::Error::new(io::ErrorKind::InvalidInput, "index out of range")
+            })?)?;
+        let compressed_block_size = compressed_block_end
+            .checked_sub(compressed_block_start)
+            .ok_or_else(|| {
+                io::Error::new(io::ErrorKind::InvalidData, "block offsets not monotonic")
+            })?;
+
+        let mut compressed_block = vec![0; compressed_block_size as usize];
+        self.file
+            .read_exact_at(&mut compressed_block[..], compressed_block_start)?;
+
+        let block = match self.header.format_type {
+            0 => compressed_block,
+            2 => zstd::decode_all(&compressed_block[..])?,
+            format_type => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "unexpected format: {format_type}",
+                ));
+            }
+        };
+
+        block.get(byte_index as usize).copied().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "index not found in decompressed block",
+            )
+        })
     }
 }
 
