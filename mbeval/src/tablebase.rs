@@ -144,12 +144,13 @@ impl TryFrom<i32> for BishopParity {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum PawnFileType {
-    Bp1,
-    Op1,
+    Free,
+    Bp1, // BP_11
+    Op1, // OP_11
     Op21,
     Op12,
-    Dp2,
     Op22,
+    Dp2, // DP_22
     Op31,
     Op13,
     Op41,
@@ -159,7 +160,32 @@ enum PawnFileType {
     Op33,
     Op42,
     Op24,
-    Free,
+}
+
+impl TryFrom<i32> for PawnFileType {
+    type Error = i32;
+
+    fn try_from(value: i32) -> Result<PawnFileType, i32> {
+        Ok(match value {
+            v if v as u32 == mbeval_sys::FREE_PAWNS => PawnFileType::Free,
+            v if v as u32 == mbeval_sys::BP_11_PAWNS => PawnFileType::Bp1,
+            v if v as u32 == mbeval_sys::OP_11_PAWNS => PawnFileType::Op1,
+            v if v as u32 == mbeval_sys::OP_21_PAWNS => PawnFileType::Op21,
+            v if v as u32 == mbeval_sys::OP_12_PAWNS => PawnFileType::Op12,
+            v if v as u32 == mbeval_sys::OP_22_PAWNS => PawnFileType::Op22,
+            v if v as u32 == mbeval_sys::DP_22_PAWNS => PawnFileType::Dp2,
+            v if v as u32 == mbeval_sys::OP_31_PAWNS => PawnFileType::Op31,
+            v if v as u32 == mbeval_sys::OP_13_PAWNS => PawnFileType::Op13,
+            v if v as u32 == mbeval_sys::OP_41_PAWNS => PawnFileType::Op41,
+            v if v as u32 == mbeval_sys::OP_14_PAWNS => PawnFileType::Op14,
+            v if v as u32 == mbeval_sys::OP_32_PAWNS => PawnFileType::Op32,
+            v if v as u32 == mbeval_sys::OP_23_PAWNS => PawnFileType::Op23,
+            v if v as u32 == mbeval_sys::OP_33_PAWNS => PawnFileType::Op33,
+            v if v as u32 == mbeval_sys::OP_42_PAWNS => PawnFileType::Op42,
+            v if v as u32 == mbeval_sys::OP_24_PAWNS => PawnFileType::Op24,
+            v => return Err(v),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

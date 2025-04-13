@@ -76,6 +76,25 @@ typedef struct {
 
 enum { NONE = 0, EVEN, ODD };
 
+enum {
+    FREE_PAWNS = 0,
+    BP_11_PAWNS,
+    OP_11_PAWNS,
+    OP_21_PAWNS,
+    OP_12_PAWNS,
+    OP_22_PAWNS,
+    DP_22_PAWNS,
+    OP_31_PAWNS,
+    OP_13_PAWNS,
+    OP_41_PAWNS,
+    OP_14_PAWNS,
+    OP_32_PAWNS,
+    OP_23_PAWNS,
+    OP_33_PAWNS,
+    OP_42_PAWNS,
+    OP_24_PAWNS,
+};
+
 typedef struct {
     ZINDEX index;
     const IndexType *eptr;
