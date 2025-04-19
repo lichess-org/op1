@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     ffi::c_int,
     io,
     mem::MaybeUninit,
@@ -9,6 +8,7 @@ use std::{
 
 use mbeval_sys::{MB_INFO, mbeval_get_mb_info, mbeval_init};
 use once_cell::sync::OnceCell;
+use rustc_hash::FxHashMap;
 use shakmaty::{
     Board, ByColor, ByRole, CastlingMode, Chess, Color, EnPassantMode, Position as _, Role,
 };
@@ -20,7 +20,7 @@ const ALL_ONES: u64 = !0;
 static INIT_MBEVAL: Once = Once::new();
 
 pub struct Tablebase {
-    tables: HashMap<TableKey, (PathBuf, OnceCell<Table>)>,
+    tables: FxHashMap<TableKey, (PathBuf, OnceCell<Table>)>,
 }
 
 impl Tablebase {
@@ -33,7 +33,7 @@ impl Tablebase {
         });
 
         Tablebase {
-            tables: HashMap::new(),
+            tables: FxHashMap::default(),
         }
     }
 

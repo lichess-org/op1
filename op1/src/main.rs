@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io, net::SocketAddr, path::PathBuf};
+use std::{io, net::SocketAddr, path::PathBuf};
 
 use axum::{
     Json, Router,
@@ -9,6 +9,7 @@ use axum::{
 };
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use shakmaty::{CastlingMode, Chess, Position, PositionError, fen::Fen, uci::UciMove};
 use tokio::{
@@ -44,7 +45,7 @@ struct ProbeQuery {
 #[derive(Serialize)]
 struct ProbeResponse {
     parent: Option<i32>,
-    children: HashMap<UciMove, Option<i32>>,
+    children: FxHashMap<UciMove, Option<i32>>,
 }
 
 enum ProbeError {
@@ -98,15 +99,15 @@ async fn handle_probe(
         })
         .collect::<Vec<_>>();
 
-    let parent_handle = task::spawn_blocking(move || {
+    let parent = task::spawn_blocking(move || {
         app.tablebase
             .probe(&pos)
             .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
-    });
+    })
+    .await
+    .expect("blocking parent probe")?;
 
-    let parent = parent_handle.await.expect("blocking parent probe")?;
-
-    let mut children = HashMap::with_capacity(child_handles.len());
+    let mut children = FxHashMap::with_capacity_and_hasher(child_handles.len(), Default::default());
     for (m, child) in child_handles {
         children.insert(
             m.to_uci(CastlingMode::Chess960),

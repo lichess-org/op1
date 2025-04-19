@@ -9,6 +9,7 @@ clap = { version = "4.5.32", features = ["derive"] }
 listenfd = "1.0.2"
 mbeval-sys = { version = "0.1.0", path = "../mbeval-sys" }
 once_cell = "1.21.3"
+rustc-hash = "2.1.1"
 serde = { version = "1.0.219", features = ["derive"] }
 shakmaty = { version = "0.27.3", features = ["serde"] }
 tokio = { version = "1.44.1", features = ["full"] }

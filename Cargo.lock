@@ -659,6 +659,7 @@ dependencies = [
  "listenfd",
  "mbeval-sys",
  "once_cell",
+ "rustc-hash",
  "serde",
  "shakmaty",
  "tokio",
