@@ -21,7 +21,6 @@ use tower_http::trace::TraceLayer;
 
 use crate::tablebase::Tablebase;
 
-mod probe;
 mod table;
 mod tablebase;
 
@@ -167,15 +166,10 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use mbeval_sys::mbeval_add_path;
-
     use super::*;
-    use crate::{
-        probe::{Context, Score},
-        tablebase::Value,
-    };
+    use crate::tablebase::Value;
 
-    fn assert_score(tb: &Tablebase, ctx: &mut Context, fen: &str, expected: Option<Value>) {
+    fn assert_score(tb: &Tablebase, fen: &str, expected: Option<Value>) {
         let pos: Chess = fen
             .parse::<Fen>()
             .unwrap()
@@ -183,72 +177,51 @@ mod tests {
             .unwrap();
 
         assert_eq!(tb.probe(&pos).unwrap(), expected);
-
-        let expected_score = match expected {
-            Some(Value::Draw) => Score::Draw,
-            Some(Value::Dtc(dtc)) => Score::Dtc(dtc),
-            None => Score::Unknown,
-        };
-
-        assert_eq!(ctx.score_position(pos).unwrap(), expected_score);
     }
 
     #[test]
     fn test_kbpkpppp() {
         let mut tb = Tablebase::new(); // Implies mveval_init
+        tb.add_path("..").unwrap();
 
-        dbg!(tb.add_path("..").unwrap());
-        unsafe {
-            mbeval_add_path(c"..".as_ptr());
-        }
-
-        let mut ctx = unsafe { Context::new() };
         assert_score(
             &tb,
-            &mut ctx,
             "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1",
             Some(Value::Dtc(-3)),
         );
         assert_score(
             &tb,
-            &mut ctx,
             "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1",
             Some(Value::Dtc(-1)),
         );
         assert_score(
             &tb,
-            &mut ctx,
             "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1",
             Some(Value::Dtc(-2)),
         );
         assert_score(
             &tb,
-            &mut ctx,
             "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1",
             Some(Value::Dtc(-7)),
         );
         assert_score(
             &tb,
-            &mut ctx,
             "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
             Some(Value::Dtc(6)),
         );
         assert_score(
             &tb,
-            &mut ctx,
             "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
             Some(Value::Dtc(4)),
         );
         assert_score(
             &tb,
-            &mut ctx,
             "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1",
             Some(Value::Draw),
         );
-        assert_score(&tb, &mut ctx, "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", None);
+        assert_score(&tb, "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", None);
         assert_score(
             &tb,
-            &mut ctx,
             "8/4p3/8/6P1/4PP2/5b2/7P/5k1K w - - 1 3",
             Some(Value::Dtc(0)), // checkmate
         );

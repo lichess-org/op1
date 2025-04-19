@@ -18,7 +18,4 @@ fn main() {
         .include("mbeval/include")
         .file("mbeval/src/mbeval.c")
         .compile("mbeval");
-
-    println!("cargo::rustc-link-lib=static=z");
-    println!("cargo::rustc-link-lib=static=zstd");
 }
