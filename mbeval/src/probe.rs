@@ -1,3 +1,5 @@
+#![allow(unused)] // mbeval-for comparison in tests only
+
 use std::{ffi::c_int, ops::Neg};
 
 use mbeval_sys::{

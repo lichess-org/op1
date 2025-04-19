@@ -257,10 +257,20 @@ enum SideValue {
     Unresolved,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Value {
     Draw,
     Dtc(i32),
+}
+
+impl Value {
+    pub fn zero_draw(self) -> Option<i32> {
+        match self {
+            Value::Draw => Some(0),
+            Value::Dtc(0) => None,
+            Value::Dtc(dtc) => Some(dtc),
+        }
+    }
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]

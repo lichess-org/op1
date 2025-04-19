@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::c_int, net::SocketAddr, path::PathBuf, sync::Mutex};
+use std::{collections::HashMap, io, net::SocketAddr, path::PathBuf};
 
 use axum::{
     Json, Router,
@@ -18,7 +18,7 @@ use tokio::{
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
-use crate::{probe::Context, tablebase::Tablebase};
+use crate::tablebase::Tablebase;
 
 mod probe;
 mod table;
@@ -33,8 +33,7 @@ struct Opt {
 }
 
 struct AppState {
-    _tablebase: Tablebase,
-    ctx: Mutex<Context>,
+    tablebase: Tablebase,
 }
 
 #[derive(Deserialize)]
@@ -44,25 +43,34 @@ struct ProbeQuery {
 
 #[derive(Serialize)]
 struct ProbeResponse {
-    parent: Option<c_int>,
-    children: HashMap<UciMove, Option<c_int>>,
+    parent: Option<i32>,
+    children: HashMap<UciMove, Option<i32>>,
 }
 
 enum ProbeError {
     Position(PositionError<Chess>),
+    Io(io::Error),
 }
 
 impl IntoResponse for ProbeError {
     fn into_response(self) -> Response {
-        match self {
-            ProbeError::Position(err) => (StatusCode::BAD_REQUEST, err.to_string()).into_response(),
-        }
+        (match self {
+            ProbeError::Position(err) => (StatusCode::BAD_REQUEST, err.to_string()),
+            ProbeError::Io(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+        })
+        .into_response()
     }
 }
 
 impl From<PositionError<Chess>> for ProbeError {
     fn from(err: PositionError<Chess>) -> Self {
         ProbeError::Position(err)
+    }
+}
+
+impl From<io::Error> for ProbeError {
+    fn from(err: io::Error) -> Self {
+        ProbeError::Io(err)
     }
 }
 
@@ -73,27 +81,40 @@ async fn handle_probe(
 ) -> Result<Json<ProbeResponse>, ProbeError> {
     let pos = query.fen.into_position(CastlingMode::Chess960)?;
 
-    let response = task::spawn_blocking(move || {
-        let legals = pos.legal_moves();
-        let mut children = HashMap::with_capacity(legals.len());
-        let mut ctx = app.ctx.lock().expect("lock");
-        for m in legals {
+    let child_handles = pos
+        .legal_moves()
+        .into_iter()
+        .map(|m| {
             let mut after = pos.clone();
             after.play_unchecked(&m);
-            children.insert(
-                m.to_uci(CastlingMode::Chess960),
-                ctx.score_position(after).unwrap().dtc(),
-            );
-        }
-        ProbeResponse {
-            parent: ctx.score_position(pos).unwrap().dtc(),
-            children,
-        }
-    })
-    .await
-    .expect("blocking probe");
+            (
+                m,
+                task::spawn_blocking(move || {
+                    app.tablebase
+                        .probe(&after)
+                        .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
+                }),
+            )
+        })
+        .collect::<Vec<_>>();
 
-    Ok(Json(response))
+    let parent_handle = task::spawn_blocking(move || {
+        app.tablebase
+            .probe(&pos)
+            .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
+    });
+
+    let parent = parent_handle.await.expect("blocking parent probe")?;
+
+    let mut children = HashMap::with_capacity(child_handles.len());
+    for (m, child) in child_handles {
+        children.insert(
+            m.to_uci(CastlingMode::Chess960),
+            child.await.expect("blocking child probe")?,
+        );
+    }
+
+    Ok(Json(ProbeResponse { parent, children }))
 }
 
 #[tokio::main]
@@ -121,10 +142,7 @@ async fn main() {
     }
 
     // Start server
-    let state: &'static AppState = Box::leak(Box::new(AppState {
-        _tablebase: tablebase,
-        ctx: Mutex::new(unsafe { Context::new() }),
-    }));
+    let state: &'static AppState = Box::leak(Box::new(AppState { tablebase }));
 
     let app = Router::new()
         .route("/", get(handle_probe))
@@ -151,18 +169,27 @@ mod tests {
     use mbeval_sys::mbeval_add_path;
 
     use super::*;
-    use crate::probe::Score;
+    use crate::{
+        probe::{Context, Score},
+        tablebase::Value,
+    };
 
-    fn assert_score(tb: &Tablebase, ctx: &mut Context, fen: &str, expected: Score) {
+    fn assert_score(tb: &Tablebase, ctx: &mut Context, fen: &str, expected: Option<Value>) {
         let pos: Chess = fen
             .parse::<Fen>()
             .unwrap()
             .into_position(CastlingMode::Chess960)
             .unwrap();
 
-        dbg!(tb.probe(&pos).unwrap());
+        assert_eq!(tb.probe(&pos).unwrap(), expected);
 
-        assert_eq!(ctx.score_position(pos).unwrap(), expected);
+        let expected_score = match expected {
+            Some(Value::Draw) => Score::Draw,
+            Some(Value::Dtc(dtc)) => Score::Dtc(dtc),
+            None => Score::Unknown,
+        };
+
+        assert_eq!(ctx.score_position(pos).unwrap(), expected_score);
     }
 
     #[test]
@@ -179,55 +206,50 @@ mod tests {
             &tb,
             &mut ctx,
             "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1",
-            Score::Dtc(-3),
+            Some(Value::Dtc(-3)),
         );
         assert_score(
             &tb,
             &mut ctx,
             "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1",
-            Score::Dtc(-1),
+            Some(Value::Dtc(-1)),
         );
         assert_score(
             &tb,
             &mut ctx,
             "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1",
-            Score::Dtc(-2),
+            Some(Value::Dtc(-2)),
         );
         assert_score(
             &tb,
             &mut ctx,
             "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1",
-            Score::Dtc(-7),
+            Some(Value::Dtc(-7)),
         );
         assert_score(
             &tb,
             &mut ctx,
             "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
-            Score::Dtc(6),
+            Some(Value::Dtc(6)),
         );
         assert_score(
             &tb,
             &mut ctx,
             "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
-            Score::Dtc(4),
+            Some(Value::Dtc(4)),
         );
         assert_score(
             &tb,
             &mut ctx,
             "8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1",
-            Score::Draw,
+            Some(Value::Draw),
         );
-        assert_score(
-            &tb,
-            &mut ctx,
-            "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1",
-            Score::Unknown,
-        );
+        assert_score(&tb, &mut ctx, "8/1kb1p3/8/2PP4/PP6/8/8/4K3 w - - 0 1", None);
         assert_score(
             &tb,
             &mut ctx,
             "8/4p3/8/6P1/4PP2/5b2/7P/5k1K w - - 1 3",
-            Score::Dtc(0), // checkmate
+            Some(Value::Dtc(0)), // checkmate
         );
     }
 }
