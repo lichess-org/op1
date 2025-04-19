@@ -9,8 +9,6 @@
 
 #define NSQUARES ((NROWS) * (NCOLS))
 
-enum { NO_COMPRESSION = 0, ZLIB, ZSTD, NUM_COMPRESSION_METHODS };
-
 enum {
     NO_PIECE = 0,
     PAWN = 1,

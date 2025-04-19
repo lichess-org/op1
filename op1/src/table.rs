@@ -1,4 +1,4 @@
-use std::{fs::File, io, io::Read, os::unix::fs::FileExt, path::Path};
+use std::{fs::File, io, io::Read, num::NonZeroU32, os::unix::fs::FileExt, path::Path};
 
 use zerocopy::{
     FromBytes,
@@ -15,16 +15,9 @@ impl Table {
     pub(crate) fn open(path: &Path) -> io::Result<Table> {
         let mut file = File::open(path)?;
 
-        let header = Header::read_from_io(&mut file)?;
+        let header = Header::try_from(RawHeader::read_from_io(&mut file)?)?;
 
-        if header.block_size == 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "block size cannot be zero",
-            ));
-        }
-
-        let mut offsets = vec![0; 8 * (header.num_blocks.get() as usize + 1)];
+        let mut offsets = vec![0; 8 * (header.num_blocks as usize + 1)];
         file.read_exact(&mut offsets[..])?;
 
         Ok(Table {
@@ -46,9 +39,9 @@ impl Table {
     }
 
     pub(crate) fn read_mb(&self, index: u64, ctx: &mut ProbeContext) -> io::Result<MbValue> {
-        let block_index = u32::try_from(index / u64::from(self.header.block_size))
+        let block_index = u32::try_from(index / u64::from(self.header.block_size.get()))
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "index out of range"))?;
-        let byte_index = index % u64::from(self.header.block_size);
+        let byte_index = index % u64::from(self.header.block_size.get());
 
         let compressed_block_start = self.block_offset(block_index)?;
         let compressed_block_end =
@@ -67,9 +60,9 @@ impl Table {
             .read_exact_at(&mut ctx.compressed_block[..], compressed_block_start)?;
 
         let block = match self.header.compression_method {
-            m if m as u32 == mbeval_sys::NO_COMPRESSION => &ctx.compressed_block,
-            m if m as u32 == mbeval_sys::ZSTD => {
-                if let Some(additional_capacity) = (u32::from(self.header.block_size) as usize)
+            CompressionMethod::None => &ctx.compressed_block,
+            CompressionMethod::Zstd => {
+                if let Some(additional_capacity) = (self.header.block_size.get() as usize)
                     .checked_sub(ctx.decompressed_block.capacity())
                 {
                     ctx.decompressed_block.reserve(additional_capacity);
@@ -78,10 +71,10 @@ impl Table {
                     .decompress_to_buffer(&ctx.compressed_block, &mut ctx.decompressed_block)?;
                 &ctx.decompressed_block
             }
-            m => {
+            CompressionMethod::Zlib => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("unexpected format: {m}"),
+                    "zlib compression not supported",
                 ));
             }
         };
@@ -103,7 +96,7 @@ impl Table {
 
 #[derive(FromBytes)]
 #[repr(C)]
-struct Header {
+struct RawHeader {
     unused: [u8; 16],
     basename: [u8; 16],
     n_elements: U64,
@@ -119,6 +112,49 @@ struct Header {
     index_size: u8,
     format_type: u8,
     list_element_size: u8,
+}
+
+struct Header {
+    compression_method: CompressionMethod,
+    block_size: NonZeroU32,
+    num_blocks: u32,
+}
+
+impl TryFrom<RawHeader> for Header {
+    type Error = io::Error;
+
+    fn try_from(raw: RawHeader) -> Result<Self, Self::Error> {
+        Ok(Header {
+            block_size: NonZeroU32::try_from(u32::from(raw.block_size))
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?,
+            num_blocks: u32::from(raw.num_blocks),
+            compression_method: CompressionMethod::try_from(raw.compression_method)?,
+        })
+    }
+}
+
+enum CompressionMethod {
+    None,
+    Zlib,
+    Zstd,
+}
+
+impl TryFrom<u8> for CompressionMethod {
+    type Error = io::Error;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Ok(match value {
+            0 => CompressionMethod::None,
+            1 => CompressionMethod::Zlib,
+            2 => CompressionMethod::Zstd,
+            _ => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("unknown compression method: {}", value),
+                ));
+            }
+        })
+    }
 }
 
 #[derive(Debug)]
