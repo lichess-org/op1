@@ -6,8 +6,8 @@
 #include <ctype.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -458,13 +458,6 @@
 #endif
 
 typedef uint64_t INDEX;
-#define DEC_INDEX_FORMAT "%" PRIu64
-#define SEPARATOR ":"
-#define DELIMITER "/"
-
-#define DEC_ZINDEX_FORMAT "%" PRIu64
-#define DEC_ZINDEX_FORMAT_W(n) "%" #n "I64u"
-#define HEX_ZINDEX_FORMAT "%016I64X"
 
 #define ZERO ((ZINDEX)0)
 #define ONE ((ZINDEX)1)
@@ -477,20 +470,6 @@ static void *MyMalloc(size_t cb) {
         abort();
     return pv;
 }
-
-#define OtherSide(side) ((side) ^ 1)
-#define ColorName(side) ((side) == WHITE ? "white" : "black")
-#define SideTm(side) ((side) == WHITE ? "wtm" : "btm")
-
-#define QRBN_PROMOTIONS                                                        \
-    ((1 << (KNIGHT)) | (1 << (BISHOP)) | (1 << (ROOK)) | (1 << (QUEEN)))
-#define QRN_PROMOTIONS ((1 << (KNIGHT)) | (1 << (ROOK)) | (1 << (QUEEN)))
-#define QN_PROMOTIONS ((1 << (KNIGHT)) | (1 << (QUEEN)))
-#define Q_PROMOTIONS (1 << (QUEEN))
-#define QRB_PROMOTIONS ((1 << (BISHOP)) | (1 << (ROOK)) | (1 << (QUEEN)))
-#define QBN_PROMOTIONS ((1 << (KNIGHT)) | (1 << (BISHOP)) | (1 << (QUEEN)))
-#define QR_PROMOTIONS ((1 << (ROOK)) | (1 << (QUEEN)))
-#define QB_PROMOTIONS ((1 << (BISHOP)) | (1 << (QUEEN)))
 
 enum { BASE = 0, EE, NE, NN, NW, WW, SW, SS, SE };
 
@@ -513,20 +492,13 @@ enum {
 typedef ZINDEX (*pt2index)(int *);
 
 typedef struct {
-    int board[NSQUARES];
+    PIECE board[NSQUARES];
     int ep_square;
-    int castle;
-    int num_pieces, nwhite, nblack;
+    int num_pieces;
     int piece_type_count[2][KING];
     int piece_locations[2][KING][MAX_IDENT_PIECES];
     int wkpos, bkpos;
-    int half_move, full_move;
-    int promos;
-    int side;
-    int result;
-    int score;
-    int zz_type;
-    unsigned int game_num;
+    SIDE side;
 } BOARD;
 
 static int ParityTable[NSQUARES];
@@ -3714,16 +3686,13 @@ static const IndexType IndexTable[] = {{111111, FREE_PAWNS, 0, Index111111},
 
 #define NumIndexTypes (sizeof(IndexTable) / sizeof(IndexTable[0]))
 
-static int SetBoard(BOARD *Board, const int *board, int side, int ep_square,
-                    int castle, int half_move, int full_move) {
+static int SetBoard(BOARD *Board, const PIECE board[NSQUARES], SIDE side,
+                    int ep_square) {
     int npieces = 0, nwhite = 0, nblack = 0, i;
 
     memcpy(Board->board, board, sizeof(Board->board));
     Board->side = side;
     Board->ep_square = ep_square;
-    Board->castle = castle;
-    Board->half_move = half_move;
-    Board->full_move = full_move;
     memset(Board->piece_type_count, 0, sizeof(Board->piece_type_count));
     memset(Board->piece_locations, 0, sizeof(Board->piece_locations));
 
@@ -3753,14 +3722,13 @@ static int SetBoard(BOARD *Board, const int *board, int side, int ep_square,
     }
 
     Board->num_pieces = npieces;
-    Board->nwhite = nwhite;
-    Board->nblack = nblack;
 
     return npieces;
 }
 
-static int GetEndingType(const int count[2][KING], int *piece_types,
-                         int bishop_parity[2], int pawn_file_type) {
+static int GetEndingType(const int count[2][KING], PIECE *piece_types,
+                         PARITY bishop_parity[2],
+                         PAWN_FILE_TYPE pawn_file_type) {
     int etype = 0, sub_type = 0;
     int ptypes[MAX_PIECES], npieces = 2, eindex = -1;
 
@@ -4398,7 +4366,7 @@ static void InitParity() {
 }
 
 static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
-                         int *pawn_file_type) {
+                         PAWN_FILE_TYPE *pawn_file_type) {
     int loc = 0, color, type, i;
     int bishops_on_white_squares[2] = {0, 0};
     int bishops_on_black_squares[2] = {0, 0};
@@ -4692,7 +4660,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     memcpy(mb_info->piece_type_count, Board->piece_type_count,
            sizeof(Board->piece_type_count));
 
-    int bishop_parity[2] = {NONE, NONE};
+    PARITY bishop_parity[2] = {NONE, NONE};
 
     mb_info->num_pieces = Board->num_pieces;
 
@@ -4991,7 +4959,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     // one side is constrained
 
     if (bishop_parity[WHITE] != NONE && bishop_parity[BLACK] != NONE) {
-        int sub_bishop_parity[2];
+        PARITY sub_bishop_parity[2];
         sub_bishop_parity[WHITE] = bishop_parity[WHITE];
         sub_bishop_parity[BLACK] = NONE;
 
@@ -5046,14 +5014,13 @@ void mbeval_init(void) {
     InitPermutationTables();
 }
 
-int mbeval_get_mb_info(const int pieces[NSQUARES], int side, int ep_square,
-                       int castle, int half_move, int full_move,
+int mbeval_get_mb_info(const PIECE pieces[NSQUARES], SIDE side, int ep_square,
                        MB_INFO *info) {
     assert(pieces != NULL);
     assert(info != NULL);
 
-    BOARD board = {0};
-    SetBoard(&board, pieces, side, ep_square, castle, half_move, full_move);
+    BOARD board;
+    SetBoard(&board, pieces, side, ep_square);
 
     memset(info, 0, sizeof(MB_INFO));
     return GetMBInfo(&board, info);

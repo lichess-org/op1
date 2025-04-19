@@ -173,24 +173,22 @@ impl Tablebase {
         let mut squares = [0; 64];
         for (sq, piece) in pos.board() {
             let role = match piece.role {
-                Role::Pawn => mbeval_sys::PAWN,
-                Role::Knight => mbeval_sys::KNIGHT,
-                Role::Bishop => mbeval_sys::BISHOP,
-                Role::Rook => mbeval_sys::ROOK,
-                Role::Queen => mbeval_sys::QUEEN,
-                Role::King => mbeval_sys::KING,
-            } as c_int;
+                Role::Pawn => mbeval_sys::PIECE_PAWN,
+                Role::Knight => mbeval_sys::PIECE_KNIGHT,
+                Role::Bishop => mbeval_sys::PIECE_BISHOP,
+                Role::Rook => mbeval_sys::PIECE_ROOK,
+                Role::Queen => mbeval_sys::PIECE_QUEEN,
+                Role::King => mbeval_sys::PIECE_KING,
+            };
             squares[usize::from(sq)] = piece.color.fold_wb(role, -role);
         }
         let mut mb_info: MaybeUninit<MB_INFO> = MaybeUninit::zeroed();
         let result = unsafe {
             mbeval_get_mb_info(
                 squares.as_ptr(),
-                pos.turn().fold_wb(mbeval_sys::WHITE, mbeval_sys::BLACK) as c_int,
+                pos.turn()
+                    .fold_wb(mbeval_sys::SIDE_WHITE, mbeval_sys::SIDE_BLACK),
                 pos.ep_square(EnPassantMode::Legal).map_or(0, c_int::from),
-                0,
-                0,
-                1,
                 mb_info.as_mut_ptr(),
             )
         };
@@ -288,15 +286,15 @@ enum BishopParity {
     Odd,
 }
 
-impl TryFrom<i32> for BishopParity {
-    type Error = i32;
+impl TryFrom<mbeval_sys::PARITY> for BishopParity {
+    type Error = mbeval_sys::PARITY;
 
-    fn try_from(value: i32) -> Result<BishopParity, i32> {
+    fn try_from(value: mbeval_sys::PARITY) -> Result<BishopParity, mbeval_sys::PARITY> {
         Ok(match value {
-            v if v as u32 == mbeval_sys::NONE => BishopParity::None,
-            v if v as u32 == mbeval_sys::EVEN => BishopParity::Even,
-            v if v as u32 == mbeval_sys::ODD => BishopParity::Odd,
-            v => return Err(v),
+            mbeval_sys::PARITY_NONE => BishopParity::None,
+            mbeval_sys::PARITY_EVEN => BishopParity::Even,
+            mbeval_sys::PARITY_ODD => BishopParity::Odd,
+            _ => return Err(value),
         })
     }
 }
@@ -321,28 +319,30 @@ enum PawnFileType {
     Op24,
 }
 
-impl TryFrom<i32> for PawnFileType {
-    type Error = i32;
+impl TryFrom<mbeval_sys::PAWN_FILE_TYPE> for PawnFileType {
+    type Error = mbeval_sys::PAWN_FILE_TYPE;
 
-    fn try_from(value: i32) -> Result<PawnFileType, i32> {
+    fn try_from(
+        value: mbeval_sys::PAWN_FILE_TYPE,
+    ) -> Result<PawnFileType, mbeval_sys::PAWN_FILE_TYPE> {
         Ok(match value {
-            v if v as u32 == mbeval_sys::FREE_PAWNS => PawnFileType::Free,
-            v if v as u32 == mbeval_sys::BP_11_PAWNS => PawnFileType::Bp1,
-            v if v as u32 == mbeval_sys::OP_11_PAWNS => PawnFileType::Op1,
-            v if v as u32 == mbeval_sys::OP_21_PAWNS => PawnFileType::Op21,
-            v if v as u32 == mbeval_sys::OP_12_PAWNS => PawnFileType::Op12,
-            v if v as u32 == mbeval_sys::OP_22_PAWNS => PawnFileType::Op22,
-            v if v as u32 == mbeval_sys::DP_22_PAWNS => PawnFileType::Dp2,
-            v if v as u32 == mbeval_sys::OP_31_PAWNS => PawnFileType::Op31,
-            v if v as u32 == mbeval_sys::OP_13_PAWNS => PawnFileType::Op13,
-            v if v as u32 == mbeval_sys::OP_41_PAWNS => PawnFileType::Op41,
-            v if v as u32 == mbeval_sys::OP_14_PAWNS => PawnFileType::Op14,
-            v if v as u32 == mbeval_sys::OP_32_PAWNS => PawnFileType::Op32,
-            v if v as u32 == mbeval_sys::OP_23_PAWNS => PawnFileType::Op23,
-            v if v as u32 == mbeval_sys::OP_33_PAWNS => PawnFileType::Op33,
-            v if v as u32 == mbeval_sys::OP_42_PAWNS => PawnFileType::Op42,
-            v if v as u32 == mbeval_sys::OP_24_PAWNS => PawnFileType::Op24,
-            v => return Err(v),
+            mbeval_sys::PAWN_FILE_TYPE_FREE_PAWNS => PawnFileType::Free,
+            mbeval_sys::PAWN_FILE_TYPE_BP_11_PAWNS => PawnFileType::Bp1,
+            mbeval_sys::PAWN_FILE_TYPE_OP_11_PAWNS => PawnFileType::Op1,
+            mbeval_sys::PAWN_FILE_TYPE_OP_21_PAWNS => PawnFileType::Op21,
+            mbeval_sys::PAWN_FILE_TYPE_OP_12_PAWNS => PawnFileType::Op12,
+            mbeval_sys::PAWN_FILE_TYPE_OP_22_PAWNS => PawnFileType::Op22,
+            mbeval_sys::PAWN_FILE_TYPE_DP_22_PAWNS => PawnFileType::Dp2,
+            mbeval_sys::PAWN_FILE_TYPE_OP_31_PAWNS => PawnFileType::Op31,
+            mbeval_sys::PAWN_FILE_TYPE_OP_13_PAWNS => PawnFileType::Op13,
+            mbeval_sys::PAWN_FILE_TYPE_OP_41_PAWNS => PawnFileType::Op41,
+            mbeval_sys::PAWN_FILE_TYPE_OP_14_PAWNS => PawnFileType::Op14,
+            mbeval_sys::PAWN_FILE_TYPE_OP_32_PAWNS => PawnFileType::Op32,
+            mbeval_sys::PAWN_FILE_TYPE_OP_23_PAWNS => PawnFileType::Op23,
+            mbeval_sys::PAWN_FILE_TYPE_OP_33_PAWNS => PawnFileType::Op33,
+            mbeval_sys::PAWN_FILE_TYPE_OP_42_PAWNS => PawnFileType::Op42,
+            mbeval_sys::PAWN_FILE_TYPE_OP_24_PAWNS => PawnFileType::Op24,
+            _ => return Err(value),
         })
     }
 }

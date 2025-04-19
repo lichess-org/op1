@@ -9,17 +9,23 @@
 
 #define NSQUARES ((NROWS) * (NCOLS))
 
-enum {
+typedef enum {
     NO_PIECE = 0,
     PAWN = 1,
     KNIGHT = 2,
     BISHOP = 4,
     ROOK = 8,
     QUEEN = (BISHOP | ROOK),
-    KING = 16
-};
+    KING = 16,
+    BLACK_PAWN = -PAWN,
+    BLACK_KNIGHT = -KNIGHT,
+    BLACK_BISHOP = -BISHOP,
+    BLACK_ROOK = -ROOK,
+    BLACK_QUEEN = -QUEEN,
+    BLACK_KING = -KING,
+} PIECE;
 
-enum { WHITE = 0, BLACK, NEUTRAL };
+typedef enum { WHITE = 0, BLACK } SIDE;
 
 typedef uint64_t ZINDEX;
 
@@ -28,9 +34,9 @@ typedef struct {
     ZINDEX (*IndexFromPos)(const int *pos);
 } IndexType;
 
-enum { NONE = 0, EVEN, ODD };
+typedef enum { NONE = 0, EVEN, ODD } PARITY;
 
-enum {
+typedef enum {
     FREE_PAWNS = 0,
     BP_11_PAWNS,
     OP_11_PAWNS,
@@ -47,21 +53,22 @@ enum {
     OP_33_PAWNS,
     OP_42_PAWNS,
     OP_24_PAWNS,
-};
+} PAWN_FILE_TYPE;
 
 typedef struct {
     ZINDEX index;
     const IndexType *eptr;
-    int bishop_parity[2];
+    PARITY bishop_parity[2];
 } PARITY_INDEX;
 
 typedef struct {
     PARITY_INDEX parity_index[4];
     int num_parities;
-    int mb_position[MAX_PIECES_MB], mb_piece_types[MAX_PIECES_MB];
+    int mb_position[MAX_PIECES_MB];
+    PIECE mb_piece_types[MAX_PIECES_MB];
     int piece_type_count[2][KING];
     int parity;
-    int pawn_file_type;
+    PAWN_FILE_TYPE pawn_file_type;
     const IndexType *eptr_bp_11, *eptr_op_11, *eptr_op_21, *eptr_op_12,
         *eptr_dp_22, *eptr_op_22, *eptr_op_31, *eptr_op_13, *eptr_op_41,
         *eptr_op_14, *eptr_op_32, *eptr_op_23, *eptr_op_33, *eptr_op_42,
@@ -75,5 +82,5 @@ typedef struct {
 
 void mbeval_init(void);
 
-int mbeval_get_mb_info(const int pieces[NSQUARES], int side, int ep_square,
-                       int castle, int half_move, int full_move, MB_INFO *info);
+int mbeval_get_mb_info(const PIECE pieces[NSQUARES], SIDE side, int ep_square,
+                       MB_INFO *info);
