@@ -14,7 +14,7 @@ use shakmaty::{
     Board, ByColor, ByRole, CastlingMode, Chess, Color, EnPassantMode, Position as _, Role,
 };
 
-use crate::table::{MbValue, Table};
+use crate::table::{MbValue, ProbeContext, Table};
 
 const ALL_ONES: u64 = !0;
 
@@ -169,7 +169,11 @@ impl Tablebase {
             .map(|table| (table, index)))
     }
 
-    fn probe_side(&self, pos: &Chess) -> Result<Option<SideValue>, io::Error> {
+    fn probe_side(
+        &self,
+        pos: &Chess,
+        ctx: &mut ProbeContext,
+    ) -> Result<Option<SideValue>, io::Error> {
         // If one side has no pieces, only the other side can potentially win.
         if !pos.board().white().more_than_one() {
             return Ok(Some(SideValue::Unresolved));
@@ -209,7 +213,7 @@ impl Tablebase {
             return Ok(None);
         };
 
-        Ok(Some(match table.read_mb(index)? {
+        Ok(Some(match table.read_mb(index, ctx)? {
             MbValue::Dtc(dtc) => SideValue::Dtc(dtc),
             MbValue::MaybeHighDtc => return Ok(None), // TODO
             MbValue::Unresolved => SideValue::Unresolved,
@@ -233,7 +237,9 @@ impl Tablebase {
             pos.clone()
         };
 
-        match self.probe_side(&pos)? {
+        let mut ctx = ProbeContext::new()?;
+
+        match self.probe_side(&pos, &mut ctx)? {
             None => return Ok(None),
             Some(SideValue::Dtc(n)) => {
                 return Ok(Some(Value::Dtc(i32::from(n) * pos.turn().fold_wb(1, -1))));
@@ -243,7 +249,7 @@ impl Tablebase {
 
         let pos = flip_position(pos);
 
-        Ok(match self.probe_side(&pos)? {
+        Ok(match self.probe_side(&pos, &mut ctx)? {
             None => None,
             Some(SideValue::Dtc(n)) => Some(Value::Dtc(i32::from(n) * pos.turn().fold_wb(1, -1))),
             Some(SideValue::Unresolved) => Some(Value::Draw),

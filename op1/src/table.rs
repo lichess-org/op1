@@ -5,14 +5,14 @@ use zerocopy::{
     little_endian::{U32, U64},
 };
 
-pub struct Table {
+pub(crate) struct Table {
     file: File,
     header: Header,
     offsets: Vec<u8>,
 }
 
 impl Table {
-    pub fn open(path: &Path) -> io::Result<Table> {
+    pub(crate) fn open(path: &Path) -> io::Result<Table> {
         let mut file = File::open(path)?;
 
         let header = Header::read_from_io(&mut file)?;
@@ -34,7 +34,7 @@ impl Table {
         })
     }
 
-    pub fn block_offset(&self, block_index: u32) -> io::Result<u64> {
+    fn block_offset(&self, block_index: u32) -> io::Result<u64> {
         let block_index = block_index as usize;
         let encoded = self
             .offsets
@@ -45,7 +45,7 @@ impl Table {
         Ok(u64::from_le_bytes(encoded))
     }
 
-    pub fn read_mb(&self, index: u64) -> io::Result<MbValue> {
+    pub(crate) fn read_mb(&self, index: u64, ctx: &mut ProbeContext) -> io::Result<MbValue> {
         let block_index = u32::try_from(index / u64::from(self.header.block_size))
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "index out of range"))?;
         let byte_index = index % u64::from(self.header.block_size);
@@ -61,13 +61,33 @@ impl Table {
                 io::Error::new(io::ErrorKind::InvalidData, "block offsets not monotonic")
             })?;
 
-        let mut compressed_block = vec![0; compressed_block_size as usize];
+        ctx.compressed_block
+            .resize(compressed_block_size as usize, 0);
         self.file
-            .read_exact_at(&mut compressed_block[..], compressed_block_start)?;
+            .read_exact_at(&mut ctx.compressed_block[..], compressed_block_start)?;
 
         let block = match self.header.compression_method {
-            m if m as u32 == mbeval_sys::NO_COMPRESSION => compressed_block,
-            m if m as u32 == mbeval_sys::ZSTD => zstd::decode_all(&compressed_block[..])?,
+            m if m as u32 == mbeval_sys::NO_COMPRESSION => &ctx.compressed_block,
+            m if m as u32 == mbeval_sys::ZSTD => {
+                let required_capacity = zstd::bulk::Decompressor::upper_bound(
+                    &ctx.compressed_block,
+                )
+                .ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "failed to determine upper bound for decompressed block size",
+                    )
+                })?;
+                if let Some(additional_capacity) =
+                    required_capacity.checked_sub(ctx.decompressed_block.len())
+                {
+                    ctx.decompressed_block.reserve_exact(additional_capacity);
+                }
+
+                ctx.decompressor
+                    .decompress_to_buffer(&ctx.compressed_block, &mut ctx.decompressed_block)?;
+                &ctx.decompressed_block
+            }
             m => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -112,8 +132,24 @@ struct Header {
 }
 
 #[derive(Debug)]
-pub enum MbValue {
+pub(crate) enum MbValue {
     Dtc(u8),
     MaybeHighDtc,
     Unresolved,
+}
+
+pub struct ProbeContext {
+    compressed_block: Vec<u8>,
+    decompressed_block: Vec<u8>,
+    decompressor: zstd::bulk::Decompressor<'static>,
+}
+
+impl ProbeContext {
+    pub fn new() -> io::Result<ProbeContext> {
+        Ok(ProbeContext {
+            compressed_block: Vec::new(),
+            decompressed_block: Vec::new(),
+            decompressor: zstd::bulk::Decompressor::new()?,
+        })
+    }
 }
