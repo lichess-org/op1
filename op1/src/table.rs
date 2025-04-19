@@ -69,21 +69,11 @@ impl Table {
         let block = match self.header.compression_method {
             m if m as u32 == mbeval_sys::NO_COMPRESSION => &ctx.compressed_block,
             m if m as u32 == mbeval_sys::ZSTD => {
-                let required_capacity = zstd::bulk::Decompressor::upper_bound(
-                    &ctx.compressed_block,
-                )
-                .ok_or_else(|| {
-                    io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "failed to determine upper bound for decompressed block size",
-                    )
-                })?;
-                if let Some(additional_capacity) =
-                    required_capacity.checked_sub(ctx.decompressed_block.len())
+                if let Some(additional_capacity) = (u32::from(self.header.block_size) as usize)
+                    .checked_sub(ctx.decompressed_block.capacity())
                 {
-                    ctx.decompressed_block.reserve_exact(additional_capacity);
+                    ctx.decompressed_block.reserve(additional_capacity);
                 }
-
                 ctx.decompressor
                     .decompress_to_buffer(&ctx.compressed_block, &mut ctx.decompressed_block)?;
                 &ctx.decompressed_block
