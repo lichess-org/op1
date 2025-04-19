@@ -1,17 +1,20 @@
 use std::{
     collections::HashMap,
-    ffi::CString,
+    ffi::{CString, c_int},
     io,
+    mem::MaybeUninit,
     os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
     sync::Once,
 };
 
-use mbeval_sys::{MB_INFO, mbeval_add_path, mbeval_init};
+use mbeval_sys::{MB_INFO, mbeval_add_path, mbeval_get_mb_info, mbeval_init};
 use once_cell::sync::OnceCell;
-use shakmaty::{ByColor, ByRole, Chess, Color, Position as _, Role};
+use shakmaty::{
+    Board, ByColor, ByRole, CastlingMode, Chess, Color, EnPassantMode, Position as _, Role,
+};
 
-use crate::{probe::Score, table::Table};
+use crate::table::{MbValue, Table};
 
 const ALL_ONES: u64 = !0;
 
@@ -154,25 +157,110 @@ impl Tablebase {
             PawnFileType::Op24 => mb_info.index_op_24,
         };
 
-        if dbg!(index) == ALL_ONES {
+        if index == ALL_ONES {
             return Ok(None);
         }
 
         Ok(self
-            .open_table(dbg!(&TableKey {
+            .open_table(&TableKey {
                 pawn_file_type,
                 ..table_key
-            }))?
+            })?
             .map(|table| (table, index)))
     }
 
-    pub fn probe(&self, pos: &Chess, mb_info: &MB_INFO) -> Result<Option<u8>, io::Error> {
-        if let Some((table, index)) = self.select_table(pos, mb_info, TableType::Mb)? {
-            Ok(Some(table.read_mb(index)?))
-        } else {
-            Ok(None)
+    fn probe_side(&self, pos: &Chess) -> Result<Option<SideValue>, io::Error> {
+        // If one side has no pieces, only the other side can potentially win.
+        if !pos.board().white().more_than_one() {
+            return Ok(Some(SideValue::Unresolved));
         }
+
+        // Retrieve MB_INFO struct.
+        let mut squares = [0; 64];
+        for (sq, piece) in pos.board() {
+            let role = match piece.role {
+                Role::Pawn => mbeval_sys::PAWN,
+                Role::Knight => mbeval_sys::KNIGHT,
+                Role::Bishop => mbeval_sys::BISHOP,
+                Role::Rook => mbeval_sys::ROOK,
+                Role::Queen => mbeval_sys::QUEEN,
+                Role::King => mbeval_sys::KING,
+            } as c_int;
+            squares[usize::from(sq)] = piece.color.fold_wb(role, -role);
+        }
+        let mut mb_info: MaybeUninit<MB_INFO> = MaybeUninit::zeroed();
+        let result = unsafe {
+            mbeval_get_mb_info(
+                squares.as_ptr(),
+                pos.turn().fold_wb(mbeval_sys::WHITE, mbeval_sys::BLACK) as c_int,
+                pos.ep_square(EnPassantMode::Legal).map_or(0, c_int::from),
+                0,
+                0,
+                1,
+                mb_info.as_mut_ptr(),
+            )
+        };
+        if result != 0 {
+            return Ok(None);
+        }
+        let mb_info = unsafe { mb_info.assume_init() };
+
+        let Some((table, index)) = self.select_table(pos, &mb_info, TableType::Mb)? else {
+            return Ok(None);
+        };
+
+        Ok(Some(match table.read_mb(index)? {
+            MbValue::Dtc(dtc) => SideValue::Dtc(dtc),
+            MbValue::MaybeHighDtc => return Ok(None), // TODO
+            MbValue::Unresolved => SideValue::Unresolved,
+        }))
     }
+
+    pub fn probe(&self, pos: &Chess) -> Result<Option<Value>, io::Error> {
+        if pos.is_insufficient_material() {
+            return Ok(Some(Value::Draw));
+        }
+
+        if pos.board().occupied().count() > 9 || pos.castles().any() {
+            return Ok(None);
+        }
+
+        // Make the stronger side white to reduce the chance of having to probe the
+        // flipped position.
+        let pos = if strength(pos.board(), Color::White) < strength(pos.board(), Color::Black) {
+            flip_position(pos.clone())
+        } else {
+            pos.clone()
+        };
+
+        match self.probe_side(&pos)? {
+            None => return Ok(None),
+            Some(SideValue::Dtc(n)) => {
+                return Ok(Some(Value::Dtc(i32::from(n) * pos.turn().fold_wb(1, -1))));
+            }
+            Some(SideValue::Unresolved) => (),
+        }
+
+        let pos = flip_position(pos);
+
+        Ok(match self.probe_side(&pos)? {
+            None => None,
+            Some(SideValue::Dtc(n)) => Some(Value::Dtc(i32::from(n) * pos.turn().fold_wb(1, -1))),
+            Some(SideValue::Unresolved) => Some(Value::Draw),
+        })
+    }
+}
+
+#[derive(Debug)]
+enum SideValue {
+    Dtc(u8),
+    Unresolved,
+}
+
+#[derive(Debug)]
+pub enum Value {
+    Draw,
+    Dtc(i32),
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
@@ -371,4 +459,20 @@ fn parse_material(name: &str) -> Option<Material> {
         material[color][role] += 1;
     }
     Some(material)
+}
+
+fn strength(board: &Board, color: Color) -> usize {
+    (board.by_color(color) & board.pawns()).count()
+        + (board.by_color(color) & board.knights()).count() * 3
+        + (board.by_color(color) & board.bishops()).count() * 3
+        + (board.by_color(color) & board.rooks()).count() * 5
+        + (board.by_color(color) & board.queens()).count() * 9
+}
+
+#[must_use]
+fn flip_position(pos: Chess) -> Chess {
+    pos.into_setup(EnPassantMode::Legal)
+        .into_mirrored()
+        .position(CastlingMode::Chess960)
+        .expect("equivalent position")
 }

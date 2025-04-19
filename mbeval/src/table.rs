@@ -45,7 +45,7 @@ impl Table {
         Ok(u64::from_le_bytes(encoded))
     }
 
-    pub fn read_mb(&self, index: u64) -> io::Result<u8> {
+    pub fn read_mb(&self, index: u64) -> io::Result<MbValue> {
         let block_index = u32::try_from(index / u64::from(self.header.block_size))
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "index out of range"))?;
         let byte_index = index % u64::from(self.header.block_size);
@@ -65,7 +65,7 @@ impl Table {
         self.file
             .read_exact_at(&mut compressed_block[..], compressed_block_start)?;
 
-        let block = match dbg!(self.header.compression_method) {
+        let block = match self.header.compression_method {
             m if m as u32 == mbeval_sys::NO_COMPRESSION => compressed_block,
             m if m as u32 == mbeval_sys::ZSTD => zstd::decode_all(&compressed_block[..])?,
             m => {
@@ -76,11 +76,17 @@ impl Table {
             }
         };
 
-        block.get(byte_index as usize).copied().ok_or_else(|| {
+        let value = block.get(byte_index as usize).copied().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("index {byte_index} not found in decompressed block"),
             )
+        })?;
+
+        Ok(match value {
+            254 => MbValue::MaybeHighDtc,
+            255 => MbValue::Unresolved,
+            dtc => MbValue::Dtc(dtc),
         })
     }
 }
@@ -103,4 +109,11 @@ struct Header {
     index_size: u8,
     format_type: u8,
     list_element_size: u8,
+}
+
+#[derive(Debug)]
+pub enum MbValue {
+    Dtc(u8),
+    MaybeHighDtc,
+    Unresolved,
 }

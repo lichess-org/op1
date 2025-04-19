@@ -160,8 +160,7 @@ mod tests {
             .into_position(CastlingMode::Chess960)
             .unwrap();
 
-        let mb_info = ctx.get_mb_info(&pos).unwrap();
-        dbg!(tb.probe(&pos, &mb_info).unwrap());
+        dbg!(tb.probe(&pos).unwrap());
 
         assert_eq!(ctx.score_position(pos).unwrap(), expected);
     }

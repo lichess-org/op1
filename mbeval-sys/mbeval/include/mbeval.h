@@ -130,9 +130,8 @@ void mbeval_context_destroy(CONTEXT *ctx);
 int mbeval_context_probe(CONTEXT *ctx, const int pieces[NSQUARES], int side,
                          int ep_square, int castle, int half_move,
                          int full_move);
-int mbeval_context_get_mb_result(CONTEXT *ctx, const int pieces[NSQUARES], int side,
-                         int ep_square, int castle, int half_move,
-                         int full_move);
-int mbeval_context_get_mb_info(CONTEXT *ctx, const int pieces[NSQUARES], int side,
-                         int ep_square, int castle, int half_move,
-                         int full_move, MB_INFO* info);
+int mbeval_context_get_mb_result(CONTEXT *ctx, const int pieces[NSQUARES],
+                                 int side, int ep_square, int castle,
+                                 int half_move, int full_move);
+int mbeval_get_mb_info(const int pieces[NSQUARES], int side, int ep_square,
+                       int castle, int half_move, int full_move, MB_INFO *info);

@@ -6392,9 +6392,9 @@ int mbeval_context_probe(CONTEXT *ctx, const int pieces[NSQUARES], int side,
     return ScorePosition(ctx, &ctx->board, &index);
 }
 
-int mbeval_context_get_mb_result(CONTEXT *ctx, const int pieces[NSQUARES], int side,
-                                 int ep_square, int castle, int half_move,
-                                 int full_move) {
+int mbeval_context_get_mb_result(CONTEXT *ctx, const int pieces[NSQUARES],
+                                 int side, int ep_square, int castle,
+                                 int half_move, int full_move) {
     assert(ctx != NULL);
 
     SetBoard(&ctx->board, pieces, side, ep_square, castle, half_move,
@@ -6404,15 +6404,15 @@ int mbeval_context_get_mb_result(CONTEXT *ctx, const int pieces[NSQUARES], int s
     return GetMBResult(ctx, &ctx->board, &index);
 }
 
-int mbeval_context_get_mb_info(CONTEXT *ctx, const int pieces[NSQUARES], int side,
-                         int ep_square, int castle, int half_move,
-                         int full_move, MB_INFO* info)
-{
-    assert(ctx != NULL);
+int mbeval_get_mb_info(const int pieces[NSQUARES], int side, int ep_square,
+                       int castle, int half_move, int full_move,
+                       MB_INFO *info) {
+    assert(pieces != NULL);
+    assert(info != NULL);
 
-    SetBoard(&ctx->board, pieces, side, ep_square, castle, half_move,
-             full_move);
+    BOARD board = {0};
+    SetBoard(&board, pieces, side, ep_square, castle, half_move, full_move);
 
     memset(info, 0, sizeof(MB_INFO));
-    return GetMBInfo(&ctx->board, info);
+    return GetMBInfo(&board, info);
 }
