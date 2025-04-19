@@ -1,14 +1,13 @@
 use std::{
     collections::HashMap,
-    ffi::{CString, c_int},
+    ffi::c_int,
     io,
     mem::MaybeUninit,
-    os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
     sync::Once,
 };
 
-use mbeval_sys::{MB_INFO, mbeval_add_path, mbeval_get_mb_info, mbeval_init};
+use mbeval_sys::{MB_INFO, mbeval_get_mb_info, mbeval_init};
 use once_cell::sync::OnceCell;
 use shakmaty::{
     Board, ByColor, ByRole, CastlingMode, Chess, Color, EnPassantMode, Position as _, Role,
@@ -39,15 +38,6 @@ impl Tablebase {
     }
 
     pub fn add_path(&mut self, path: impl AsRef<Path>) -> io::Result<usize> {
-        unsafe {
-            mbeval_add_path(
-                CString::new(path.as_ref().to_owned().into_os_string().as_bytes())
-                    .unwrap()
-                    .as_c_str()
-                    .as_ptr(),
-            );
-        }
-
         let mut num = 0;
         for directory in path.as_ref().read_dir()? {
             let directory = directory?.path();
