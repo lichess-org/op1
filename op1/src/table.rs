@@ -60,13 +60,7 @@ impl Table {
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "block index out of range"))
     }
 
-    pub(crate) fn read_mb(&self, index: ZIndex, ctx: &mut ProbeContext) -> io::Result<MbValue> {
-        assert_eq!(self.table_type, TableType::Mb);
-
-        let block_index = u32::try_from(index / u64::from(self.header.block_size.get()))
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "index out of range"))?;
-        let byte_index = index % u64::from(self.header.block_size.get());
-
+    fn load_compressed_block(&self, block_index: u32, ctx: &mut ProbeContext) -> io::Result<()> {
         let compressed_block_start = self.block_offset(block_index)?;
         let compressed_block_end =
             self.block_offset(block_index.checked_add(1).ok_or_else(|| {
@@ -81,7 +75,17 @@ impl Table {
         ctx.compressed_block
             .resize(compressed_block_size as usize, 0);
         self.file
-            .read_exact_at(&mut ctx.compressed_block[..], compressed_block_start)?;
+            .read_exact_at(&mut ctx.compressed_block[..], compressed_block_start)
+    }
+
+    pub(crate) fn read_mb(&self, index: ZIndex, ctx: &mut ProbeContext) -> io::Result<MbValue> {
+        assert_eq!(self.table_type, TableType::Mb);
+
+        let block_index = u32::try_from(index / u64::from(self.header.block_size.get()))
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "index out of range"))?;
+        let byte_index = index % u64::from(self.header.block_size.get());
+
+        self.load_compressed_block(block_index, ctx)?;
 
         let block = match self.header.compression_method {
             CompressionMethod::None => &ctx.compressed_block,
@@ -94,12 +98,6 @@ impl Table {
                 ctx.decompressor
                     .decompress_to_buffer(&ctx.compressed_block, &mut ctx.decompressed_block)?;
                 &ctx.decompressed_block
-            }
-            CompressionMethod::Zlib => {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "zlib compression not supported",
-                ));
             }
         };
 
@@ -120,11 +118,13 @@ impl Table {
     pub(crate) fn read_high_dtc(
         &self,
         _index: ZIndex,
-        _ctx: &mut ProbeContext,
+        ctx: &mut ProbeContext,
     ) -> io::Result<SideValue> {
         assert_eq!(self.table_type, TableType::HighDtc);
 
-        todo!()
+        let block_index = todo!();
+
+        self.load_compressed_block(block_index, ctx)?;
     }
 }
 
@@ -194,7 +194,6 @@ struct HighDtc {
 
 enum CompressionMethod {
     None,
-    Zlib,
     Zstd,
 }
 
@@ -204,7 +203,12 @@ impl TryFrom<u8> for CompressionMethod {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         Ok(match value {
             0 => CompressionMethod::None,
-            1 => CompressionMethod::Zlib,
+            1 => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "zlib compression not supported",
+                ));
+            }
             2 => CompressionMethod::Zstd,
             _ => {
                 return Err(io::Error::new(
