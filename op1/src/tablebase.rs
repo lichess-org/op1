@@ -196,7 +196,7 @@ impl Tablebase {
         };
 
         Ok(match table.read_mb(index, ctx)? {
-            MbValue::Dtc(dtc) => Some(SideValue::Dtc(dtc)),
+            MbValue::Dtc(dtc) => Some(SideValue::Dtc(i32::from(dtc))),
             MbValue::Unresolved => Some(SideValue::Unresolved),
             MbValue::MaybeHighDtc => self
                 .select_table(pos, &mb_info, TableType::HighDtc)?
@@ -227,7 +227,7 @@ impl Tablebase {
         match self.probe_side(&pos, &mut ctx)? {
             None => return Ok(None),
             Some(SideValue::Dtc(n)) => {
-                return Ok(Some(Value::Dtc(i32::from(n) * pos.turn().fold_wb(1, -1))));
+                return Ok(Some(Value::Dtc(pos.turn().fold_wb(n, n.saturating_neg()))));
             }
             Some(SideValue::Unresolved) => (),
         }

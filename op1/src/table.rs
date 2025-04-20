@@ -2,7 +2,7 @@ use std::{fs::File, io, io::Read, mem, num::NonZeroU32, os::unix::fs::FileExt, p
 
 use mbeval_sys::ZIndex;
 use zerocopy::{
-    FromBytes, IntoBytes,
+    FromBytes, FromZeros, Immutable, IntoBytes,
     little_endian::{I32, U32, U64},
 };
 
@@ -31,13 +31,25 @@ impl Table {
             ));
         }
 
-        let mut offsets = vec![U64::ZERO; header.num_blocks as usize + 1];
+        if u32::from(header.block_size) % u32::from(table_type.list_element_size()) != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "block size {} not cleanly divisible by list element size",
+                    header.block_size
+                ),
+            ));
+        }
+
+        let mut offsets =
+            U64::new_vec_zeroed(header.num_blocks as usize + 1).expect("allocate offsets vector");
         file.read_exact(offsets.as_mut_bytes())?;
 
         let starting_indices = match table_type {
             TableType::Mb => Vec::new(),
             TableType::HighDtc => {
-                let mut starting_indices = vec![U64::ZERO; header.num_blocks as usize + 1];
+                let mut starting_indices = U64::new_vec_zeroed(header.num_blocks as usize + 1)
+                    .expect("allocate starting indices vector");
                 file.read_exact(starting_indices.as_mut_bytes())?;
                 starting_indices
             }
@@ -117,7 +129,7 @@ impl Table {
 
     pub(crate) fn read_high_dtc(
         &self,
-        _index: ZIndex,
+        index: ZIndex,
         ctx: &mut ProbeContext,
     ) -> io::Result<SideValue> {
         assert_eq!(self.table_type, TableType::HighDtc);
@@ -125,6 +137,34 @@ impl Table {
         let block_index = todo!();
 
         self.load_compressed_block(block_index, ctx)?;
+
+        let num_per_block = u32::from(self.header.block_size) as usize / mem::size_of::<HighDtc>();
+        let mut decompressed_block =
+            HighDtc::new_vec_zeroed(num_per_block).expect("allocate memory for decompressed block");
+
+        match self.header.compression_method {
+            CompressionMethod::None => {
+                decompressed_block
+                    .as_mut_bytes()
+                    .copy_from_slice(&ctx.compressed_block);
+            }
+            CompressionMethod::Zstd => {
+                ctx.decompressor.decompress_to_buffer(
+                    &ctx.compressed_block,
+                    decompressed_block.as_mut_bytes(),
+                )?;
+            }
+        }
+
+        Ok(SideValue::Dtc(
+            if let Ok(ptr) =
+                decompressed_block.binary_search_by_key(&U64::new(index), |&entry| entry.index)
+            {
+                i32::from(decompressed_block[ptr].score)
+            } else {
+                254
+            },
+        ))
     }
 }
 
@@ -186,7 +226,8 @@ impl TryFrom<RawHeader> for Header {
     }
 }
 
-#[derive(FromBytes)]
+#[derive(FromBytes, IntoBytes, Immutable)]
+#[repr(C)]
 struct HighDtc {
     index: U64,
     score: I32,
@@ -229,7 +270,7 @@ pub(crate) enum MbValue {
 
 #[derive(Debug)]
 pub(crate) enum SideValue {
-    Dtc(u8),
+    Dtc(i32),
     Unresolved,
 }
 
