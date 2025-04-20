@@ -1,45 +1,68 @@
-use std::{fs::File, io, io::Read, num::NonZeroU32, os::unix::fs::FileExt, path::Path};
+use std::{fs::File, io, io::Read, mem, num::NonZeroU32, os::unix::fs::FileExt, path::Path};
 
 use mbeval_sys::ZIndex;
 use zerocopy::{
-    FromBytes,
-    little_endian::{U32, U64},
+    FromBytes, IntoBytes,
+    little_endian::{I32, U32, U64},
 };
 
 pub(crate) struct Table {
+    table_type: TableType,
     file: File,
     header: Header,
-    offsets: Vec<u8>,
+    offsets: Vec<U64>,
+    starting_indices: Vec<U64>,
 }
 
 impl Table {
-    pub(crate) fn open(path: &Path) -> io::Result<Table> {
+    pub(crate) fn open(path: &Path, table_type: TableType) -> io::Result<Table> {
         let mut file = File::open(path)?;
 
-        let header = Header::try_from(RawHeader::read_from_io(&mut file)?)?;
+        let header = Header::try_from(dbg!(RawHeader::read_from_io(&mut file)?))?;
 
-        let mut offsets = vec![0; 8 * (header.num_blocks as usize + 1)];
-        file.read_exact(&mut offsets[..])?;
+        if header.list_element_size != table_type.list_element_size() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "unpexected list element size {} for {}",
+                    header.list_element_size,
+                    path.display(),
+                ),
+            ));
+        }
+
+        let mut offsets = vec![U64::ZERO; header.num_blocks as usize + 1];
+        file.read_exact(offsets.as_mut_bytes())?;
+
+        let starting_indices = match table_type {
+            TableType::Mb => Vec::new(),
+            TableType::HighDtc => {
+                let mut starting_indices = vec![U64::ZERO; header.num_blocks as usize + 1];
+                file.read_exact(starting_indices.as_mut_bytes())?;
+                starting_indices
+            }
+        };
 
         Ok(Table {
+            table_type,
             file,
             header,
             offsets,
+            starting_indices,
         })
     }
 
     fn block_offset(&self, block_index: u32) -> io::Result<u64> {
-        let block_index = block_index as usize;
-        let encoded = self
-            .offsets
-            .get(block_index * 8..block_index * 8 + 8)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "block index out of range"))?
-            .try_into()
-            .expect("8 bytes");
-        Ok(u64::from_le_bytes(encoded))
+        self.offsets
+            .get(block_index as usize)
+            .copied()
+            .map(u64::from)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "block index out of range"))
     }
 
     pub(crate) fn read_mb(&self, index: ZIndex, ctx: &mut ProbeContext) -> io::Result<MbValue> {
+        assert_eq!(self.table_type, TableType::Mb);
+
         let block_index = u32::try_from(index / u64::from(self.header.block_size.get()))
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "index out of range"))?;
         let byte_index = index % u64::from(self.header.block_size.get());
@@ -88,21 +111,46 @@ impl Table {
         })?;
 
         Ok(match value {
-            254 => MbValue::MaybeHighDtc,
+            254 if self.header.max_dtc > 254 => MbValue::MaybeHighDtc,
             255 => MbValue::Unresolved,
             dtc => MbValue::Dtc(dtc),
         })
     }
+
+    pub(crate) fn read_high_dtc(
+        &self,
+        _index: ZIndex,
+        _ctx: &mut ProbeContext,
+    ) -> io::Result<SideValue> {
+        assert_eq!(self.table_type, TableType::HighDtc);
+
+        todo!()
+    }
 }
 
-#[derive(FromBytes)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum TableType {
+    Mb,
+    HighDtc,
+}
+
+impl TableType {
+    fn list_element_size(self) -> u8 {
+        match self {
+            TableType::Mb => mem::size_of::<u8>() as u8,
+            TableType::HighDtc => mem::size_of::<HighDtc>() as u8,
+        }
+    }
+}
+
+#[derive(FromBytes, Debug)]
 #[repr(C)]
 struct RawHeader {
     unused: [u8; 16],
     basename: [u8; 16],
     n_elements: U64,
     kk_index: U32,
-    max_depth: U32,
+    max_dtc: U32, // aka max_depth
     block_size: U32,
     num_blocks: U32,
     nrows: u8,
@@ -116,9 +164,11 @@ struct RawHeader {
 }
 
 struct Header {
-    compression_method: CompressionMethod,
     block_size: NonZeroU32,
     num_blocks: u32,
+    max_dtc: u32,
+    compression_method: CompressionMethod,
+    list_element_size: u8,
 }
 
 impl TryFrom<RawHeader> for Header {
@@ -129,9 +179,17 @@ impl TryFrom<RawHeader> for Header {
             block_size: NonZeroU32::try_from(u32::from(raw.block_size))
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?,
             num_blocks: u32::from(raw.num_blocks),
+            max_dtc: u32::from(raw.max_dtc),
             compression_method: CompressionMethod::try_from(raw.compression_method)?,
+            list_element_size: raw.list_element_size,
         })
     }
+}
+
+#[derive(FromBytes)]
+struct HighDtc {
+    index: U64,
+    score: I32,
 }
 
 enum CompressionMethod {
@@ -161,7 +219,13 @@ impl TryFrom<u8> for CompressionMethod {
 #[derive(Debug)]
 pub(crate) enum MbValue {
     Dtc(u8),
+    Unresolved,
     MaybeHighDtc,
+}
+
+#[derive(Debug)]
+pub(crate) enum SideValue {
+    Dtc(u8),
     Unresolved,
 }
 

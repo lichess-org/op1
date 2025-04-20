@@ -15,7 +15,7 @@ use shakmaty::{
     Board, ByColor, ByRole, CastlingMode, Chess, Color, EnPassantMode, Position as _, Role,
 };
 
-use crate::table::{MbValue, ProbeContext, Table};
+use crate::table::{MbValue, ProbeContext, SideValue, Table, TableType};
 
 const ALL_ONES: ZIndex = !0;
 
@@ -72,7 +72,7 @@ impl Tablebase {
     fn open_table(&self, key: &TableKey) -> io::Result<Option<&Table>> {
         self.tables
             .get(key)
-            .map(|(path, table)| table.get_or_try_init(|| Table::open(path)))
+            .map(|(path, table)| table.get_or_try_init(|| Table::open(path, key.table_type)))
             .transpose()
     }
 
@@ -195,11 +195,14 @@ impl Tablebase {
             return Ok(None);
         };
 
-        Ok(Some(match table.read_mb(index, ctx)? {
-            MbValue::Dtc(dtc) => SideValue::Dtc(dtc),
-            MbValue::MaybeHighDtc => return Ok(None), // TODO
-            MbValue::Unresolved => SideValue::Unresolved,
-        }))
+        Ok(match table.read_mb(index, ctx)? {
+            MbValue::Dtc(dtc) => Some(SideValue::Dtc(dtc)),
+            MbValue::Unresolved => Some(SideValue::Unresolved),
+            MbValue::MaybeHighDtc => self
+                .select_table(pos, &mb_info, TableType::HighDtc)?
+                .map(|(table, index)| table.read_high_dtc(index, ctx))
+                .transpose()?,
+        })
     }
 
     pub fn probe(&self, pos: &Chess) -> Result<Option<Value>, io::Error> {
@@ -239,12 +242,6 @@ impl Tablebase {
     }
 }
 
-#[derive(Debug)]
-enum SideValue {
-    Dtc(u8),
-    Unresolved,
-}
-
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Value {
     Draw,
@@ -275,12 +272,6 @@ type Material = ByColor<ByRole<u8>>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct KkIndex(u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum TableType {
-    Mb,
-    HighDtc,
-}
 
 fn parse_dirname(path: &Path) -> Option<(Material, PawnFileType, ByColor<BishopParity>)> {
     let name = path.file_name()?.to_str()?.strip_suffix("_out")?;
