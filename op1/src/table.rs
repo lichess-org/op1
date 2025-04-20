@@ -138,7 +138,7 @@ impl Table {
 
         self.load_compressed_block(block_index, ctx)?;
 
-        let num_per_block = u32::from(self.header.block_size) as usize / mem::size_of::<HighDtc>();
+        let num_per_block = self.header.block_size.get() as usize / mem::size_of::<HighDtc>();
         let mut decompressed_block =
             HighDtc::new_vec_zeroed(num_per_block).expect("allocate memory for decompressed block");
 
@@ -153,6 +153,13 @@ impl Table {
                     &ctx.compressed_block,
                     decompressed_block.as_mut_bytes(),
                 )?;
+            }
+        }
+
+        if block_index == self.header.num_blocks - 1 {
+            let last_block_entries = self.header.num_elements % num_per_block as u64;
+            if last_block_entries != 0 {
+                decompressed_block.truncate(last_block_entries as usize);
             }
         }
 
@@ -188,7 +195,7 @@ impl TableType {
 struct RawHeader {
     unused: [u8; 16],
     basename: [u8; 16],
-    n_elements: U64,
+    num_elements: U64,
     kk_index: U32,
     max_dtc: U32, // aka max_depth
     block_size: U32,
@@ -204,6 +211,7 @@ struct RawHeader {
 }
 
 struct Header {
+    num_elements: u64,
     block_size: NonZeroU32,
     num_blocks: u32,
     max_dtc: u32,
@@ -216,10 +224,11 @@ impl TryFrom<RawHeader> for Header {
 
     fn try_from(raw: RawHeader) -> Result<Self, Self::Error> {
         Ok(Header {
-            block_size: NonZeroU32::try_from(u32::from(raw.block_size))
-                .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?,
-            num_blocks: u32::from(raw.num_blocks),
-            max_dtc: u32::from(raw.max_dtc),
+            num_elements: raw.num_elements.into(),
+            block_size: NonZeroU32::new(raw.block_size.into())
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "zero block size"))?,
+            num_blocks: raw.num_blocks.into(),
+            max_dtc: raw.max_dtc.into(),
             compression_method: CompressionMethod::try_from(raw.compression_method)?,
             list_element_size: raw.list_element_size,
         })
