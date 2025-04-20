@@ -9,6 +9,7 @@ fn main() {
     bindgen::builder()
         .layout_tests(false)
         .header("mbeval/include/mbeval.h")
+        .rustified_enum("PawnFileType")
         .generate()
         .unwrap()
         .write_to_file(out_dir.join("bindings.rs"))

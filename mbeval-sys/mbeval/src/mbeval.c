@@ -3468,221 +3468,221 @@ static ZINDEX Index16(const int *pos) {
     return pos[2] + NSQUARES * ((ZINDEX)Index6(pos + 1));
 }
 
-static const IndexType IndexTable[] = {{111111, FREE_PAWNS, 0, Index111111},
-                                       {111111, BP_11_PAWNS, 0, IndexBP111111},
-                                       {111111, OP_11_PAWNS, 0, IndexOP111111},
-                                       {21111, FREE_PAWNS, 0, Index21111},
-                                       {21111, OP_21_PAWNS, 0, IndexOP21111},
-                                       {12111, FREE_PAWNS, 0, Index12111},
-                                       {12111, OP_12_PAWNS, 0, IndexOP12111},
-                                       {11211, FREE_PAWNS, 0, Index11211},
-                                       {11211, BP_11_PAWNS, 0, IndexBP11211},
-                                       {11211, OP_11_PAWNS, 0, IndexOP11211},
-                                       {11121, FREE_PAWNS, 0, Index11121},
-                                       {11121, BP_11_PAWNS, 0, IndexBP11121},
-                                       {11121, OP_11_PAWNS, 0, IndexOP11121},
-                                       {11112, FREE_PAWNS, 0, Index11112},
-                                       {11112, BP_11_PAWNS, 0, IndexBP11112},
-                                       {11112, OP_11_PAWNS, 0, IndexOP11112},
-                                       {2211, FREE_PAWNS, 0, Index2211},
-                                       {2211, DP_22_PAWNS, 0, IndexDP2211},
-                                       {2211, OP_22_PAWNS, 0, IndexOP2211},
-                                       {2211, FREE_PAWNS, 1100, Index2211_1100},
-                                       {2211, FREE_PAWNS, 1000, Index2211_1000},
-                                       {2121, FREE_PAWNS, 0, Index2121},
-                                       {2121, OP_21_PAWNS, 0, IndexOP2121},
-                                       {1221, FREE_PAWNS, 0, Index1221},
-                                       {1221, OP_12_PAWNS, 0, IndexOP1221},
-                                       {2112, FREE_PAWNS, 0, Index2112},
-                                       {2112, OP_21_PAWNS, 0, IndexOP2112},
-                                       {1212, FREE_PAWNS, 0, Index1212},
-                                       {1212, OP_12_PAWNS, 0, IndexOP1212},
-                                       {1122, FREE_PAWNS, 0, Index1122},
-                                       {1122, BP_11_PAWNS, 0, IndexBP1122},
-                                       {1122, OP_11_PAWNS, 0, IndexOP1122},
-                                       {222, FREE_PAWNS, 0, Index222},
-                                       {222, DP_22_PAWNS, 0, IndexDP222},
-                                       {222, OP_22_PAWNS, 0, IndexOP222},
-                                       {3111, FREE_PAWNS, 0, Index3111},
-                                       {3111, OP_31_PAWNS, 0, IndexOP3111},
-                                       {1311, FREE_PAWNS, 0, Index1311},
-                                       {1311, OP_13_PAWNS, 0, IndexOP1311},
-                                       {1131, FREE_PAWNS, 0, Index1131},
-                                       {1131, BP_11_PAWNS, 0, IndexBP1131},
-                                       {1131, OP_11_PAWNS, 0, IndexOP1131},
-                                       {1113, FREE_PAWNS, 0, Index1113},
-                                       {1113, BP_11_PAWNS, 0, IndexBP1113},
-                                       {1113, OP_11_PAWNS, 0, IndexOP1113},
-                                       {123, FREE_PAWNS, 0, Index123},
-                                       {123, OP_12_PAWNS, 0, IndexOP123},
-                                       {213, FREE_PAWNS, 0, Index213},
-                                       {213, OP_21_PAWNS, 0, IndexOP213},
-                                       {132, FREE_PAWNS, 0, Index132},
-                                       {132, OP_13_PAWNS, 0, IndexOP132},
-                                       {231, FREE_PAWNS, 0, Index231},
-                                       {312, FREE_PAWNS, 0, Index312},
-                                       {312, OP_31_PAWNS, 0, IndexOP312},
-                                       {321, FREE_PAWNS, 0, Index321},
-                                       {33, FREE_PAWNS, 0, Index33},
-                                       {411, FREE_PAWNS, 0, Index411},
-                                       {141, FREE_PAWNS, 0, Index141},
-                                       {114, FREE_PAWNS, 0, Index114},
-                                       {114, BP_11_PAWNS, 0, IndexBP114},
-                                       {114, OP_11_PAWNS, 0, IndexOP114},
-                                       {42, FREE_PAWNS, 0, Index42},
-                                       {24, FREE_PAWNS, 0, Index24},
-                                       {1111111, FREE_PAWNS, 0, Index1111111},
-                                       {211111, FREE_PAWNS, 0, Index211111},
-                                       {121111, FREE_PAWNS, 0, Index121111},
-                                       {112111, FREE_PAWNS, 0, Index112111},
-                                       {111211, FREE_PAWNS, 0, Index111211},
-                                       {111121, FREE_PAWNS, 0, Index111121},
-                                       {111112, FREE_PAWNS, 0, Index111112},
-                                       {22111, FREE_PAWNS, 0, Index22111},
-                                       {22111, DP_22_PAWNS, 0, IndexDP22111},
-                                       {21211, FREE_PAWNS, 0, Index21211},
-                                       {21121, FREE_PAWNS, 0, Index21121},
-                                       {21112, FREE_PAWNS, 0, Index21112},
-                                       {12211, FREE_PAWNS, 0, Index12211},
-                                       {12121, FREE_PAWNS, 0, Index12121},
-                                       {12112, FREE_PAWNS, 0, Index12112},
-                                       {11221, FREE_PAWNS, 0, Index11221},
-                                       {11212, FREE_PAWNS, 0, Index11212},
-                                       {11122, FREE_PAWNS, 0, Index11122},
-                                       {2221, FREE_PAWNS, 0, Index2221},
-                                       {2221, DP_22_PAWNS, 0, IndexDP2221},
-                                       {2221, FREE_PAWNS, 1131, Index2221_1131},
-                                       {2221, FREE_PAWNS, 1130, Index2221_1130},
-                                       {2221, FREE_PAWNS, 1030, Index2221_1030},
-                                       {2212, FREE_PAWNS, 0, Index2212},
-                                       {2212, DP_22_PAWNS, 0, IndexDP2212},
-                                       {2122, FREE_PAWNS, 0, Index2122},
-                                       {1222, FREE_PAWNS, 0, Index1222},
-                                       {31111, FREE_PAWNS, 0, Index31111},
-                                       {13111, FREE_PAWNS, 0, Index13111},
-                                       {11311, FREE_PAWNS, 0, Index11311},
-                                       {11131, FREE_PAWNS, 0, Index11131},
-                                       {11113, FREE_PAWNS, 0, Index11113},
-                                       {3211, FREE_PAWNS, 0, Index3211},
-                                       {3121, FREE_PAWNS, 0, Index3121},
-                                       {3121, FREE_PAWNS, 1100, Index3121_1100},
-                                       {3121, FREE_PAWNS, 1111, Index3121_1111},
-                                       {3121, FREE_PAWNS, 1110, Index3121_1110},
-                                       {3112, FREE_PAWNS, 0, Index3112},
-                                       {2311, FREE_PAWNS, 0, Index2311},
-                                       {2131, FREE_PAWNS, 0, Index2131},
-                                       {2113, FREE_PAWNS, 0, Index2113},
-                                       {1321, FREE_PAWNS, 0, Index1321},
-                                       {1312, FREE_PAWNS, 0, Index1312},
-                                       {1312, FREE_PAWNS, 10, Index1312_0010},
-                                       {1312, FREE_PAWNS, 11, Index1312_0011},
-                                       {1231, FREE_PAWNS, 0, Index1231},
-                                       {1213, FREE_PAWNS, 0, Index1213},
-                                       {1132, FREE_PAWNS, 0, Index1132},
-                                       {1123, FREE_PAWNS, 0, Index1123},
-                                       {322, FREE_PAWNS, 0, Index322},
-                                       {322, FREE_PAWNS, 10, Index322_0010},
-                                       {322, FREE_PAWNS, 11, Index322_0011},
-                                       {232, FREE_PAWNS, 0, Index232},
-                                       {223, FREE_PAWNS, 0, Index223},
-                                       {223, DP_22_PAWNS, 0, IndexDP223},
-                                       {223, FREE_PAWNS, 1100, Index223_1100},
-                                       {223, FREE_PAWNS, 1000, Index223_1000},
-                                       {331, FREE_PAWNS, 0, Index331},
-                                       {331, FREE_PAWNS, 20, Index331_0020},
-                                       {331, FREE_PAWNS, 21, Index331_0021},
-                                       {313, FREE_PAWNS, 0, Index313},
-                                       {133, FREE_PAWNS, 0, Index133},
-                                       {4111, FREE_PAWNS, 0, Index4111},
-                                       {1411, FREE_PAWNS, 0, Index1411},
-                                       {1141, FREE_PAWNS, 0, Index1141},
-                                       {1114, FREE_PAWNS, 0, Index1114},
-                                       {421, FREE_PAWNS, 0, Index421},
-                                       {421, FREE_PAWNS, 10, Index421_0010},
-                                       {421, FREE_PAWNS, 11, Index421_0011},
-                                       {412, FREE_PAWNS, 0, Index412},
-                                       {241, FREE_PAWNS, 0, Index241},
-                                       {214, FREE_PAWNS, 0, Index214},
-                                       {142, FREE_PAWNS, 0, Index142},
-                                       {124, FREE_PAWNS, 0, Index124},
-                                       {43, FREE_PAWNS, 0, Index43},
-                                       {34, FREE_PAWNS, 0, Index34},
-                                       {511, FREE_PAWNS, 0, Index511},
-                                       {151, FREE_PAWNS, 0, Index151},
-                                       {115, FREE_PAWNS, 0, Index115},
-                                       {52, FREE_PAWNS, 0, Index52},
-                                       {25, FREE_PAWNS, 0, Index25},
-                                       {61, FREE_PAWNS, 0, Index61},
-                                       {16, FREE_PAWNS, 0, Index16},
-                                       {1, FREE_PAWNS, 0, Index1},
-                                       {11, FREE_PAWNS, 0, Index11},
-                                       {11, BP_11_PAWNS, 0, IndexBP11},
-                                       {11, OP_11_PAWNS, 0, IndexOP11},
-                                       {111, FREE_PAWNS, 0, Index111},
-                                       {111, BP_11_PAWNS, 0, IndexBP111},
-                                       {111, OP_11_PAWNS, 0, IndexOP111},
-                                       {1111, FREE_PAWNS, 0, Index1111},
-                                       {1111, BP_11_PAWNS, 0, IndexBP1111},
-                                       {1111, OP_11_PAWNS, 0, IndexOP1111},
-                                       {11111, FREE_PAWNS, 0, Index11111},
-                                       {11111, BP_11_PAWNS, 0, IndexBP11111},
-                                       {11111, OP_11_PAWNS, 0, IndexOP11111},
-                                       {2, FREE_PAWNS, 0, Index2},
-                                       {2, FREE_PAWNS, 1100, Index2_1100},
-                                       {21, FREE_PAWNS, 0, Index21},
-                                       {21, OP_21_PAWNS, 0, IndexOP21},
-                                       {12, FREE_PAWNS, 0, Index12},
-                                       {12, OP_12_PAWNS, 0, IndexOP12},
-                                       {211, FREE_PAWNS, 0, Index211},
-                                       {211, OP_21_PAWNS, 0, IndexOP211},
-                                       {121, FREE_PAWNS, 0, Index121},
-                                       {121, OP_12_PAWNS, 0, IndexOP121},
-                                       {112, FREE_PAWNS, 0, Index112},
-                                       {112, BP_11_PAWNS, 0, IndexBP112},
-                                       {112, OP_11_PAWNS, 0, IndexOP112},
-                                       {2111, FREE_PAWNS, 0, Index2111},
-                                       {2111, OP_21_PAWNS, 0, IndexOP2111},
-                                       {1211, FREE_PAWNS, 0, Index1211},
-                                       {1211, OP_12_PAWNS, 0, IndexOP1211},
-                                       {1121, FREE_PAWNS, 0, Index1121},
-                                       {1121, BP_11_PAWNS, 0, IndexBP1121},
-                                       {1121, OP_11_PAWNS, 0, IndexOP1121},
-                                       {1112, FREE_PAWNS, 0, Index1112},
-                                       {1112, BP_11_PAWNS, 0, IndexBP1112},
-                                       {1112, OP_11_PAWNS, 0, IndexOP1112},
-                                       {22, FREE_PAWNS, 0, Index22},
-                                       {22, DP_22_PAWNS, 0, IndexDP22},
-                                       {22, OP_22_PAWNS, 0, IndexOP22},
-                                       {221, FREE_PAWNS, 0, Index221},
-                                       {221, DP_22_PAWNS, 0, IndexDP221},
-                                       {221, OP_22_PAWNS, 0, IndexOP221},
-                                       {212, FREE_PAWNS, 0, Index212},
-                                       {212, OP_21_PAWNS, 0, IndexOP212},
-                                       {122, FREE_PAWNS, 0, Index122},
-                                       {122, OP_12_PAWNS, 0, IndexOP122},
-                                       {3, FREE_PAWNS, 0, Index3},
-                                       {3, FREE_PAWNS, 1100, Index3_1100},
-                                       {31, FREE_PAWNS, 0, Index31},
-                                       {31, OP_31_PAWNS, 0, IndexOP31},
-                                       {13, FREE_PAWNS, 0, Index13},
-                                       {13, OP_13_PAWNS, 0, IndexOP13},
-                                       {311, FREE_PAWNS, 0, Index311},
-                                       {311, OP_31_PAWNS, 0, IndexOP311},
-                                       {131, FREE_PAWNS, 0, Index131},
-                                       {131, OP_13_PAWNS, 0, IndexOP131},
-                                       {113, FREE_PAWNS, 0, Index113},
-                                       {113, BP_11_PAWNS, 0, IndexBP113},
-                                       {113, OP_11_PAWNS, 0, IndexOP113},
-                                       {32, FREE_PAWNS, 0, Index32},
-                                       {23, FREE_PAWNS, 0, Index23},
-                                       {4, FREE_PAWNS, 0, Index4},
-                                       {41, FREE_PAWNS, 0, Index41},
-                                       {14, FREE_PAWNS, 0, Index14},
-                                       {5, FREE_PAWNS, 0, Index5},
-                                       {51, FREE_PAWNS, 0, Index51},
-                                       {15, FREE_PAWNS, 0, Index15},
-                                       {6, FREE_PAWNS, 0, Index6},
-                                       {7, FREE_PAWNS, 0, Index7}};
+static const IndexType IndexTable[] = {{111111, Free, 0, Index111111},
+                                       {111111, Bp11, 0, IndexBP111111},
+                                       {111111, Op11, 0, IndexOP111111},
+                                       {21111, Free, 0, Index21111},
+                                       {21111, Op21, 0, IndexOP21111},
+                                       {12111, Free, 0, Index12111},
+                                       {12111, Op12, 0, IndexOP12111},
+                                       {11211, Free, 0, Index11211},
+                                       {11211, Bp11, 0, IndexBP11211},
+                                       {11211, Op11, 0, IndexOP11211},
+                                       {11121, Free, 0, Index11121},
+                                       {11121, Bp11, 0, IndexBP11121},
+                                       {11121, Op11, 0, IndexOP11121},
+                                       {11112, Free, 0, Index11112},
+                                       {11112, Bp11, 0, IndexBP11112},
+                                       {11112, Op11, 0, IndexOP11112},
+                                       {2211, Free, 0, Index2211},
+                                       {2211, Dp22, 0, IndexDP2211},
+                                       {2211, Op22, 0, IndexOP2211},
+                                       {2211, Free, 1100, Index2211_1100},
+                                       {2211, Free, 1000, Index2211_1000},
+                                       {2121, Free, 0, Index2121},
+                                       {2121, Op21, 0, IndexOP2121},
+                                       {1221, Free, 0, Index1221},
+                                       {1221, Op12, 0, IndexOP1221},
+                                       {2112, Free, 0, Index2112},
+                                       {2112, Op21, 0, IndexOP2112},
+                                       {1212, Free, 0, Index1212},
+                                       {1212, Op12, 0, IndexOP1212},
+                                       {1122, Free, 0, Index1122},
+                                       {1122, Bp11, 0, IndexBP1122},
+                                       {1122, Op11, 0, IndexOP1122},
+                                       {222, Free, 0, Index222},
+                                       {222, Dp22, 0, IndexDP222},
+                                       {222, Op22, 0, IndexOP222},
+                                       {3111, Free, 0, Index3111},
+                                       {3111, Op31, 0, IndexOP3111},
+                                       {1311, Free, 0, Index1311},
+                                       {1311, Op13, 0, IndexOP1311},
+                                       {1131, Free, 0, Index1131},
+                                       {1131, Bp11, 0, IndexBP1131},
+                                       {1131, Op11, 0, IndexOP1131},
+                                       {1113, Free, 0, Index1113},
+                                       {1113, Bp11, 0, IndexBP1113},
+                                       {1113, Op11, 0, IndexOP1113},
+                                       {123, Free, 0, Index123},
+                                       {123, Op12, 0, IndexOP123},
+                                       {213, Free, 0, Index213},
+                                       {213, Op21, 0, IndexOP213},
+                                       {132, Free, 0, Index132},
+                                       {132, Op13, 0, IndexOP132},
+                                       {231, Free, 0, Index231},
+                                       {312, Free, 0, Index312},
+                                       {312, Op31, 0, IndexOP312},
+                                       {321, Free, 0, Index321},
+                                       {33, Free, 0, Index33},
+                                       {411, Free, 0, Index411},
+                                       {141, Free, 0, Index141},
+                                       {114, Free, 0, Index114},
+                                       {114, Bp11, 0, IndexBP114},
+                                       {114, Op11, 0, IndexOP114},
+                                       {42, Free, 0, Index42},
+                                       {24, Free, 0, Index24},
+                                       {1111111, Free, 0, Index1111111},
+                                       {211111, Free, 0, Index211111},
+                                       {121111, Free, 0, Index121111},
+                                       {112111, Free, 0, Index112111},
+                                       {111211, Free, 0, Index111211},
+                                       {111121, Free, 0, Index111121},
+                                       {111112, Free, 0, Index111112},
+                                       {22111, Free, 0, Index22111},
+                                       {22111, Dp22, 0, IndexDP22111},
+                                       {21211, Free, 0, Index21211},
+                                       {21121, Free, 0, Index21121},
+                                       {21112, Free, 0, Index21112},
+                                       {12211, Free, 0, Index12211},
+                                       {12121, Free, 0, Index12121},
+                                       {12112, Free, 0, Index12112},
+                                       {11221, Free, 0, Index11221},
+                                       {11212, Free, 0, Index11212},
+                                       {11122, Free, 0, Index11122},
+                                       {2221, Free, 0, Index2221},
+                                       {2221, Dp22, 0, IndexDP2221},
+                                       {2221, Free, 1131, Index2221_1131},
+                                       {2221, Free, 1130, Index2221_1130},
+                                       {2221, Free, 1030, Index2221_1030},
+                                       {2212, Free, 0, Index2212},
+                                       {2212, Dp22, 0, IndexDP2212},
+                                       {2122, Free, 0, Index2122},
+                                       {1222, Free, 0, Index1222},
+                                       {31111, Free, 0, Index31111},
+                                       {13111, Free, 0, Index13111},
+                                       {11311, Free, 0, Index11311},
+                                       {11131, Free, 0, Index11131},
+                                       {11113, Free, 0, Index11113},
+                                       {3211, Free, 0, Index3211},
+                                       {3121, Free, 0, Index3121},
+                                       {3121, Free, 1100, Index3121_1100},
+                                       {3121, Free, 1111, Index3121_1111},
+                                       {3121, Free, 1110, Index3121_1110},
+                                       {3112, Free, 0, Index3112},
+                                       {2311, Free, 0, Index2311},
+                                       {2131, Free, 0, Index2131},
+                                       {2113, Free, 0, Index2113},
+                                       {1321, Free, 0, Index1321},
+                                       {1312, Free, 0, Index1312},
+                                       {1312, Free, 10, Index1312_0010},
+                                       {1312, Free, 11, Index1312_0011},
+                                       {1231, Free, 0, Index1231},
+                                       {1213, Free, 0, Index1213},
+                                       {1132, Free, 0, Index1132},
+                                       {1123, Free, 0, Index1123},
+                                       {322, Free, 0, Index322},
+                                       {322, Free, 10, Index322_0010},
+                                       {322, Free, 11, Index322_0011},
+                                       {232, Free, 0, Index232},
+                                       {223, Free, 0, Index223},
+                                       {223, Dp22, 0, IndexDP223},
+                                       {223, Free, 1100, Index223_1100},
+                                       {223, Free, 1000, Index223_1000},
+                                       {331, Free, 0, Index331},
+                                       {331, Free, 20, Index331_0020},
+                                       {331, Free, 21, Index331_0021},
+                                       {313, Free, 0, Index313},
+                                       {133, Free, 0, Index133},
+                                       {4111, Free, 0, Index4111},
+                                       {1411, Free, 0, Index1411},
+                                       {1141, Free, 0, Index1141},
+                                       {1114, Free, 0, Index1114},
+                                       {421, Free, 0, Index421},
+                                       {421, Free, 10, Index421_0010},
+                                       {421, Free, 11, Index421_0011},
+                                       {412, Free, 0, Index412},
+                                       {241, Free, 0, Index241},
+                                       {214, Free, 0, Index214},
+                                       {142, Free, 0, Index142},
+                                       {124, Free, 0, Index124},
+                                       {43, Free, 0, Index43},
+                                       {34, Free, 0, Index34},
+                                       {511, Free, 0, Index511},
+                                       {151, Free, 0, Index151},
+                                       {115, Free, 0, Index115},
+                                       {52, Free, 0, Index52},
+                                       {25, Free, 0, Index25},
+                                       {61, Free, 0, Index61},
+                                       {16, Free, 0, Index16},
+                                       {1, Free, 0, Index1},
+                                       {11, Free, 0, Index11},
+                                       {11, Bp11, 0, IndexBP11},
+                                       {11, Op11, 0, IndexOP11},
+                                       {111, Free, 0, Index111},
+                                       {111, Bp11, 0, IndexBP111},
+                                       {111, Op11, 0, IndexOP111},
+                                       {1111, Free, 0, Index1111},
+                                       {1111, Bp11, 0, IndexBP1111},
+                                       {1111, Op11, 0, IndexOP1111},
+                                       {11111, Free, 0, Index11111},
+                                       {11111, Bp11, 0, IndexBP11111},
+                                       {11111, Op11, 0, IndexOP11111},
+                                       {2, Free, 0, Index2},
+                                       {2, Free, 1100, Index2_1100},
+                                       {21, Free, 0, Index21},
+                                       {21, Op21, 0, IndexOP21},
+                                       {12, Free, 0, Index12},
+                                       {12, Op12, 0, IndexOP12},
+                                       {211, Free, 0, Index211},
+                                       {211, Op21, 0, IndexOP211},
+                                       {121, Free, 0, Index121},
+                                       {121, Op12, 0, IndexOP121},
+                                       {112, Free, 0, Index112},
+                                       {112, Bp11, 0, IndexBP112},
+                                       {112, Op11, 0, IndexOP112},
+                                       {2111, Free, 0, Index2111},
+                                       {2111, Op21, 0, IndexOP2111},
+                                       {1211, Free, 0, Index1211},
+                                       {1211, Op12, 0, IndexOP1211},
+                                       {1121, Free, 0, Index1121},
+                                       {1121, Bp11, 0, IndexBP1121},
+                                       {1121, Op11, 0, IndexOP1121},
+                                       {1112, Free, 0, Index1112},
+                                       {1112, Bp11, 0, IndexBP1112},
+                                       {1112, Op11, 0, IndexOP1112},
+                                       {22, Free, 0, Index22},
+                                       {22, Dp22, 0, IndexDP22},
+                                       {22, Op22, 0, IndexOP22},
+                                       {221, Free, 0, Index221},
+                                       {221, Dp22, 0, IndexDP221},
+                                       {221, Op22, 0, IndexOP221},
+                                       {212, Free, 0, Index212},
+                                       {212, Op21, 0, IndexOP212},
+                                       {122, Free, 0, Index122},
+                                       {122, Op12, 0, IndexOP122},
+                                       {3, Free, 0, Index3},
+                                       {3, Free, 1100, Index3_1100},
+                                       {31, Free, 0, Index31},
+                                       {31, Op31, 0, IndexOP31},
+                                       {13, Free, 0, Index13},
+                                       {13, Op13, 0, IndexOP13},
+                                       {311, Free, 0, Index311},
+                                       {311, Op31, 0, IndexOP311},
+                                       {131, Free, 0, Index131},
+                                       {131, Op13, 0, IndexOP131},
+                                       {113, Free, 0, Index113},
+                                       {113, Bp11, 0, IndexBP113},
+                                       {113, Op11, 0, IndexOP113},
+                                       {32, Free, 0, Index32},
+                                       {23, Free, 0, Index23},
+                                       {4, Free, 0, Index4},
+                                       {41, Free, 0, Index41},
+                                       {14, Free, 0, Index14},
+                                       {5, Free, 0, Index5},
+                                       {51, Free, 0, Index51},
+                                       {15, Free, 0, Index15},
+                                       {6, Free, 0, Index6},
+                                       {7, Free, 0, Index7}};
 
 #define NumIndexTypes (sizeof(IndexTable) / sizeof(IndexTable[0]))
 
@@ -3727,22 +3727,21 @@ static int SetBoard(BOARD *Board, const PIECE board[NSQUARES], SIDE side,
 }
 
 static int GetEndingType(const int count[2][KING], PIECE *piece_types,
-                         PARITY bishop_parity[2],
-                         PAWN_FILE_TYPE pawn_file_type) {
+                         PARITY bishop_parity[2], PawnFileType pawn_file_type) {
     int etype = 0, sub_type = 0;
     int ptypes[MAX_PIECES], npieces = 2, eindex = -1;
 
     ptypes[0] = KING;
     ptypes[1] = -KING;
 
-    if (pawn_file_type == BP_11_PAWNS || pawn_file_type == OP_11_PAWNS) {
+    if (pawn_file_type == Bp11 || pawn_file_type == Op11) {
         if (count[WHITE][PAWN] != 1 || count[BLACK][PAWN] != 1)
             return -1;
         npieces = 4;
         ptypes[2] = PAWN;
         ptypes[3] = -PAWN;
         etype = 11;
-    } else if (pawn_file_type == OP_21_PAWNS) {
+    } else if (pawn_file_type == Op21) {
         if (count[WHITE][PAWN] != 2 || count[BLACK][PAWN] != 1)
             return -1;
         npieces = 5;
@@ -3750,7 +3749,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[3] = PAWN;
         ptypes[4] = -PAWN;
         etype = 21;
-    } else if (pawn_file_type == OP_12_PAWNS) {
+    } else if (pawn_file_type == Op12) {
         if (count[WHITE][PAWN] != 1 || count[BLACK][PAWN] != 2)
             return -1;
         npieces = 5;
@@ -3758,7 +3757,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[3] = -PAWN;
         ptypes[4] = -PAWN;
         etype = 12;
-    } else if (pawn_file_type == OP_22_PAWNS || pawn_file_type == DP_22_PAWNS) {
+    } else if (pawn_file_type == Op22 || pawn_file_type == Dp22) {
         if (count[WHITE][PAWN] != 2 || count[BLACK][PAWN] != 2)
             return -1;
         npieces = 6;
@@ -3767,7 +3766,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[4] = -PAWN;
         ptypes[5] = -PAWN;
         etype = 22;
-    } else if (pawn_file_type == OP_31_PAWNS) {
+    } else if (pawn_file_type == Op31) {
         if (count[WHITE][PAWN] != 3 || count[BLACK][PAWN] != 1)
             return -1;
         npieces = 6;
@@ -3776,7 +3775,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[4] = PAWN;
         ptypes[5] = -PAWN;
         etype = 31;
-    } else if (pawn_file_type == OP_13_PAWNS) {
+    } else if (pawn_file_type == Op13) {
         if (count[WHITE][PAWN] != 1 || count[BLACK][PAWN] != 3)
             return -1;
         npieces = 6;
@@ -3785,7 +3784,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[4] = -PAWN;
         ptypes[5] = -PAWN;
         etype = 13;
-    } else if (pawn_file_type == OP_41_PAWNS) {
+    } else if (pawn_file_type == Op41) {
         if (count[WHITE][PAWN] != 4 || count[BLACK][PAWN] != 1)
             return -1;
         npieces = 7;
@@ -3795,7 +3794,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[5] = PAWN;
         ptypes[6] = -PAWN;
         etype = 41;
-    } else if (pawn_file_type == OP_14_PAWNS) {
+    } else if (pawn_file_type == Op14) {
         if (count[WHITE][PAWN] != 1 || count[BLACK][PAWN] != 4)
             return -1;
         npieces = 7;
@@ -3805,7 +3804,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[5] = -PAWN;
         ptypes[6] = -PAWN;
         etype = 14;
-    } else if (pawn_file_type == OP_32_PAWNS) {
+    } else if (pawn_file_type == Op32) {
         if (count[WHITE][PAWN] != 3 || count[BLACK][PAWN] != 2)
             return -1;
         npieces = 7;
@@ -3815,7 +3814,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[5] = -PAWN;
         ptypes[6] = -PAWN;
         etype = 32;
-    } else if (pawn_file_type == OP_23_PAWNS) {
+    } else if (pawn_file_type == Op23) {
         if (count[WHITE][PAWN] != 2 || count[BLACK][PAWN] != 3)
             return -1;
         npieces = 7;
@@ -3825,7 +3824,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[5] = -PAWN;
         ptypes[6] = -PAWN;
         etype = 23;
-    } else if (pawn_file_type == OP_33_PAWNS) {
+    } else if (pawn_file_type == Op33) {
         if (count[WHITE][PAWN] != 3 || count[BLACK][PAWN] != 3)
             return -1;
         npieces = 8;
@@ -3836,7 +3835,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[6] = -PAWN;
         ptypes[7] = -PAWN;
         etype = 33;
-    } else if (pawn_file_type == OP_42_PAWNS) {
+    } else if (pawn_file_type == Op42) {
         if (count[WHITE][PAWN] != 4 || count[BLACK][PAWN] != 2)
             return -1;
         npieces = 8;
@@ -3847,7 +3846,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[6] = -PAWN;
         ptypes[7] = -PAWN;
         etype = 42;
-    } else if (pawn_file_type == OP_24_PAWNS) {
+    } else if (pawn_file_type == Op24) {
         if (count[WHITE][PAWN] != 2 || count[BLACK][PAWN] != 4)
             return -1;
         npieces = 8;
@@ -3858,10 +3857,10 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[6] = -PAWN;
         ptypes[7] = -PAWN;
         etype = 24;
-    } else if (pawn_file_type != FREE_PAWNS)
+    } else if (pawn_file_type != Free)
         return -1;
 
-    if (pawn_file_type != FREE_PAWNS) {
+    if (pawn_file_type != Free) {
         for (int color = WHITE; color <= BLACK; color++) {
             for (int piece = KING - 1; piece >= KNIGHT; piece--) {
                 if (count[color][piece] > 0)
@@ -3881,11 +3880,11 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         eindex = -1;
 
         int pawn_file_type_effective = pawn_file_type;
-        if (pawn_file_type == OP_41_PAWNS || pawn_file_type == OP_14_PAWNS ||
-            pawn_file_type == OP_32_PAWNS || pawn_file_type == OP_23_PAWNS ||
-            pawn_file_type == OP_33_PAWNS || pawn_file_type == OP_42_PAWNS ||
-            pawn_file_type == OP_24_PAWNS)
-            pawn_file_type_effective = FREE_PAWNS;
+        if (pawn_file_type == Op41 || pawn_file_type == Op14 ||
+            pawn_file_type == Op32 || pawn_file_type == Op23 ||
+            pawn_file_type == Op33 || pawn_file_type == Op42 ||
+            pawn_file_type == Op24)
+            pawn_file_type_effective = Free;
 
         for (size_t i = 0; i < NumIndexTypes; i++) {
             if (IndexTable[i].etype == etype &&
@@ -4012,7 +4011,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         for (size_t i = 0; i < NumIndexTypes; i++) {
             if (IndexTable[i].etype == etype &&
                 IndexTable[i].sub_type == sub_type &&
-                IndexTable[i].op_type == FREE_PAWNS) {
+                IndexTable[i].op_type == Free) {
                 eindex = i;
                 break;
             }
@@ -4366,7 +4365,7 @@ static void InitParity() {
 }
 
 static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
-                         PAWN_FILE_TYPE *pawn_file_type) {
+                         PawnFileType *pawn_file_type) {
     int loc = 0, color, type, i;
     int bishops_on_white_squares[2] = {0, 0};
     int bishops_on_black_squares[2] = {0, 0};
@@ -4392,51 +4391,51 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
         }
     }
 
-    *pawn_file_type = FREE_PAWNS;
+    *pawn_file_type = Free;
 
     if (Board->piece_type_count[WHITE][PAWN] == 1 &&
         Board->piece_type_count[BLACK][PAWN] == 1) {
         if (Column(mb_position[2]) == Column(mb_position[3])) {
             if (mb_position[3] == mb_position[2] + NCOLS)
-                *pawn_file_type = BP_11_PAWNS;
+                *pawn_file_type = Bp11;
             else if (mb_position[3] > mb_position[2])
-                *pawn_file_type = OP_11_PAWNS;
+                *pawn_file_type = Op11;
         }
     } else if (Board->piece_type_count[WHITE][PAWN] == 2 &&
                Board->piece_type_count[BLACK][PAWN] == 1) {
         int op21 =
             N2_1_Opposing_Index(mb_position[4], mb_position[3], mb_position[2]);
         if (op21 != -1)
-            *pawn_file_type = OP_21_PAWNS;
+            *pawn_file_type = Op21;
     } else if (Board->piece_type_count[WHITE][PAWN] == 1 &&
                Board->piece_type_count[BLACK][PAWN] == 2) {
         int op12 =
             N1_2_Opposing_Index(mb_position[4], mb_position[3], mb_position[2]);
         if (op12 != -1)
-            *pawn_file_type = OP_12_PAWNS;
+            *pawn_file_type = Op12;
     } else if (Board->piece_type_count[WHITE][PAWN] == 2 &&
                Board->piece_type_count[BLACK][PAWN] == 2) {
         ZINDEX dp22 = IndexDP22(mb_position);
         if (dp22 != ALL_ONES)
-            *pawn_file_type = DP_22_PAWNS;
+            *pawn_file_type = Dp22;
         else {
             int op22 = N2_2_Opposing_Index(mb_position[5], mb_position[4],
                                            mb_position[3], mb_position[2]);
             if (op22 != -1)
-                *pawn_file_type = OP_22_PAWNS;
+                *pawn_file_type = Op22;
         }
     } else if (Board->piece_type_count[WHITE][PAWN] == 3 &&
                Board->piece_type_count[BLACK][PAWN] == 1) {
         int op31 = N3_1_Opposing_Index(mb_position[5], mb_position[4],
                                        mb_position[3], mb_position[2]);
         if (op31 != -1)
-            *pawn_file_type = OP_31_PAWNS;
+            *pawn_file_type = Op31;
     } else if (Board->piece_type_count[WHITE][PAWN] == 1 &&
                Board->piece_type_count[BLACK][PAWN] == 3) {
         int op13 = N1_3_Opposing_Index(mb_position[5], mb_position[4],
                                        mb_position[3], mb_position[2]);
         if (op13 != -1)
-            *pawn_file_type = OP_13_PAWNS;
+            *pawn_file_type = Op13;
     } else if (Board->piece_type_count[WHITE][PAWN] == 4 &&
                Board->piece_type_count[BLACK][PAWN] == 1) {
         if ((Column(mb_position[6]) == Column(mb_position[2]) &&
@@ -4447,7 +4446,7 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[4] < mb_position[6]) ||
             (Column(mb_position[6]) == Column(mb_position[5]) &&
              mb_position[5] < mb_position[6])) {
-            *pawn_file_type = OP_41_PAWNS;
+            *pawn_file_type = Op41;
         }
     } else if (Board->piece_type_count[WHITE][PAWN] == 1 &&
                Board->piece_type_count[BLACK][PAWN] == 4) {
@@ -4459,7 +4458,7 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[2] < mb_position[5]) ||
             (Column(mb_position[2]) == Column(mb_position[6]) &&
              mb_position[2] < mb_position[6])) {
-            *pawn_file_type = OP_14_PAWNS;
+            *pawn_file_type = Op14;
         }
     } else if (Board->piece_type_count[WHITE][PAWN] == 3 &&
                Board->piece_type_count[BLACK][PAWN] == 2) {
@@ -4475,7 +4474,7 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[3] < mb_position[6]) ||
             (Column(mb_position[6]) == Column(mb_position[4]) &&
              mb_position[4] < mb_position[6])) {
-            *pawn_file_type = OP_32_PAWNS;
+            *pawn_file_type = Op32;
         }
     } else if (Board->piece_type_count[WHITE][PAWN] == 2 &&
                Board->piece_type_count[BLACK][PAWN] == 3) {
@@ -4491,7 +4490,7 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[3] < mb_position[5]) ||
             (Column(mb_position[3]) == Column(mb_position[6]) &&
              mb_position[3] < mb_position[6])) {
-            *pawn_file_type = OP_23_PAWNS;
+            *pawn_file_type = Op23;
         }
     } else if (Board->piece_type_count[WHITE][PAWN] == 3 &&
                Board->piece_type_count[BLACK][PAWN] == 3) {
@@ -4513,7 +4512,7 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[3] < mb_position[7]) ||
             (Column(mb_position[7]) == Column(mb_position[4]) &&
              mb_position[4] < mb_position[7])) {
-            *pawn_file_type = OP_33_PAWNS;
+            *pawn_file_type = Op33;
         }
     } else if (Board->piece_type_count[WHITE][PAWN] == 4 &&
                Board->piece_type_count[BLACK][PAWN] == 2) {
@@ -4533,7 +4532,7 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[4] < mb_position[7]) ||
             (Column(mb_position[7]) == Column(mb_position[5]) &&
              mb_position[5] < mb_position[7])) {
-            *pawn_file_type = OP_42_PAWNS;
+            *pawn_file_type = Op42;
         }
     } else if (Board->piece_type_count[WHITE][PAWN] == 2 &&
                Board->piece_type_count[BLACK][PAWN] == 4) {
@@ -4553,7 +4552,7 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[2] < mb_position[7]) ||
             (Column(mb_position[7]) == Column(mb_position[3]) &&
              mb_position[3] < mb_position[7])) {
-            *pawn_file_type = OP_24_PAWNS;
+            *pawn_file_type = Op24;
         }
     }
     for (color = WHITE; color <= BLACK; color++) {
@@ -4651,7 +4650,7 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
 
 static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     mb_info->num_parities = 0;
-    mb_info->pawn_file_type = FREE_PAWNS;
+    mb_info->pawn_file_type = Free;
 
     if (Board->num_pieces > MAX_PIECES_MB) {
         return TOO_MANY_PIECES;
@@ -4670,7 +4669,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     memset(mb_info->mb_piece_types, 0, sizeof(mb_info->mb_piece_types));
 
     int eindex = GetEndingType(Board->piece_type_count, mb_info->mb_piece_types,
-                               bishop_parity, FREE_PAWNS);
+                               bishop_parity, Free);
 
     int kk_index_blocked = -1;
     if (eindex >= 0) {
@@ -4680,10 +4679,10 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
         mb_info->num_parities++;
         // check whether we can also probe blocked/opposing pawn data
 
-        if (mb_info->pawn_file_type == OP_11_PAWNS ||
-            mb_info->pawn_file_type == BP_11_PAWNS) {
+        if (mb_info->pawn_file_type == Op11 ||
+            mb_info->pawn_file_type == Bp11) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_11_PAWNS);
+                                   Op11);
             if (eindex >= 0) {
                 mb_info->eptr_op_11 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4695,9 +4694,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == BP_11_PAWNS) {
+        if (mb_info->pawn_file_type == Bp11) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   BP_11_PAWNS);
+                                   Bp11);
             if (eindex >= 0) {
                 mb_info->eptr_bp_11 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4709,9 +4708,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_21_PAWNS) {
+        if (mb_info->pawn_file_type == Op21) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_21_PAWNS);
+                                   Op21);
             if (eindex >= 0) {
                 mb_info->eptr_op_21 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4723,9 +4722,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_12_PAWNS) {
+        if (mb_info->pawn_file_type == Op12) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_12_PAWNS);
+                                   Op12);
             if (eindex >= 0) {
                 mb_info->eptr_op_12 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4737,10 +4736,10 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_22_PAWNS ||
-            mb_info->pawn_file_type == DP_22_PAWNS) {
+        if (mb_info->pawn_file_type == Op22 ||
+            mb_info->pawn_file_type == Dp22) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_22_PAWNS);
+                                   Op22);
             if (eindex >= 0) {
                 mb_info->eptr_op_22 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4752,9 +4751,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == DP_22_PAWNS) {
+        if (mb_info->pawn_file_type == Dp22) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   DP_22_PAWNS);
+                                   Dp22);
             if (eindex >= 0) {
                 mb_info->eptr_dp_22 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4766,9 +4765,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_31_PAWNS) {
+        if (mb_info->pawn_file_type == Op31) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_31_PAWNS);
+                                   Op31);
             if (eindex >= 0) {
                 mb_info->eptr_op_31 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4780,9 +4779,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_13_PAWNS) {
+        if (mb_info->pawn_file_type == Op13) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_13_PAWNS);
+                                   Op13);
             if (eindex >= 0) {
                 mb_info->eptr_op_13 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4794,9 +4793,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_41_PAWNS) {
+        if (mb_info->pawn_file_type == Op41) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_41_PAWNS);
+                                   Op41);
             if (eindex >= 0) {
                 mb_info->eptr_op_41 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4808,9 +4807,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_14_PAWNS) {
+        if (mb_info->pawn_file_type == Op14) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_14_PAWNS);
+                                   Op14);
             if (eindex >= 0) {
                 mb_info->eptr_op_14 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4822,9 +4821,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_32_PAWNS) {
+        if (mb_info->pawn_file_type == Op32) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_32_PAWNS);
+                                   Op32);
             if (eindex >= 0) {
                 mb_info->eptr_op_32 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4836,9 +4835,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_23_PAWNS) {
+        if (mb_info->pawn_file_type == Op23) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_23_PAWNS);
+                                   Op23);
             if (eindex >= 0) {
                 mb_info->eptr_op_23 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4850,9 +4849,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_33_PAWNS) {
+        if (mb_info->pawn_file_type == Op33) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_33_PAWNS);
+                                   Op33);
             if (eindex >= 0) {
                 mb_info->eptr_op_33 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4864,9 +4863,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_42_PAWNS) {
+        if (mb_info->pawn_file_type == Op42) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_42_PAWNS);
+                                   Op42);
             if (eindex >= 0) {
                 mb_info->eptr_op_42 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4878,9 +4877,9 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             }
         }
 
-        if (mb_info->pawn_file_type == OP_24_PAWNS) {
+        if (mb_info->pawn_file_type == Op24) {
             eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity,
-                                   OP_24_PAWNS);
+                                   Op24);
             if (eindex >= 0) {
                 mb_info->eptr_op_24 = &IndexTable[eindex];
                 GetMBIndex(mb_info->mb_position, mb_info->num_pieces, true,
@@ -4945,8 +4944,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
 
     // now gather index for specific bishop parity
 
-    eindex =
-        GetEndingType(Board->piece_type_count, NULL, bishop_parity, FREE_PAWNS);
+    eindex = GetEndingType(Board->piece_type_count, NULL, bishop_parity, Free);
 
     if (eindex >= 0) {
         memcpy(mb_info->parity_index[mb_info->num_parities].bishop_parity,
@@ -4964,7 +4962,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
         sub_bishop_parity[BLACK] = NONE;
 
         eindex = GetEndingType(Board->piece_type_count, NULL, sub_bishop_parity,
-                               FREE_PAWNS);
+                               Free);
 
         if (eindex >= 0) {
             memcpy(mb_info->parity_index[mb_info->num_parities].bishop_parity,
@@ -4978,7 +4976,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
         sub_bishop_parity[BLACK] = bishop_parity[BLACK];
 
         eindex = GetEndingType(Board->piece_type_count, NULL, sub_bishop_parity,
-                               FREE_PAWNS);
+                               Free);
 
         if (eindex >= 0) {
             memcpy(mb_info->parity_index[mb_info->num_parities].bishop_parity,

@@ -37,23 +37,23 @@ typedef struct {
 typedef enum { NONE = 0, EVEN, ODD } PARITY;
 
 typedef enum {
-    FREE_PAWNS = 0,
-    BP_11_PAWNS,
-    OP_11_PAWNS,
-    OP_21_PAWNS,
-    OP_12_PAWNS,
-    OP_22_PAWNS,
-    DP_22_PAWNS,
-    OP_31_PAWNS,
-    OP_13_PAWNS,
-    OP_41_PAWNS,
-    OP_14_PAWNS,
-    OP_32_PAWNS,
-    OP_23_PAWNS,
-    OP_33_PAWNS,
-    OP_42_PAWNS,
-    OP_24_PAWNS,
-} PAWN_FILE_TYPE;
+    Free = 0,
+    Bp11,
+    Op11,
+    Op21,
+    Op12,
+    Op22,
+    Dp22,
+    Op31,
+    Op13,
+    Op41,
+    Op14,
+    Op32,
+    Op23,
+    Op33,
+    Op42,
+    Op24,
+} PawnFileType;
 
 typedef struct {
     ZINDEX index;
@@ -68,7 +68,7 @@ typedef struct {
     PIECE mb_piece_types[MAX_PIECES_MB];
     int piece_type_count[2][KING];
     int parity;
-    PAWN_FILE_TYPE pawn_file_type;
+    PawnFileType pawn_file_type;
     const IndexType *eptr_bp_11, *eptr_op_11, *eptr_op_21, *eptr_op_12,
         *eptr_dp_22, *eptr_op_22, *eptr_op_31, *eptr_op_13, *eptr_op_41,
         *eptr_op_14, *eptr_op_32, *eptr_op_23, *eptr_op_33, *eptr_op_42,

@@ -6,7 +6,7 @@ use std::{
     sync::Once,
 };
 
-use mbeval_sys::{MB_INFO, mbeval_get_mb_info, mbeval_init};
+use mbeval_sys::{MB_INFO, PawnFileType, mbeval_get_mb_info, mbeval_init};
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use shakmaty::{
@@ -105,15 +105,12 @@ impl Tablebase {
             }
         }
 
-        let pawn_file_type =
-            PawnFileType::try_from(mb_info.pawn_file_type).expect("pawn file type");
-
-        let index = match pawn_file_type {
+        let index = match mb_info.pawn_file_type {
             PawnFileType::Free => ALL_ONES,
-            PawnFileType::Bp1 => {
+            PawnFileType::Bp11 => {
                 if mb_info.index_op_11 != ALL_ONES {
                     if let Some(table) = self.open_table(&TableKey {
-                        pawn_file_type: PawnFileType::Op1,
+                        pawn_file_type: PawnFileType::Op11,
                         ..table_key
                     })? {
                         return Ok(Some((table, mb_info.index_op_11)));
@@ -121,11 +118,11 @@ impl Tablebase {
                 }
                 mb_info.index_bp_11
             }
-            PawnFileType::Op1 => mb_info.index_op_11,
+            PawnFileType::Op11 => mb_info.index_op_11,
             PawnFileType::Op21 => mb_info.index_op_21,
             PawnFileType::Op12 => mb_info.index_op_12,
             PawnFileType::Op22 => mb_info.index_op_22,
-            PawnFileType::Dp2 => {
+            PawnFileType::Dp22 => {
                 if mb_info.index_op_22 != ALL_ONES {
                     if let Some(table) = self.open_table(&TableKey {
                         pawn_file_type: PawnFileType::Op22,
@@ -153,7 +150,7 @@ impl Tablebase {
 
         Ok(self
             .open_table(&TableKey {
-                pawn_file_type,
+                pawn_file_type: mb_info.pawn_file_type,
                 ..table_key
             })?
             .map(|table| (table, index)))
@@ -300,54 +297,6 @@ impl TryFrom<mbeval_sys::PARITY> for BishopParity {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum PawnFileType {
-    Free,
-    Bp1, // BP_11
-    Op1, // OP_11
-    Op21,
-    Op12,
-    Op22,
-    Dp2, // DP_22
-    Op31,
-    Op13,
-    Op41,
-    Op14,
-    Op32,
-    Op23,
-    Op33,
-    Op42,
-    Op24,
-}
-
-impl TryFrom<mbeval_sys::PAWN_FILE_TYPE> for PawnFileType {
-    type Error = mbeval_sys::PAWN_FILE_TYPE;
-
-    fn try_from(
-        value: mbeval_sys::PAWN_FILE_TYPE,
-    ) -> Result<PawnFileType, mbeval_sys::PAWN_FILE_TYPE> {
-        Ok(match value {
-            mbeval_sys::PAWN_FILE_TYPE_FREE_PAWNS => PawnFileType::Free,
-            mbeval_sys::PAWN_FILE_TYPE_BP_11_PAWNS => PawnFileType::Bp1,
-            mbeval_sys::PAWN_FILE_TYPE_OP_11_PAWNS => PawnFileType::Op1,
-            mbeval_sys::PAWN_FILE_TYPE_OP_21_PAWNS => PawnFileType::Op21,
-            mbeval_sys::PAWN_FILE_TYPE_OP_12_PAWNS => PawnFileType::Op12,
-            mbeval_sys::PAWN_FILE_TYPE_OP_22_PAWNS => PawnFileType::Op22,
-            mbeval_sys::PAWN_FILE_TYPE_DP_22_PAWNS => PawnFileType::Dp2,
-            mbeval_sys::PAWN_FILE_TYPE_OP_31_PAWNS => PawnFileType::Op31,
-            mbeval_sys::PAWN_FILE_TYPE_OP_13_PAWNS => PawnFileType::Op13,
-            mbeval_sys::PAWN_FILE_TYPE_OP_41_PAWNS => PawnFileType::Op41,
-            mbeval_sys::PAWN_FILE_TYPE_OP_14_PAWNS => PawnFileType::Op14,
-            mbeval_sys::PAWN_FILE_TYPE_OP_32_PAWNS => PawnFileType::Op32,
-            mbeval_sys::PAWN_FILE_TYPE_OP_23_PAWNS => PawnFileType::Op23,
-            mbeval_sys::PAWN_FILE_TYPE_OP_33_PAWNS => PawnFileType::Op33,
-            mbeval_sys::PAWN_FILE_TYPE_OP_42_PAWNS => PawnFileType::Op42,
-            mbeval_sys::PAWN_FILE_TYPE_OP_24_PAWNS => PawnFileType::Op24,
-            _ => return Err(value),
-        })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct KkIndex(u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -378,15 +327,15 @@ fn parse_dirname(path: &Path) -> Option<(Material, PawnFileType, ByColor<BishopP
     let (name, pawn_file_type) =
         if black_bishop_parity == BishopParity::None && white_bishop_parity == BishopParity::None {
             if let Some(name) = name.strip_suffix("_bp1") {
-                (name, PawnFileType::Bp1)
+                (name, PawnFileType::Bp11)
             } else if let Some(name) = name.strip_suffix("_op1") {
-                (name, PawnFileType::Op1)
+                (name, PawnFileType::Op11)
             } else if let Some(name) = name.strip_suffix("_op21") {
                 (name, PawnFileType::Op21)
             } else if let Some(name) = name.strip_suffix("_op12") {
                 (name, PawnFileType::Op12)
             } else if let Some(name) = name.strip_suffix("_dp2") {
-                (name, PawnFileType::Dp2)
+                (name, PawnFileType::Dp22)
             } else if let Some(name) = name.strip_suffix("_op22") {
                 (name, PawnFileType::Op22)
             } else if let Some(name) = name.strip_suffix("_op31") {
