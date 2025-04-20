@@ -34,7 +34,7 @@ typedef struct {
     ZINDEX (*IndexFromPos)(const int *pos);
 } IndexType;
 
-typedef enum { NONE = 0, EVEN, ODD } PARITY;
+typedef enum { None = 0, Even, Odd } BishopParity;
 
 typedef enum {
     Free = 0,
@@ -58,7 +58,7 @@ typedef enum {
 typedef struct {
     ZINDEX index;
     const IndexType *eptr;
-    PARITY bishop_parity[2];
+    BishopParity bishop_parity[2];
 } PARITY_INDEX;
 
 typedef struct {

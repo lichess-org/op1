@@ -3727,7 +3727,7 @@ static int SetBoard(BOARD *Board, const PIECE board[NSQUARES], SIDE side,
 }
 
 static int GetEndingType(const int count[2][KING], PIECE *piece_types,
-                         PARITY bishop_parity[2], PawnFileType pawn_file_type) {
+                         BishopParity bishop_parity[2], PawnFileType pawn_file_type) {
     int etype = 0, sub_type = 0;
     int ptypes[MAX_PIECES], npieces = 2, eindex = -1;
 
@@ -3924,7 +3924,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
             }
         }
 
-        if (bishop_parity[WHITE] != NONE) {
+        if (bishop_parity[WHITE] != None) {
             if (count[WHITE][BISHOP] == 2) {
                 int pair_index = 1;
                 if (count[WHITE][PAWN] == 2)
@@ -3935,9 +3935,9 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
                     if (count[WHITE][piece] == 2)
                         pair_index++;
                 }
-                if (bishop_parity[WHITE] == EVEN) {
+                if (bishop_parity[WHITE] == Even) {
                     sub_type = 10 * pair_index + 0;
-                } else if (bishop_parity[WHITE] == ODD) {
+                } else if (bishop_parity[WHITE] == Odd) {
                     sub_type = 10 * pair_index + 1;
                 }
             } else if (count[WHITE][BISHOP] == 3) {
@@ -3950,9 +3950,9 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
                     if (count[WHITE][piece] == 3)
                         triplet_index++;
                 }
-                if (bishop_parity[WHITE] == EVEN) {
+                if (bishop_parity[WHITE] == Even) {
                     sub_type = 10 * triplet_index + 0;
-                } else if (bishop_parity[WHITE] == ODD) {
+                } else if (bishop_parity[WHITE] == Odd) {
                     sub_type = 10 * triplet_index + 1;
                 }
             } else {
@@ -3962,7 +3962,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
 
         int sub_type_black = 0;
 
-        if (bishop_parity[BLACK] != NONE) {
+        if (bishop_parity[BLACK] != None) {
             if (count[BLACK][BISHOP] == 2) {
                 int pair_index = 1;
                 for (int piece = KING - 1; piece >= PAWN; piece--) {
@@ -3976,9 +3976,9 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
                     if (count[BLACK][piece] == 2)
                         pair_index++;
                 }
-                if (bishop_parity[BLACK] == EVEN) {
+                if (bishop_parity[BLACK] == Even) {
                     sub_type_black = 10 * pair_index + 0;
-                } else if (bishop_parity[BLACK] == ODD) {
+                } else if (bishop_parity[BLACK] == Odd) {
                     sub_type_black = 10 * pair_index + 1;
                 }
             } else if (count[BLACK][BISHOP] == 3) {
@@ -3994,9 +3994,9 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
                     if (count[BLACK][piece] == 3)
                         triplet_index++;
                 }
-                if (bishop_parity[BLACK] == EVEN) {
+                if (bishop_parity[BLACK] == Even) {
                     sub_type_black = 10 * triplet_index + 0;
-                } else if (bishop_parity[BLACK] == ODD) {
+                } else if (bishop_parity[BLACK] == Odd) {
                     sub_type_black = 10 * triplet_index + 1;
                 }
             } else {
@@ -4659,7 +4659,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     memcpy(mb_info->piece_type_count, Board->piece_type_count,
            sizeof(Board->piece_type_count));
 
-    PARITY bishop_parity[2] = {NONE, NONE};
+    BishopParity bishop_parity[2] = {None, None};
 
     mb_info->num_pieces = Board->num_pieces;
 
@@ -4903,16 +4903,16 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
         int w_parity = mb_info->parity / 100;
 
         if (w_parity == 20 || w_parity == 2 || w_parity == 30 || w_parity == 3)
-            bishop_parity[WHITE] = EVEN;
+            bishop_parity[WHITE] = Even;
         else if (w_parity == 11 || w_parity == 21 || w_parity == 12)
-            bishop_parity[WHITE] = ODD;
+            bishop_parity[WHITE] = Odd;
 
         int b_parity = mb_info->parity % 100;
 
         if (b_parity == 20 || b_parity == 2 || b_parity == 30 || b_parity == 3)
-            bishop_parity[BLACK] = EVEN;
+            bishop_parity[BLACK] = Even;
         else if (b_parity == 11 || b_parity == 21 || b_parity == 12)
-            bishop_parity[BLACK] = ODD;
+            bishop_parity[BLACK] = Odd;
 
             // for odd-sized boards, can't do any parities for triples, and only
             // odd parities for doubles
@@ -4934,7 +4934,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
 
     // if there are no parities, no need to check further
 
-    if (bishop_parity[WHITE] == NONE && bishop_parity[BLACK] == NONE) {
+    if (bishop_parity[WHITE] == None && bishop_parity[BLACK] == None) {
         if (mb_info->num_parities == 0)
             return ETYPE_NOT_MAPPED;
         GetMBIndex(mb_info->mb_position, mb_info->num_pieces, pawns_present,
@@ -4956,10 +4956,10 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     // if both white and black have parity constraints, can add cases where only
     // one side is constrained
 
-    if (bishop_parity[WHITE] != NONE && bishop_parity[BLACK] != NONE) {
-        PARITY sub_bishop_parity[2];
+    if (bishop_parity[WHITE] != None && bishop_parity[BLACK] != None) {
+        BishopParity sub_bishop_parity[2];
         sub_bishop_parity[WHITE] = bishop_parity[WHITE];
-        sub_bishop_parity[BLACK] = NONE;
+        sub_bishop_parity[BLACK] = None;
 
         eindex = GetEndingType(Board->piece_type_count, NULL, sub_bishop_parity,
                                Free);
@@ -4972,7 +4972,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             mb_info->num_parities++;
         }
 
-        sub_bishop_parity[WHITE] = NONE;
+        sub_bishop_parity[WHITE] = None;
         sub_bishop_parity[BLACK] = bishop_parity[BLACK];
 
         eindex = GetEndingType(Board->piece_type_count, NULL, sub_bishop_parity,

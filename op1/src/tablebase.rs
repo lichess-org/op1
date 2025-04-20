@@ -6,7 +6,7 @@ use std::{
     sync::Once,
 };
 
-use mbeval_sys::{MB_INFO, PawnFileType, mbeval_get_mb_info, mbeval_init};
+use mbeval_sys::{BishopParity, MB_INFO, PawnFileType, mbeval_get_mb_info, mbeval_init};
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use shakmaty::{
@@ -92,12 +92,8 @@ impl Tablebase {
         for bishop_parity in &mb_info.parity_index[..mb_info.num_parities as usize] {
             if let Some(table) = self.open_table(&TableKey {
                 bishop_parity: ByColor {
-                    white: bishop_parity.bishop_parity[0]
-                        .try_into()
-                        .expect("bishop parity"),
-                    black: bishop_parity.bishop_parity[1]
-                        .try_into()
-                        .expect("bishop parity"),
+                    white: bishop_parity.bishop_parity[mbeval_sys::SIDE_WHITE as usize],
+                    black: bishop_parity.bishop_parity[mbeval_sys::SIDE_BLACK as usize],
                 },
                 ..table_key
             })? {
@@ -275,26 +271,6 @@ pub struct TableKey {
 }
 
 type Material = ByColor<ByRole<u8>>;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum BishopParity {
-    None,
-    Even,
-    Odd,
-}
-
-impl TryFrom<mbeval_sys::PARITY> for BishopParity {
-    type Error = mbeval_sys::PARITY;
-
-    fn try_from(value: mbeval_sys::PARITY) -> Result<BishopParity, mbeval_sys::PARITY> {
-        Ok(match value {
-            mbeval_sys::PARITY_NONE => BishopParity::None,
-            mbeval_sys::PARITY_EVEN => BishopParity::Even,
-            mbeval_sys::PARITY_ODD => BishopParity::Odd,
-            _ => return Err(value),
-        })
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct KkIndex(u32);

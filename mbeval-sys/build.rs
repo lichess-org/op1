@@ -10,6 +10,7 @@ fn main() {
         .layout_tests(false)
         .header("mbeval/include/mbeval.h")
         .rustified_enum("PawnFileType")
+        .rustified_enum("BishopParity")
         .generate()
         .unwrap()
         .write_to_file(out_dir.join("bindings.rs"))
