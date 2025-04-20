@@ -10,8 +10,8 @@ pub(crate) struct Table {
     table_type: TableType,
     file: File,
     header: Header,
-    offsets: Vec<U64>,
-    starting_indices: Vec<U64>,
+    offsets: Box<[U64]>,
+    starting_indices: Box<[U64]>,
 }
 
 impl Table {
@@ -41,15 +41,16 @@ impl Table {
             ));
         }
 
-        let mut offsets =
-            U64::new_vec_zeroed(header.num_blocks as usize + 1).expect("allocate offsets vector");
+        let mut offsets = <[U64]>::new_box_zeroed_with_elems(header.num_blocks as usize + 1)
+            .expect("allocate offsets vector");
         file.read_exact(offsets.as_mut_bytes())?;
 
         let starting_indices = match table_type {
-            TableType::Mb => Vec::new(),
+            TableType::Mb => Box::default(),
             TableType::HighDtc => {
-                let mut starting_indices = U64::new_vec_zeroed(header.num_blocks as usize + 1)
-                    .expect("allocate starting indices vector");
+                let mut starting_indices =
+                    <[U64]>::new_box_zeroed_with_elems(header.num_blocks as usize + 1)
+                        .expect("allocate starting indices vector");
                 file.read_exact(starting_indices.as_mut_bytes())?;
                 starting_indices
             }
