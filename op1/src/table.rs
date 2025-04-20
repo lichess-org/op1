@@ -1,5 +1,6 @@
 use std::{fs::File, io, io::Read, num::NonZeroU32, os::unix::fs::FileExt, path::Path};
 
+use mbeval_sys::ZIndex;
 use zerocopy::{
     FromBytes,
     little_endian::{U32, U64},
@@ -38,7 +39,7 @@ impl Table {
         Ok(u64::from_le_bytes(encoded))
     }
 
-    pub(crate) fn read_mb(&self, index: u64, ctx: &mut ProbeContext) -> io::Result<MbValue> {
+    pub(crate) fn read_mb(&self, index: ZIndex, ctx: &mut ProbeContext) -> io::Result<MbValue> {
         let block_index = u32::try_from(index / u64::from(self.header.block_size.get()))
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "index out of range"))?;
         let byte_index = index % u64::from(self.header.block_size.get());

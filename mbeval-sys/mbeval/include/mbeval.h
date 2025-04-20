@@ -23,15 +23,15 @@ typedef enum {
     BLACK_ROOK = -ROOK,
     BLACK_QUEEN = -QUEEN,
     BLACK_KING = -KING,
-} PIECE;
+} Piece;
 
-typedef enum { WHITE = 0, BLACK } SIDE;
+typedef enum { White = 0, Black } Side;
 
-typedef uint64_t ZINDEX;
+typedef uint64_t ZIndex;
 
 typedef struct {
     int etype, op_type, sub_type;
-    ZINDEX (*IndexFromPos)(const int *pos);
+    ZIndex (*index_from_pos)(const int *pos);
 } IndexType;
 
 typedef enum { None = 0, Even, Odd } BishopParity;
@@ -56,16 +56,16 @@ typedef enum {
 } PawnFileType;
 
 typedef struct {
-    ZINDEX index;
+    ZIndex index;
     const IndexType *eptr;
     BishopParity bishop_parity[2];
-} PARITY_INDEX;
+} ParityIndex;
 
 typedef struct {
-    PARITY_INDEX parity_index[4];
+    ParityIndex parity_index[4];
     int num_parities;
     int mb_position[MAX_PIECES_MB];
-    PIECE mb_piece_types[MAX_PIECES_MB];
+    Piece mb_piece_types[MAX_PIECES_MB];
     int piece_type_count[2][KING];
     int parity;
     PawnFileType pawn_file_type;
@@ -73,14 +73,14 @@ typedef struct {
         *eptr_dp_22, *eptr_op_22, *eptr_op_31, *eptr_op_13, *eptr_op_41,
         *eptr_op_14, *eptr_op_32, *eptr_op_23, *eptr_op_33, *eptr_op_42,
         *eptr_op_24;
-    ZINDEX index_bp_11, index_op_11, index_op_21, index_op_12, index_dp_22,
+    ZIndex index_bp_11, index_op_11, index_op_21, index_op_12, index_dp_22,
         index_op_22, index_op_31, index_op_13, index_op_41, index_op_14,
         index_op_32, index_op_23, index_op_33, index_op_42, index_op_24;
     int num_pieces;
     int kk_index;
-} MB_INFO;
+} MbInfo;
 
 void mbeval_init(void);
 
-int mbeval_get_mb_info(const PIECE pieces[NSQUARES], SIDE side, int ep_square,
-                       MB_INFO *info);
+int mbeval_get_mb_info(const Piece pieces[NSQUARES], Side side, int ep_square,
+                       MbInfo *info);

@@ -6,7 +6,9 @@ use std::{
     sync::Once,
 };
 
-use mbeval_sys::{BishopParity, MB_INFO, PawnFileType, mbeval_get_mb_info, mbeval_init};
+use mbeval_sys::{
+    BishopParity, MbInfo, PawnFileType, Side, ZIndex, mbeval_get_mb_info, mbeval_init,
+};
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use shakmaty::{
@@ -15,7 +17,7 @@ use shakmaty::{
 
 use crate::table::{MbValue, ProbeContext, Table};
 
-const ALL_ONES: u64 = !0;
+const ALL_ONES: ZIndex = !0;
 
 static INIT_MBEVAL: Once = Once::new();
 
@@ -77,9 +79,9 @@ impl Tablebase {
     fn select_table(
         &self,
         pos: &Chess,
-        mb_info: &MB_INFO,
+        mb_info: &MbInfo,
         table_type: TableType,
-    ) -> io::Result<Option<(&Table, u64)>> {
+    ) -> io::Result<Option<(&Table, ZIndex)>> {
         let table_key = TableKey {
             material: pos.board().material(),
             pawn_file_type: PawnFileType::Free,
@@ -92,8 +94,8 @@ impl Tablebase {
         for bishop_parity in &mb_info.parity_index[..mb_info.num_parities as usize] {
             if let Some(table) = self.open_table(&TableKey {
                 bishop_parity: ByColor {
-                    white: bishop_parity.bishop_parity[mbeval_sys::SIDE_WHITE as usize],
-                    black: bishop_parity.bishop_parity[mbeval_sys::SIDE_BLACK as usize],
+                    white: bishop_parity.bishop_parity[Side::White as usize],
+                    black: bishop_parity.bishop_parity[Side::Black as usize],
                 },
                 ..table_key
             })? {
@@ -163,24 +165,23 @@ impl Tablebase {
         }
 
         // Retrieve MB_INFO struct.
-        let mut squares = [0; 64];
+        let mut squares = [mbeval_sys::Piece::NO_PIECE; 64];
         for (sq, piece) in pos.board() {
             let role = match piece.role {
-                Role::Pawn => mbeval_sys::PIECE_PAWN,
-                Role::Knight => mbeval_sys::PIECE_KNIGHT,
-                Role::Bishop => mbeval_sys::PIECE_BISHOP,
-                Role::Rook => mbeval_sys::PIECE_ROOK,
-                Role::Queen => mbeval_sys::PIECE_QUEEN,
-                Role::King => mbeval_sys::PIECE_KING,
+                Role::Pawn => mbeval_sys::Piece::PAWN,
+                Role::Knight => mbeval_sys::Piece::KNIGHT,
+                Role::Bishop => mbeval_sys::Piece::BISHOP,
+                Role::Rook => mbeval_sys::Piece::ROOK,
+                Role::Queen => mbeval_sys::Piece::QUEEN,
+                Role::King => mbeval_sys::Piece::KING,
             };
             squares[usize::from(sq)] = piece.color.fold_wb(role, -role);
         }
-        let mut mb_info: MaybeUninit<MB_INFO> = MaybeUninit::zeroed();
+        let mut mb_info: MaybeUninit<MbInfo> = MaybeUninit::zeroed();
         let result = unsafe {
             mbeval_get_mb_info(
                 squares.as_ptr(),
-                pos.turn()
-                    .fold_wb(mbeval_sys::SIDE_WHITE, mbeval_sys::SIDE_BLACK),
+                pos.turn().fold_wb(Side::White, Side::Black),
                 pos.ep_square(EnPassantMode::Legal).map_or(0, c_int::from),
                 mb_info.as_mut_ptr(),
             )

@@ -459,8 +459,8 @@
 
 typedef uint64_t INDEX;
 
-#define ZERO ((ZINDEX)0)
-#define ONE ((ZINDEX)1)
+#define ZERO ((ZIndex)0)
+#define ONE ((ZIndex)1)
 #define ALL_ONES (~(ZERO))
 
 static void *MyMalloc(size_t cb) {
@@ -489,16 +489,16 @@ enum {
     TOO_MANY_PIECES,
 };
 
-typedef ZINDEX (*pt2index)(int *);
+typedef ZIndex (*pt2index)(int *);
 
 typedef struct {
-    PIECE board[NSQUARES];
+    Piece board[NSQUARES];
     int ep_square;
     int num_pieces;
     int piece_type_count[2][KING];
     int piece_locations[2][KING][MAX_IDENT_PIECES];
     int wkpos, bkpos;
-    SIDE side;
+    Side side;
 } BOARD;
 
 static int ParityTable[NSQUARES];
@@ -507,9 +507,9 @@ static int WhiteSquare[NSQUARES / 2], BlackSquare[NSQUARES / 2];
 // For 5 or more identical pieces, always compute index rather than creating
 // lookup table
 
-static ZINDEX k5_tab[NSQUARES + 1];
+static ZIndex k5_tab[NSQUARES + 1];
 
-static ZINDEX N5_Index(int a, int b, int c, int d, int e) {
+static ZIndex N5_Index(int a, int b, int c, int d, int e) {
     // Sort a >= b >= c >= d >= e
 
     if (a < b)
@@ -552,9 +552,9 @@ static ZINDEX N5_Index(int a, int b, int c, int d, int e) {
            c * (c - 1) * (c - 2) / 6 + d * (d - 1) / 2 + e;
 }
 
-static ZINDEX k6_tab[NSQUARES + 1];
+static ZIndex k6_tab[NSQUARES + 1];
 
-static ZINDEX N6_Index(int a, int b, int c, int d, int e, int f) {
+static ZIndex N6_Index(int a, int b, int c, int d, int e, int f) {
     if (b > a)
         SWAP(a, b);
     if (c > a)
@@ -569,9 +569,9 @@ static ZINDEX N6_Index(int a, int b, int c, int d, int e, int f) {
     return k6_tab[a] + N5_Index(b, c, d, e, f);
 }
 
-static ZINDEX k7_tab[NSQUARES + 1];
+static ZIndex k7_tab[NSQUARES + 1];
 
-static ZINDEX N7_Index(int a, int b, int c, int d, int e, int f, int g) {
+static ZIndex N7_Index(int a, int b, int c, int d, int e, int f, int g) {
     if (b > a)
         SWAP(a, b);
     if (c > a)
@@ -1637,7 +1637,7 @@ static int IsValidDP22(int w1, int w2, int b1, int b2) {
     return NON_ADJACENT;
 }
 
-static ZINDEX IndexDP22(const int *);
+static ZIndex IndexDP22(const int *);
 
 static void InitN4OpposingTables(int *tab) {
     for (int w1 = 0; w1 < NSQUARES; w1++) {
@@ -1732,7 +1732,7 @@ static void InitN4OpposingTables(int *tab) {
                     tpos[3] = w2;
                     tpos[4] = b1;
                     tpos[5] = b2;
-                    ZINDEX index = IndexDP22(tpos);
+                    ZIndex index = IndexDP22(tpos);
                     assert(index != ALL_ONES);
                 }
             }
@@ -1875,7 +1875,7 @@ static void InitN6Tables() {
 
 static void InitN7Tables() {
     for (unsigned int i = 0; i <= NSQUARES; i++) {
-        ZINDEX itmp =
+        ZIndex itmp =
             (i * (i - 1) * (i - 2) * (i - 3) * (i - 4) / 120) * (i - 5) / 6;
         if (itmp % 7)
             k7_tab[i] = itmp * ((i - 6) / 7);
@@ -1939,208 +1939,208 @@ static void InitPermutationTables(void) {
     InitN2OddTables(k2_odd_tab);
 }
 
-static ZINDEX Index1(const int *pos) { return pos[2]; }
+static ZIndex Index1(const int *pos) { return pos[2]; }
 
-static ZINDEX Index11(const int *pos) { return pos[3] + NSQUARES * pos[2]; }
+static ZIndex Index11(const int *pos) { return pos[3] + NSQUARES * pos[2]; }
 
-static ZINDEX IndexBP11(const int *pos) { return pos[2]; }
+static ZIndex IndexBP11(const int *pos) { return pos[2]; }
 
-static ZINDEX IndexOP11(const int *pos) {
+static ZIndex IndexOP11(const int *pos) {
     int index = N2_Opposing_Index(pos[3], pos[2]);
     assert(index != -1);
     return index;
 }
 
-static ZINDEX Index111(const int *pos) {
+static ZIndex Index111(const int *pos) {
     return pos[4] + NSQUARES * (pos[3] + NSQUARES * pos[2]);
 }
 
-static ZINDEX IndexBP111(const int *pos) { return pos[4] + NSQUARES * pos[2]; }
+static ZIndex IndexBP111(const int *pos) { return pos[4] + NSQUARES * pos[2]; }
 
-static ZINDEX IndexOP111(const int *pos) {
+static ZIndex IndexOP111(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[4] + NSQUARES * id2;
 }
 
-static ZINDEX Index1111(const int *pos) {
+static ZIndex Index1111(const int *pos) {
     return pos[5] +
            NSQUARES * (pos[4] + NSQUARES * (pos[3] + NSQUARES * pos[2]));
 }
 
-static ZINDEX IndexBP1111(const int *pos) {
+static ZIndex IndexBP1111(const int *pos) {
     return pos[5] + NSQUARES * (pos[4] + NSQUARES * pos[2]);
 }
 
-static ZINDEX IndexOP1111(const int *pos) {
+static ZIndex IndexOP1111(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[5] + NSQUARES * (pos[4] + NSQUARES * id2);
 }
 
-static ZINDEX Index11111(const int *pos) {
+static ZIndex Index11111(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[5] +
                 NSQUARES * (pos[4] + NSQUARES * (pos[3] + NSQUARES * pos[2])));
 }
 
-static ZINDEX IndexBP11111(const int *pos) {
+static ZIndex IndexBP11111(const int *pos) {
     return pos[6] +
            NSQUARES * (pos[5] + NSQUARES * (pos[4] + NSQUARES * (pos[2])));
 }
 
-static ZINDEX IndexOP11111(const int *pos) {
+static ZIndex IndexOP11111(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[6] +
            NSQUARES * (pos[5] + NSQUARES * (pos[4] + NSQUARES * (id2)));
 }
 
-static ZINDEX Index2(const int *pos) { return N2_Index(pos[3], pos[2]); }
+static ZIndex Index2(const int *pos) { return N2_Index(pos[3], pos[2]); }
 
-static ZINDEX Index2_1100(const int *pos) {
+static ZIndex Index2_1100(const int *pos) {
     return N2_Odd_Index(pos[3], pos[2]);
 }
 
-static ZINDEX Index21(const int *pos) {
+static ZIndex Index21(const int *pos) {
     return pos[4] + NSQUARES * N2_Index(pos[3], pos[2]);
 }
 
-static ZINDEX IndexOP21(const int *pos) {
+static ZIndex IndexOP21(const int *pos) {
     int index = N2_1_Opposing_Index(pos[4], pos[3], pos[2]);
 
     if (index == -1)
         return ALL_ONES;
 
-    return (ZINDEX)index;
+    return (ZIndex)index;
 }
 
-static ZINDEX Index12(const int *pos) {
+static ZIndex Index12(const int *pos) {
     return pos[2] + NSQUARES * N2_Index(pos[4], pos[3]);
 }
 
-static ZINDEX IndexOP12(const int *pos) {
+static ZIndex IndexOP12(const int *pos) {
     int index = N1_2_Opposing_Index(pos[4], pos[3], pos[2]);
 
     if (index == -1)
         return ALL_ONES;
 
-    return (ZINDEX)index;
+    return (ZIndex)index;
 }
 
-static ZINDEX Index211(const int *pos) {
+static ZIndex Index211(const int *pos) {
     return pos[5] + NSQUARES * (pos[4] + NSQUARES * N2_Index(pos[3], pos[2]));
 }
 
-static ZINDEX IndexOP211(const int *pos) {
-    ZINDEX op21 = IndexOP21(pos);
+static ZIndex IndexOP211(const int *pos) {
+    ZIndex op21 = IndexOP21(pos);
     if (op21 == ALL_ONES)
         return ALL_ONES;
     return pos[5] + NSQUARES * op21;
 }
 
-static ZINDEX Index121(const int *pos) {
+static ZIndex Index121(const int *pos) {
     return pos[5] + NSQUARES * (pos[2] + NSQUARES * N2_Index(pos[4], pos[3]));
 }
 
-static ZINDEX IndexOP121(const int *pos) {
-    ZINDEX op12 = IndexOP12(pos);
+static ZIndex IndexOP121(const int *pos) {
+    ZIndex op12 = IndexOP12(pos);
     if (op12 == ALL_ONES)
         return ALL_ONES;
     return pos[5] + NSQUARES * op12;
 }
 
-static ZINDEX Index112(const int *pos) {
+static ZIndex Index112(const int *pos) {
     return pos[3] + NSQUARES * (pos[2] + NSQUARES * N2_Index(pos[5], pos[4]));
 }
 
-static ZINDEX IndexBP112(const int *pos) {
+static ZIndex IndexBP112(const int *pos) {
     return N2_Offset * pos[2] + N2_Index(pos[5], pos[4]);
 }
 
-static ZINDEX IndexOP112(const int *pos) {
+static ZIndex IndexOP112(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return N2_Offset * id2 + N2_Index(pos[5], pos[4]);
 }
 
-static ZINDEX Index2111(const int *pos) {
+static ZIndex Index2111(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[5] +
                 NSQUARES * (pos[4] + NSQUARES * N2_Index(pos[3], pos[2])));
 }
 
-static ZINDEX IndexOP2111(const int *pos) {
-    ZINDEX op21 = IndexOP21(pos);
+static ZIndex IndexOP2111(const int *pos) {
+    ZIndex op21 = IndexOP21(pos);
     if (op21 == ALL_ONES)
         return ALL_ONES;
-    return pos[6] + NSQUARES * (ZINDEX)(pos[5] + NSQUARES * op21);
+    return pos[6] + NSQUARES * (ZIndex)(pos[5] + NSQUARES * op21);
 }
 
-static ZINDEX Index1211(const int *pos) {
+static ZIndex Index1211(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[5] +
                 NSQUARES * (pos[2] + NSQUARES * N2_Index(pos[4], pos[3])));
 }
 
-static ZINDEX IndexOP1211(const int *pos) {
-    ZINDEX op12 = IndexOP12(pos);
+static ZIndex IndexOP1211(const int *pos) {
+    ZIndex op12 = IndexOP12(pos);
     if (op12 == ALL_ONES)
         return ALL_ONES;
-    return pos[6] + NSQUARES * (ZINDEX)(pos[5] + NSQUARES * op12);
+    return pos[6] + NSQUARES * (ZIndex)(pos[5] + NSQUARES * op12);
 }
 
-static ZINDEX Index1121(const int *pos) {
+static ZIndex Index1121(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[3] +
                 NSQUARES * (pos[2] + NSQUARES * N2_Index(pos[5], pos[4])));
 }
 
-static ZINDEX IndexBP1121(const int *pos) {
+static ZIndex IndexBP1121(const int *pos) {
     return pos[6] + NSQUARES * (N2_Index(pos[5], pos[4]) + N2_Offset * pos[2]);
 }
 
-static ZINDEX IndexOP1121(const int *pos) {
+static ZIndex IndexOP1121(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[6] + NSQUARES * (N2_Index(pos[5], pos[4]) + N2_Offset * id2);
 }
 
-static ZINDEX Index1112(const int *pos) {
+static ZIndex Index1112(const int *pos) {
     return pos[4] +
            NSQUARES *
                (pos[3] +
                 NSQUARES * (pos[2] + NSQUARES * N2_Index(pos[6], pos[5])));
 }
 
-static ZINDEX IndexBP1112(const int *pos) {
+static ZIndex IndexBP1112(const int *pos) {
     return pos[4] + NSQUARES * (N2_Index(pos[6], pos[5]) + N2_Offset * pos[2]);
 }
 
-static ZINDEX IndexOP1112(const int *pos) {
+static ZIndex IndexOP1112(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[4] + NSQUARES * (N2_Index(pos[6], pos[5]) + N2_Offset * id2);
 }
 
-static ZINDEX Index22(const int *pos) {
+static ZIndex Index22(const int *pos) {
     return N2_Index(pos[5], pos[4]) + N2_Offset * N2_Index(pos[3], pos[2]);
 }
 
-static ZINDEX IndexOP22(const int *pos) {
+static ZIndex IndexOP22(const int *pos) {
     int index = N2_2_Opposing_Index(pos[5], pos[4], pos[3], pos[2]);
 
     if (index == -1)
         return ALL_ONES;
 
-    return (ZINDEX)index;
+    return (ZIndex)index;
 }
 
-static ZINDEX IndexDP22(const int *pos) {
+static ZIndex IndexDP22(const int *pos) {
     int index = -1;
     int w1_col = Column(pos[2]);
     int w2_col = Column(pos[3]);
@@ -2153,170 +2153,170 @@ static ZINDEX IndexDP22(const int *pos) {
     }
 
     if (index != -1)
-        return (ZINDEX)index;
+        return (ZIndex)index;
     return ALL_ONES;
 }
 
-static ZINDEX Index221(const int *pos) {
+static ZIndex Index221(const int *pos) {
     return pos[6] + NSQUARES * (N2_Index(pos[5], pos[4]) +
                                 N2_Offset * N2_Index(pos[3], pos[2]));
 }
 
-static ZINDEX IndexOP221(const int *pos) {
-    ZINDEX op22 = IndexOP22(pos);
+static ZIndex IndexOP221(const int *pos) {
+    ZIndex op22 = IndexOP22(pos);
     if (op22 == ALL_ONES)
         return ALL_ONES;
     return pos[6] + NSQUARES * op22;
 }
 
-static ZINDEX IndexDP221(const int *pos) {
-    ZINDEX op22 = IndexDP22(pos);
+static ZIndex IndexDP221(const int *pos) {
+    ZIndex op22 = IndexDP22(pos);
     if (op22 == ALL_ONES)
         return ALL_ONES;
     return pos[6] + NSQUARES * op22;
 }
 
-static ZINDEX Index212(const int *pos) {
+static ZIndex Index212(const int *pos) {
     return pos[4] + NSQUARES * (N2_Index(pos[6], pos[5]) +
                                 N2_Offset * N2_Index(pos[3], pos[2]));
 }
 
-static ZINDEX IndexOP212(const int *pos) {
-    ZINDEX op21 = IndexOP21(pos);
+static ZIndex IndexOP212(const int *pos) {
+    ZIndex op21 = IndexOP21(pos);
     if (op21 == ALL_ONES)
         return ALL_ONES;
     return N2_Index(pos[6], pos[5]) + N2_Offset * op21;
 }
 
-static ZINDEX Index122(const int *pos) {
+static ZIndex Index122(const int *pos) {
     return pos[2] + NSQUARES * (N2_Index(pos[6], pos[5]) +
                                 N2_Offset * N2_Index(pos[4], pos[3]));
 }
 
-static ZINDEX IndexOP122(const int *pos) {
-    ZINDEX op12 = IndexOP12(pos);
+static ZIndex IndexOP122(const int *pos) {
+    ZIndex op12 = IndexOP12(pos);
     if (op12 == ALL_ONES)
         return ALL_ONES;
     return N2_Index(pos[6], pos[5]) + N2_Offset * op12;
 }
 
-static ZINDEX Index3(const int *pos) {
+static ZIndex Index3(const int *pos) {
     return N3_Index(pos[4], pos[3], pos[2]);
 }
 
-static ZINDEX Index3_1100(const int *pos) {
+static ZIndex Index3_1100(const int *pos) {
     return N3_Odd_Index(pos[4], pos[3], pos[2]);
 }
 
-static ZINDEX Index31(const int *pos) {
+static ZIndex Index31(const int *pos) {
     return pos[5] + NSQUARES * N3_Index(pos[4], pos[3], pos[2]);
 }
 
-static ZINDEX IndexOP31(const int *pos) {
+static ZIndex IndexOP31(const int *pos) {
     int index = N3_1_Opposing_Index(pos[5], pos[4], pos[3], pos[2]);
 
     if (index == -1)
         return ALL_ONES;
 
-    return (ZINDEX)index;
+    return (ZIndex)index;
 }
 
-static ZINDEX Index13(const int *pos) {
+static ZIndex Index13(const int *pos) {
     return pos[2] + NSQUARES * N3_Index(pos[5], pos[4], pos[3]);
 }
 
-static ZINDEX IndexOP13(const int *pos) {
+static ZIndex IndexOP13(const int *pos) {
     int index = N1_3_Opposing_Index(pos[5], pos[4], pos[3], pos[2]);
 
     if (index == -1)
         return ALL_ONES;
 
-    return (ZINDEX)index;
+    return (ZIndex)index;
 }
 
-static ZINDEX Index311(const int *pos) {
+static ZIndex Index311(const int *pos) {
     return pos[6] +
            NSQUARES * (pos[5] + NSQUARES * N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX IndexOP311(const int *pos) {
-    ZINDEX op31 = IndexOP31(pos);
+static ZIndex IndexOP311(const int *pos) {
+    ZIndex op31 = IndexOP31(pos);
     if (op31 == ALL_ONES)
         return ALL_ONES;
     return pos[6] + NSQUARES * op31;
 }
 
-static ZINDEX Index131(const int *pos) {
+static ZIndex Index131(const int *pos) {
     return pos[6] +
            NSQUARES * (pos[2] + NSQUARES * N3_Index(pos[5], pos[4], pos[3]));
 }
 
-static ZINDEX IndexOP131(const int *pos) {
-    ZINDEX op13 = IndexOP13(pos);
+static ZIndex IndexOP131(const int *pos) {
+    ZIndex op13 = IndexOP13(pos);
     if (op13 == ALL_ONES)
         return ALL_ONES;
     return pos[6] + NSQUARES * op13;
 }
 
-static ZINDEX Index113(const int *pos) {
+static ZIndex Index113(const int *pos) {
     return pos[3] +
            NSQUARES * (pos[2] + NSQUARES * N3_Index(pos[6], pos[5], pos[4]));
 }
 
-static ZINDEX IndexBP113(const int *pos) {
+static ZIndex IndexBP113(const int *pos) {
     return N3_Index(pos[6], pos[5], pos[4]) + N3_Offset * pos[2];
 }
 
-static ZINDEX IndexOP113(const int *pos) {
+static ZIndex IndexOP113(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return N3_Index(pos[6], pos[5], pos[4]) + N3_Offset * id2;
 }
 
-static ZINDEX Index32(const int *pos) {
+static ZIndex Index32(const int *pos) {
     return N2_Index(pos[6], pos[5]) +
            N2_Offset * N3_Index(pos[4], pos[3], pos[2]);
 }
 
-static ZINDEX Index23(const int *pos) {
+static ZIndex Index23(const int *pos) {
     return N2_Index(pos[3], pos[2]) +
            N2_Offset * N3_Index(pos[6], pos[5], pos[4]);
 }
 
-static ZINDEX Index4(const int *pos) {
+static ZIndex Index4(const int *pos) {
     return N4_Index(pos[5], pos[4], pos[3], pos[2]);
 }
 
-static ZINDEX Index41(const int *pos) {
+static ZIndex Index41(const int *pos) {
     return pos[6] + NSQUARES * N4_Index(pos[5], pos[4], pos[3], pos[2]);
 }
 
-static ZINDEX Index14(const int *pos) {
+static ZIndex Index14(const int *pos) {
     return pos[2] + NSQUARES * N4_Index(pos[6], pos[5], pos[4], pos[3]);
 }
 
-static ZINDEX Index5(const int *pos) {
+static ZIndex Index5(const int *pos) {
     return (N5 - 1) - N5_Index((NSQUARES - 1) - pos[2], (NSQUARES - 1) - pos[3],
                                (NSQUARES - 1) - pos[4], (NSQUARES - 1) - pos[5],
                                (NSQUARES - 1) - pos[6]);
 }
 
-static ZINDEX Index51(const int *pos) {
+static ZIndex Index51(const int *pos) {
     return pos[7] + NSQUARES * Index5(pos);
 }
 
-static ZINDEX Index15(const int *pos) {
+static ZIndex Index15(const int *pos) {
     return pos[2] + NSQUARES * Index5(pos + 1);
 }
 
-static ZINDEX Index6(const int *pos) {
+static ZIndex Index6(const int *pos) {
     return (N6 - 1) - N6_Index((NSQUARES - 1) - pos[2], (NSQUARES - 1) - pos[3],
                                (NSQUARES - 1) - pos[4], (NSQUARES - 1) - pos[5],
                                (NSQUARES - 1) - pos[6],
                                (NSQUARES - 1) - pos[7]);
 }
 
-static ZINDEX Index7(const int *pos) {
+static ZIndex Index7(const int *pos) {
     return (N7 - 1) - N7_Index((NSQUARES - 1) - pos[2], (NSQUARES - 1) - pos[3],
                                (NSQUARES - 1) - pos[4], (NSQUARES - 1) - pos[5],
                                (NSQUARES - 1) - pos[6], (NSQUARES - 1) - pos[7],
@@ -2325,10 +2325,10 @@ static ZINDEX Index7(const int *pos) {
 
 /* index functions for 8-man endings require 64 bit zone sizes */
 
-static ZINDEX Index111111(const int *pos) {
+static ZIndex Index111111(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] +
+               (ZIndex)(pos[6] +
                         NSQUARES *
                             (pos[5] +
                              NSQUARES *
@@ -2336,1136 +2336,1136 @@ static ZINDEX Index111111(const int *pos) {
                                   NSQUARES * (pos[3] + NSQUARES * pos[2]))));
 }
 
-static ZINDEX IndexBP111111(const int *pos) {
+static ZIndex IndexBP111111(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] +
+               (ZIndex)(pos[6] +
                         NSQUARES * (pos[5] +
                                     NSQUARES * (pos[4] + NSQUARES * (pos[2]))));
 }
 
-static ZINDEX IndexOP111111(const int *pos) {
+static ZIndex IndexOP111111(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] +
+               (ZIndex)(pos[6] +
                         NSQUARES *
                             (pos[5] + NSQUARES * (pos[4] + NSQUARES * (id2))));
 }
 
-static ZINDEX Index11112(const int *pos) {
+static ZIndex Index11112(const int *pos) {
     return pos[5] +
            NSQUARES *
-               (ZINDEX)(pos[4] +
+               (ZIndex)(pos[4] +
                         NSQUARES *
                             (pos[3] +
                              NSQUARES * (pos[2] +
                                          NSQUARES * N2_Index(pos[7], pos[6]))));
 }
 
-static ZINDEX IndexBP11112(const int *pos) {
+static ZIndex IndexBP11112(const int *pos) {
     return pos[5] +
-           NSQUARES * (ZINDEX)(pos[4] + NSQUARES * (N2_Index(pos[7], pos[6]) +
+           NSQUARES * (ZIndex)(pos[4] + NSQUARES * (N2_Index(pos[7], pos[6]) +
                                                     N2_Offset * pos[2]));
 }
 
-static ZINDEX IndexOP11112(const int *pos) {
+static ZIndex IndexOP11112(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[5] +
-           NSQUARES * (ZINDEX)(pos[4] + NSQUARES * (N2_Index(pos[7], pos[6]) +
+           NSQUARES * (ZIndex)(pos[4] + NSQUARES * (N2_Index(pos[7], pos[6]) +
                                                     N2_Offset * id2));
 }
 
-static ZINDEX Index11121(const int *pos) {
+static ZIndex Index11121(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[4] +
+               (ZIndex)(pos[4] +
                         NSQUARES *
                             (pos[3] +
                              NSQUARES * (pos[2] +
                                          NSQUARES * N2_Index(pos[6], pos[5]))));
 }
 
-static ZINDEX IndexBP11121(const int *pos) {
+static ZIndex IndexBP11121(const int *pos) {
     return pos[7] +
-           NSQUARES * (ZINDEX)(pos[4] + NSQUARES * (N2_Index(pos[6], pos[5]) +
+           NSQUARES * (ZIndex)(pos[4] + NSQUARES * (N2_Index(pos[6], pos[5]) +
                                                     N2_Offset * pos[2]));
 }
 
-static ZINDEX IndexOP11121(const int *pos) {
+static ZIndex IndexOP11121(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[7] +
-           NSQUARES * (ZINDEX)(pos[4] + NSQUARES * (N2_Index(pos[6], pos[5]) +
+           NSQUARES * (ZIndex)(pos[4] + NSQUARES * (N2_Index(pos[6], pos[5]) +
                                                     N2_Offset * id2));
 }
 
-static ZINDEX Index11211(const int *pos) {
+static ZIndex Index11211(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] +
+               (ZIndex)(pos[6] +
                         NSQUARES *
                             (pos[3] +
                              NSQUARES * (pos[2] +
                                          NSQUARES * N2_Index(pos[5], pos[4]))));
 }
 
-static ZINDEX IndexBP11211(const int *pos) {
+static ZIndex IndexBP11211(const int *pos) {
     return pos[7] +
-           NSQUARES * (ZINDEX)(pos[6] + NSQUARES * (N2_Index(pos[5], pos[4]) +
+           NSQUARES * (ZIndex)(pos[6] + NSQUARES * (N2_Index(pos[5], pos[4]) +
                                                     N2_Offset * pos[2]));
 }
 
-static ZINDEX IndexOP11211(const int *pos) {
+static ZIndex IndexOP11211(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return pos[7] +
-           NSQUARES * (ZINDEX)(pos[6] + NSQUARES * (N2_Index(pos[5], pos[4]) +
+           NSQUARES * (ZIndex)(pos[6] + NSQUARES * (N2_Index(pos[5], pos[4]) +
                                                     N2_Offset * id2));
 }
 
-static ZINDEX Index12111(const int *pos) {
+static ZIndex Index12111(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] +
+               (ZIndex)(pos[6] +
                         NSQUARES *
                             (pos[5] +
                              NSQUARES * (pos[2] +
                                          NSQUARES * N2_Index(pos[4], pos[3]))));
 }
 
-static ZINDEX IndexOP12111(const int *pos) {
-    ZINDEX op12 = IndexOP12(pos);
+static ZIndex IndexOP12111(const int *pos) {
+    ZIndex op12 = IndexOP12(pos);
     if (op12 == ALL_ONES)
         return ALL_ONES;
     return pos[7] +
-           NSQUARES * (ZINDEX)(pos[6] + NSQUARES * (pos[5] + NSQUARES * op12));
+           NSQUARES * (ZIndex)(pos[6] + NSQUARES * (pos[5] + NSQUARES * op12));
 }
 
-static ZINDEX Index21111(const int *pos) {
+static ZIndex Index21111(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] +
+               (ZIndex)(pos[6] +
                         NSQUARES *
                             (pos[5] +
                              NSQUARES * (pos[4] +
                                          NSQUARES * N2_Index(pos[3], pos[2]))));
 }
 
-static ZINDEX IndexOP21111(const int *pos) {
-    ZINDEX op21 = IndexOP21(pos);
+static ZIndex IndexOP21111(const int *pos) {
+    ZIndex op21 = IndexOP21(pos);
     if (op21 == ALL_ONES)
         return ALL_ONES;
     return pos[7] +
-           NSQUARES * (ZINDEX)(pos[6] + NSQUARES * (pos[5] + NSQUARES * op21));
+           NSQUARES * (ZIndex)(pos[6] + NSQUARES * (pos[5] + NSQUARES * op21));
 }
 
-static ZINDEX Index2211(const int *pos) {
+static ZIndex Index2211(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] +
+               (ZIndex)(pos[6] +
                         NSQUARES * (N2_Index(pos[5], pos[4]) +
                                     N2_Offset * N2_Index(pos[3], pos[2])));
 }
 
-static ZINDEX IndexDP2211(const int *pos) {
-    ZINDEX dp22 = IndexDP22(pos);
+static ZIndex IndexDP2211(const int *pos) {
+    ZIndex dp22 = IndexDP22(pos);
     if (dp22 == ALL_ONES)
         return ALL_ONES;
-    return pos[7] + NSQUARES * (ZINDEX)(pos[6] + NSQUARES * dp22);
+    return pos[7] + NSQUARES * (ZIndex)(pos[6] + NSQUARES * dp22);
 }
 
-static ZINDEX IndexOP2211(const int *pos) {
-    ZINDEX op22 = IndexOP22(pos);
+static ZIndex IndexOP2211(const int *pos) {
+    ZIndex op22 = IndexOP22(pos);
     if (op22 == ALL_ONES)
         return ALL_ONES;
-    return pos[7] + NSQUARES * (ZINDEX)(pos[6] + NSQUARES * op22);
+    return pos[7] + NSQUARES * (ZIndex)(pos[6] + NSQUARES * op22);
 }
 
-static ZINDEX Index2211_1100(const int *pos) {
+static ZIndex Index2211_1100(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] + NSQUARES * (N2_Odd_Index(pos[3], pos[2]) +
+               (ZIndex)(pos[6] + NSQUARES * (N2_Odd_Index(pos[3], pos[2]) +
                                              N2_ODD_PARITY_Offset *
                                                  N2_Index(pos[5], pos[4])));
 }
 
-static ZINDEX Index2211_1000(const int *pos) {
+static ZIndex Index2211_1000(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] + NSQUARES * (N2_Even_Index(pos[3], pos[2]) +
+               (ZIndex)(pos[6] + NSQUARES * (N2_Even_Index(pos[3], pos[2]) +
                                              N2_EVEN_PARITY_Offset *
                                                  N2_Index(pos[5], pos[4])));
 }
 
-static ZINDEX Index2121(const int *pos) {
+static ZIndex Index2121(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[4] +
+               (ZIndex)(pos[4] +
                         NSQUARES * (N2_Index(pos[6], pos[5]) +
                                     N2_Offset * N2_Index(pos[3], pos[2])));
 }
 
-static ZINDEX IndexOP2121(const int *pos) {
-    ZINDEX op21 = IndexOP21(pos);
+static ZIndex IndexOP2121(const int *pos) {
+    ZIndex op21 = IndexOP21(pos);
     if (op21 == ALL_ONES)
         return ALL_ONES;
     return pos[7] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[6], pos[5]) + N2_Offset * op21);
+           NSQUARES * (ZIndex)(N2_Index(pos[6], pos[5]) + N2_Offset * op21);
 }
 
-static ZINDEX Index2112(const int *pos) {
+static ZIndex Index2112(const int *pos) {
     return pos[5] +
            NSQUARES *
-               (ZINDEX)(pos[4] +
+               (ZIndex)(pos[4] +
                         NSQUARES * (N2_Index(pos[7], pos[6]) +
                                     N2_Offset * N2_Index(pos[3], pos[2])));
 }
 
-static ZINDEX IndexOP2112(const int *pos) {
-    ZINDEX op21 = IndexOP21(pos);
+static ZIndex IndexOP2112(const int *pos) {
+    ZIndex op21 = IndexOP21(pos);
     if (op21 == ALL_ONES)
         return ALL_ONES;
     return pos[5] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) + N2_Offset * op21);
+           NSQUARES * (ZIndex)(N2_Index(pos[7], pos[6]) + N2_Offset * op21);
 }
 
-static ZINDEX Index1221(const int *pos) {
+static ZIndex Index1221(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[2] +
+               (ZIndex)(pos[2] +
                         NSQUARES * (N2_Index(pos[6], pos[5]) +
                                     N2_Offset * N2_Index(pos[4], pos[3])));
 }
 
-static ZINDEX IndexOP1221(const int *pos) {
-    ZINDEX op12 = IndexOP12(pos);
+static ZIndex IndexOP1221(const int *pos) {
+    ZIndex op12 = IndexOP12(pos);
     if (op12 == ALL_ONES)
         return ALL_ONES;
     return pos[7] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[6], pos[5]) + N2_Offset * op12);
+           NSQUARES * (ZIndex)(N2_Index(pos[6], pos[5]) + N2_Offset * op12);
 }
 
-static ZINDEX Index1212(const int *pos) {
+static ZIndex Index1212(const int *pos) {
     return pos[5] +
            NSQUARES *
-               (ZINDEX)(pos[2] +
+               (ZIndex)(pos[2] +
                         NSQUARES * (N2_Index(pos[7], pos[6]) +
                                     N2_Offset * N2_Index(pos[4], pos[3])));
 }
 
-static ZINDEX IndexOP1212(const int *pos) {
-    ZINDEX op12 = IndexOP12(pos);
+static ZIndex IndexOP1212(const int *pos) {
+    ZIndex op12 = IndexOP12(pos);
     if (op12 == ALL_ONES)
         return ALL_ONES;
     return pos[5] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) + N2_Offset * op12);
+           NSQUARES * (ZIndex)(N2_Index(pos[7], pos[6]) + N2_Offset * op12);
 }
 
-static ZINDEX Index1122(const int *pos) {
+static ZIndex Index1122(const int *pos) {
     return pos[3] +
            NSQUARES *
-               (ZINDEX)(pos[2] +
+               (ZIndex)(pos[2] +
                         NSQUARES * (N2_Index(pos[7], pos[6]) +
                                     N2_Offset * N2_Index(pos[5], pos[4])));
 }
 
-static ZINDEX IndexBP1122(const int *pos) {
+static ZIndex IndexBP1122(const int *pos) {
     return N2_Index(pos[7], pos[6]) +
-           N2_Offset * (ZINDEX)(N2_Index(pos[5], pos[4]) + N2_Offset * pos[2]);
+           N2_Offset * (ZIndex)(N2_Index(pos[5], pos[4]) + N2_Offset * pos[2]);
 }
 
-static ZINDEX IndexOP1122(const int *pos) {
+static ZIndex IndexOP1122(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
     return N2_Index(pos[7], pos[6]) +
-           N2_Offset * (ZINDEX)(N2_Index(pos[5], pos[4]) + N2_Offset * id2);
+           N2_Offset * (ZIndex)(N2_Index(pos[5], pos[4]) + N2_Offset * id2);
 }
 
-static ZINDEX Index222(const int *pos) {
+static ZIndex Index222(const int *pos) {
     return N2_Index(pos[7], pos[6]) +
-           N2_Offset * (ZINDEX)(N2_Index(pos[5], pos[4]) +
+           N2_Offset * (ZIndex)(N2_Index(pos[5], pos[4]) +
                                 N2_Offset * N2_Index(pos[3], pos[2]));
 }
 
-static ZINDEX IndexOP222(const int *pos) {
-    ZINDEX op22 = IndexOP22(pos);
+static ZIndex IndexOP222(const int *pos) {
+    ZIndex op22 = IndexOP22(pos);
     if (op22 == ALL_ONES)
         return ALL_ONES;
     return N2_Index(pos[7], pos[6]) + N2_Offset * op22;
 }
-static ZINDEX IndexDP222(const int *pos) {
-    ZINDEX dp22 = IndexDP22(pos);
+static ZIndex IndexDP222(const int *pos) {
+    ZIndex dp22 = IndexDP22(pos);
     if (dp22 == ALL_ONES)
         return ALL_ONES;
     return N2_Index(pos[7], pos[6]) + N2_Offset * dp22;
 }
 
-static ZINDEX Index3111(const int *pos) {
+static ZIndex Index3111(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] +
+               (ZIndex)(pos[6] +
                         NSQUARES * (pos[5] + NSQUARES * N3_Index(pos[4], pos[3],
                                                                  pos[2])));
 }
 
-static ZINDEX IndexOP3111(const int *pos) {
-    ZINDEX op31 = IndexOP31(pos);
+static ZIndex IndexOP3111(const int *pos) {
+    ZIndex op31 = IndexOP31(pos);
     if (op31 == ALL_ONES)
         return ALL_ONES;
-    return pos[7] + NSQUARES * (ZINDEX)(pos[6] + NSQUARES * op31);
+    return pos[7] + NSQUARES * (ZIndex)(pos[6] + NSQUARES * op31);
 }
 
-static ZINDEX Index1311(const int *pos) {
+static ZIndex Index1311(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[6] +
+               (ZIndex)(pos[6] +
                         NSQUARES * (pos[2] + NSQUARES * N3_Index(pos[5], pos[4],
                                                                  pos[3])));
 }
 
-static ZINDEX IndexOP1311(const int *pos) {
-    ZINDEX op13 = IndexOP13(pos);
+static ZIndex IndexOP1311(const int *pos) {
+    ZIndex op13 = IndexOP13(pos);
     if (op13 == ALL_ONES)
         return ALL_ONES;
-    return pos[7] + NSQUARES * (ZINDEX)(pos[6] + NSQUARES * op13);
+    return pos[7] + NSQUARES * (ZIndex)(pos[6] + NSQUARES * op13);
 }
 
-static ZINDEX Index1131(const int *pos) {
+static ZIndex Index1131(const int *pos) {
     return pos[7] +
            NSQUARES *
-               (ZINDEX)(pos[3] +
+               (ZIndex)(pos[3] +
                         NSQUARES * (pos[2] + NSQUARES * N3_Index(pos[6], pos[5],
                                                                  pos[4])));
 }
 
-static ZINDEX IndexBP1131(const int *pos) {
-    return pos[7] + NSQUARES * (ZINDEX)(N3_Index(pos[6], pos[5], pos[4]) +
+static ZIndex IndexBP1131(const int *pos) {
+    return pos[7] + NSQUARES * (ZIndex)(N3_Index(pos[6], pos[5], pos[4]) +
                                         N3_Offset * pos[2]);
 }
 
-static ZINDEX IndexOP1131(const int *pos) {
+static ZIndex IndexOP1131(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
-    return pos[7] + NSQUARES * (ZINDEX)(N3_Index(pos[6], pos[5], pos[4]) +
+    return pos[7] + NSQUARES * (ZIndex)(N3_Index(pos[6], pos[5], pos[4]) +
                                         N3_Offset * id2);
 }
 
-static ZINDEX Index1113(const int *pos) {
+static ZIndex Index1113(const int *pos) {
     return pos[4] +
            NSQUARES *
-               (ZINDEX)(pos[3] +
+               (ZIndex)(pos[3] +
                         NSQUARES * (pos[2] + NSQUARES * N3_Index(pos[7], pos[6],
                                                                  pos[5])));
 }
 
-static ZINDEX IndexBP1113(const int *pos) {
-    return pos[4] + NSQUARES * (ZINDEX)(N3_Index(pos[7], pos[6], pos[5]) +
+static ZIndex IndexBP1113(const int *pos) {
+    return pos[4] + NSQUARES * (ZIndex)(N3_Index(pos[7], pos[6], pos[5]) +
                                         N3_Offset * pos[2]);
 }
 
-static ZINDEX IndexOP1113(const int *pos) {
+static ZIndex IndexOP1113(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
-    return pos[4] + NSQUARES * (ZINDEX)(N3_Index(pos[7], pos[6], pos[5]) +
+    return pos[4] + NSQUARES * (ZIndex)(N3_Index(pos[7], pos[6], pos[5]) +
                                         N3_Offset * id2);
 }
 
-static ZINDEX Index123(const int *pos) {
+static ZIndex Index123(const int *pos) {
     return pos[2] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[4], pos[3]) +
+           NSQUARES * (ZIndex)(N2_Index(pos[4], pos[3]) +
                                N2_Offset * N3_Index(pos[7], pos[6], pos[5]));
 }
 
-static ZINDEX IndexOP123(const int *pos) {
-    ZINDEX op12 = IndexOP12(pos);
+static ZIndex IndexOP123(const int *pos) {
+    ZIndex op12 = IndexOP12(pos);
     if (op12 == ALL_ONES)
         return ALL_ONES;
     return N3_Index(pos[7], pos[6], pos[5]) + N3_Offset * op12;
 }
 
-static ZINDEX Index132(const int *pos) {
+static ZIndex Index132(const int *pos) {
     return pos[2] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) +
+           NSQUARES * (ZIndex)(N2_Index(pos[7], pos[6]) +
                                N2_Offset * N3_Index(pos[5], pos[4], pos[3]));
 }
 
-static ZINDEX IndexOP132(const int *pos) {
-    ZINDEX op13 = IndexOP13(pos);
+static ZIndex IndexOP132(const int *pos) {
+    ZIndex op13 = IndexOP13(pos);
     if (op13 == ALL_ONES)
         return ALL_ONES;
     return N2_Index(pos[7], pos[6]) + N2_Offset * op13;
 }
 
-static ZINDEX Index213(const int *pos) {
+static ZIndex Index213(const int *pos) {
     return pos[4] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[3], pos[2]) +
+           NSQUARES * (ZIndex)(N2_Index(pos[3], pos[2]) +
                                N2_Offset * N3_Index(pos[7], pos[6], pos[5]));
 }
 
-static ZINDEX IndexOP213(const int *pos) {
-    ZINDEX op21 = IndexOP21(pos);
+static ZIndex IndexOP213(const int *pos) {
+    ZIndex op21 = IndexOP21(pos);
     if (op21 == ALL_ONES)
         return ALL_ONES;
     return N3_Index(pos[7], pos[6], pos[5]) + N3_Offset * op21;
 }
 
-static ZINDEX Index231(const int *pos) {
+static ZIndex Index231(const int *pos) {
     return pos[7] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[3], pos[2]) +
+           NSQUARES * (ZIndex)(N2_Index(pos[3], pos[2]) +
                                N2_Offset * N3_Index(pos[6], pos[5], pos[4]));
 }
 
-static ZINDEX Index312(const int *pos) {
+static ZIndex Index312(const int *pos) {
     return pos[5] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) +
+           NSQUARES * (ZIndex)(N2_Index(pos[7], pos[6]) +
                                N2_Offset * N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX IndexOP312(const int *pos) {
-    ZINDEX op31 = IndexOP31(pos);
+static ZIndex IndexOP312(const int *pos) {
+    ZIndex op31 = IndexOP31(pos);
     if (op31 == ALL_ONES)
         return ALL_ONES;
     return N2_Index(pos[7], pos[6]) + N2_Offset * op31;
 }
 
-static ZINDEX Index321(const int *pos) {
+static ZIndex Index321(const int *pos) {
     return pos[7] +
-           NSQUARES * (ZINDEX)(N2_Index(pos[6], pos[5]) +
+           NSQUARES * (ZIndex)(N2_Index(pos[6], pos[5]) +
                                N2_Offset * N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index33(const int *pos) {
+static ZIndex Index33(const int *pos) {
     return N3_Index(pos[7], pos[6], pos[5]) +
-           N3_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]);
+           N3_Offset * (ZIndex)N3_Index(pos[4], pos[3], pos[2]);
 }
 
-static ZINDEX Index411(const int *pos) {
+static ZIndex Index411(const int *pos) {
     return pos[7] +
-           NSQUARES * (ZINDEX)(pos[6] + NSQUARES * N4_Index(pos[5], pos[4],
+           NSQUARES * (ZIndex)(pos[6] + NSQUARES * N4_Index(pos[5], pos[4],
                                                             pos[3], pos[2]));
 }
 
-static ZINDEX Index141(const int *pos) {
+static ZIndex Index141(const int *pos) {
     return pos[7] +
-           NSQUARES * (ZINDEX)(pos[2] + NSQUARES * N4_Index(pos[6], pos[5],
+           NSQUARES * (ZIndex)(pos[2] + NSQUARES * N4_Index(pos[6], pos[5],
                                                             pos[4], pos[3]));
 }
 
-static ZINDEX Index114(const int *pos) {
+static ZIndex Index114(const int *pos) {
     return pos[3] +
-           NSQUARES * (ZINDEX)(pos[2] + NSQUARES * N4_Index(pos[7], pos[6],
+           NSQUARES * (ZIndex)(pos[2] + NSQUARES * N4_Index(pos[7], pos[6],
                                                             pos[5], pos[4]));
 }
 
-static ZINDEX IndexBP114(const int *pos) {
+static ZIndex IndexBP114(const int *pos) {
     return N4_Index(pos[7], pos[6], pos[5], pos[4]) +
-           N4_Offset * (ZINDEX)pos[2];
+           N4_Offset * (ZIndex)pos[2];
 }
 
-static ZINDEX IndexOP114(const int *pos) {
+static ZIndex IndexOP114(const int *pos) {
     int id2 = N2_Opposing_Index(pos[3], pos[2]);
     assert(id2 != -1);
-    return N4_Index(pos[7], pos[6], pos[5], pos[4]) + N4_Offset * (ZINDEX)id2;
+    return N4_Index(pos[7], pos[6], pos[5], pos[4]) + N4_Offset * (ZIndex)id2;
 }
 
-static ZINDEX Index42(const int *pos) {
+static ZIndex Index42(const int *pos) {
     return N2_Index(pos[7], pos[6]) +
-           N2_Offset * (ZINDEX)N4_Index(pos[5], pos[4], pos[3], pos[2]);
+           N2_Offset * (ZIndex)N4_Index(pos[5], pos[4], pos[3], pos[2]);
 }
 
-static ZINDEX Index24(const int *pos) {
+static ZIndex Index24(const int *pos) {
     return N2_Index(pos[3], pos[2]) +
-           N2_Offset * (ZINDEX)N4_Index(pos[7], pos[6], pos[5], pos[4]);
+           N2_Offset * (ZIndex)N4_Index(pos[7], pos[6], pos[5], pos[4]);
 }
 
 // 9-pieces
 
-static ZINDEX Index1111111(const int *pos) {
+static ZIndex Index1111111(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES *
                     (pos[6] +
                      NSQUARES *
-                         (ZINDEX)(pos[5] +
+                         (ZIndex)(pos[5] +
                                   NSQUARES *
                                       (pos[4] +
                                        NSQUARES *
                                            (pos[3] + NSQUARES * pos[2])))));
 }
 
-static ZINDEX Index211111(const int *pos) {
+static ZIndex Index211111(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES *
                     (pos[6] +
                      NSQUARES *
-                         (ZINDEX)(pos[5] +
+                         (ZIndex)(pos[5] +
                                   NSQUARES *
                                       (pos[4] +
                                        NSQUARES * N2_Index(pos[3], pos[2])))));
 }
 
-static ZINDEX Index121111(const int *pos) {
+static ZIndex Index121111(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES *
                     (pos[6] +
                      NSQUARES *
-                         (ZINDEX)(pos[5] +
+                         (ZIndex)(pos[5] +
                                   NSQUARES *
                                       (pos[2] +
                                        NSQUARES * N2_Index(pos[4], pos[3])))));
 }
 
-static ZINDEX Index112111(const int *pos) {
+static ZIndex Index112111(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES *
                     (pos[6] +
                      NSQUARES *
-                         (ZINDEX)(pos[3] +
+                         (ZIndex)(pos[3] +
                                   NSQUARES *
                                       (pos[2] +
                                        NSQUARES * N2_Index(pos[5], pos[4])))));
 }
 
-static ZINDEX Index111211(const int *pos) {
+static ZIndex Index111211(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES *
                     (pos[4] +
                      NSQUARES *
-                         (ZINDEX)(pos[3] +
+                         (ZIndex)(pos[3] +
                                   NSQUARES *
                                       (pos[2] +
                                        NSQUARES * N2_Index(pos[6], pos[5])))));
 }
 
-static ZINDEX Index111121(const int *pos) {
+static ZIndex Index111121(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[5] +
                 NSQUARES *
                     (pos[4] +
                      NSQUARES *
-                         (ZINDEX)(pos[3] +
+                         (ZIndex)(pos[3] +
                                   NSQUARES *
                                       (pos[2] +
                                        NSQUARES * N2_Index(pos[7], pos[6])))));
 }
 
-static ZINDEX Index111112(const int *pos) {
+static ZIndex Index111112(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[5] +
                 NSQUARES *
                     (pos[4] +
                      NSQUARES *
-                         (ZINDEX)(pos[3] +
+                         (ZIndex)(pos[3] +
                                   NSQUARES *
                                       (pos[2] +
                                        NSQUARES * N2_Index(pos[8], pos[7])))));
 }
 
-static ZINDEX Index22111(const int *pos) {
+static ZIndex Index22111(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES * (pos[6] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[5], pos[4]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[5], pos[4]) +
                                                 N2_Offset *
                                                     N2_Index(pos[3], pos[2]))));
 }
 
-static ZINDEX IndexDP22111(const int *pos) {
-    ZINDEX dp22 = IndexDP22(pos);
+static ZIndex IndexDP22111(const int *pos) {
+    ZIndex dp22 = IndexDP22(pos);
     if (dp22 == ALL_ONES)
         return ALL_ONES;
     return pos[8] + NSQUARES * (pos[7] + NSQUARES * (pos[6] + NSQUARES * dp22));
 }
 
-static ZINDEX Index21211(const int *pos) {
+static ZIndex Index21211(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES * (pos[4] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[6], pos[5]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[6], pos[5]) +
                                                 N2_Offset *
                                                     N2_Index(pos[3], pos[2]))));
 }
 
-static ZINDEX Index21121(const int *pos) {
+static ZIndex Index21121(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[5] +
                 NSQUARES * (pos[4] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[7], pos[6]) +
                                                 N2_Offset *
                                                     N2_Index(pos[3], pos[2]))));
 }
 
-static ZINDEX Index21112(const int *pos) {
+static ZIndex Index21112(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[5] +
                 NSQUARES * (pos[4] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[8], pos[7]) +
                                                 N2_Offset *
                                                     N2_Index(pos[3], pos[2]))));
 }
 
-static ZINDEX Index12211(const int *pos) {
+static ZIndex Index12211(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES * (pos[2] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[6], pos[5]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[6], pos[5]) +
                                                 N2_Offset *
                                                     N2_Index(pos[4], pos[3]))));
 }
 
-static ZINDEX Index12121(const int *pos) {
+static ZIndex Index12121(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[5] +
                 NSQUARES * (pos[2] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[7], pos[6]) +
                                                 N2_Offset *
                                                     N2_Index(pos[4], pos[3]))));
 }
 
-static ZINDEX Index12112(const int *pos) {
+static ZIndex Index12112(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[5] +
                 NSQUARES * (pos[2] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[8], pos[7]) +
                                                 N2_Offset *
                                                     N2_Index(pos[4], pos[3]))));
 }
 
-static ZINDEX Index11221(const int *pos) {
+static ZIndex Index11221(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[3] +
                 NSQUARES * (pos[2] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[7], pos[6]) +
                                                 N2_Offset *
                                                     N2_Index(pos[5], pos[4]))));
 }
 
-static ZINDEX Index11212(const int *pos) {
+static ZIndex Index11212(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[3] +
                 NSQUARES * (pos[2] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[8], pos[7]) +
                                                 N2_Offset *
                                                     N2_Index(pos[5], pos[4]))));
 }
 
-static ZINDEX Index11122(const int *pos) {
+static ZIndex Index11122(const int *pos) {
     return pos[4] +
            NSQUARES *
                (pos[3] +
                 NSQUARES * (pos[2] +
-                            NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
+                            NSQUARES * (ZIndex)(N2_Index(pos[8], pos[7]) +
                                                 N2_Offset *
                                                     N2_Index(pos[6], pos[5]))));
 }
 
-static ZINDEX Index2221(const int *pos) {
+static ZIndex Index2221(const int *pos) {
     return pos[8] +
            NSQUARES *
                (N2_Index(pos[7], pos[6]) +
-                N2_Offset * (ZINDEX)(N2_Index(pos[5], pos[4]) +
+                N2_Offset * (ZIndex)(N2_Index(pos[5], pos[4]) +
                                      N2_Offset * N2_Index(pos[3], pos[2])));
 }
 
-static ZINDEX IndexDP2221(const int *pos) {
-    ZINDEX dp22 = IndexDP22(pos);
+static ZIndex IndexDP2221(const int *pos) {
+    ZIndex dp22 = IndexDP22(pos);
     if (dp22 == ALL_ONES)
         return ALL_ONES;
     return pos[8] + NSQUARES * (N2_Index(pos[7], pos[6]) + N2_Offset * dp22);
 }
 
-static ZINDEX Index2221_1131(const int *pos) {
+static ZIndex Index2221_1131(const int *pos) {
     return pos[8] + NSQUARES * (N2_Odd_Index(pos[7], pos[6]) +
                                 N2_ODD_PARITY_Offset *
-                                    (ZINDEX)(N2_Odd_Index(pos[3], pos[2]) +
+                                    (ZIndex)(N2_Odd_Index(pos[3], pos[2]) +
                                              N2_ODD_PARITY_Offset *
                                                  N2_Index(pos[5], pos[4])));
 }
 
-static ZINDEX Index2221_1130(const int *pos) {
+static ZIndex Index2221_1130(const int *pos) {
     return pos[8] + NSQUARES * (N2_Even_Index(pos[7], pos[6]) +
                                 N2_EVEN_PARITY_Offset *
-                                    (ZINDEX)(N2_Odd_Index(pos[3], pos[2]) +
+                                    (ZIndex)(N2_Odd_Index(pos[3], pos[2]) +
                                              N2_ODD_PARITY_Offset *
                                                  N2_Index(pos[5], pos[4])));
 }
 
-static ZINDEX Index2221_1030(const int *pos) {
+static ZIndex Index2221_1030(const int *pos) {
     return pos[8] + NSQUARES * (N2_Even_Index(pos[7], pos[6]) +
                                 N2_EVEN_PARITY_Offset *
-                                    (ZINDEX)(N2_Even_Index(pos[3], pos[2]) +
+                                    (ZIndex)(N2_Even_Index(pos[3], pos[2]) +
                                              N2_EVEN_PARITY_Offset *
                                                  N2_Index(pos[5], pos[4])));
 }
 
-static ZINDEX Index2212(const int *pos) {
+static ZIndex Index2212(const int *pos) {
     return pos[6] +
            NSQUARES *
                (N2_Index(pos[8], pos[7]) +
-                N2_Offset * (ZINDEX)(N2_Index(pos[5], pos[4]) +
+                N2_Offset * (ZIndex)(N2_Index(pos[5], pos[4]) +
                                      N2_Offset * N2_Index(pos[3], pos[2])));
 }
 
-static ZINDEX IndexDP2212(const int *pos) {
-    ZINDEX dp22 = IndexDP22(pos);
+static ZIndex IndexDP2212(const int *pos) {
+    ZIndex dp22 = IndexDP22(pos);
     if (dp22 == ALL_ONES)
         return ALL_ONES;
     return pos[6] + NSQUARES * (N2_Index(pos[8], pos[7]) + N2_Offset * dp22);
 }
 
-static ZINDEX Index2122(const int *pos) {
+static ZIndex Index2122(const int *pos) {
     return pos[4] +
            NSQUARES *
                (N2_Index(pos[8], pos[7]) +
-                N2_Offset * (ZINDEX)(N2_Index(pos[6], pos[5]) +
+                N2_Offset * (ZIndex)(N2_Index(pos[6], pos[5]) +
                                      N2_Offset * N2_Index(pos[3], pos[2])));
 }
 
-static ZINDEX Index1222(const int *pos) {
+static ZIndex Index1222(const int *pos) {
     return pos[2] +
            NSQUARES *
                (N2_Index(pos[8], pos[7]) +
-                N2_Offset * (ZINDEX)(N2_Index(pos[6], pos[5]) +
+                N2_Offset * (ZIndex)(N2_Index(pos[6], pos[5]) +
                                      N2_Offset * N2_Index(pos[4], pos[3])));
 }
 
-static ZINDEX Index31111(const int *pos) {
+static ZIndex Index31111(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES *
-                    (ZINDEX)(pos[6] +
+                    (ZIndex)(pos[6] +
                              NSQUARES *
                                  (pos[5] + NSQUARES * N3_Index(pos[4], pos[3],
                                                                pos[2]))));
 }
 
-static ZINDEX Index13111(const int *pos) {
+static ZIndex Index13111(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES *
-                    (ZINDEX)(pos[6] +
+                    (ZIndex)(pos[6] +
                              NSQUARES *
                                  (pos[2] + NSQUARES * N3_Index(pos[5], pos[4],
                                                                pos[3]))));
 }
 
-static ZINDEX Index11311(const int *pos) {
+static ZIndex Index11311(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 NSQUARES *
-                    (ZINDEX)(pos[3] +
+                    (ZIndex)(pos[3] +
                              NSQUARES *
                                  (pos[2] + NSQUARES * N3_Index(pos[6], pos[5],
                                                                pos[4]))));
 }
 
-static ZINDEX Index11131(const int *pos) {
+static ZIndex Index11131(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[4] +
                 NSQUARES *
-                    (ZINDEX)(pos[3] +
+                    (ZIndex)(pos[3] +
                              NSQUARES *
                                  (pos[2] + NSQUARES * N3_Index(pos[7], pos[6],
                                                                pos[5]))));
 }
 
-static ZINDEX Index11113(const int *pos) {
+static ZIndex Index11113(const int *pos) {
     return pos[5] +
            NSQUARES *
                (pos[4] +
                 NSQUARES *
-                    (ZINDEX)(pos[3] +
+                    (ZIndex)(pos[3] +
                              NSQUARES *
                                  (pos[2] + NSQUARES * N3_Index(pos[8], pos[7],
                                                                pos[6]))));
 }
 
-static ZINDEX Index3211(const int *pos) {
+static ZIndex Index3211(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[6], pos[5]) +
+                    (ZIndex)(N2_Index(pos[6], pos[5]) +
                              N2_Offset * N3_Index(pos[4], pos[3], pos[2])));
 }
 
-static ZINDEX Index3121(const int *pos) {
+static ZIndex Index3121(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[5] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[7], pos[6]) +
+                    (ZIndex)(N2_Index(pos[7], pos[6]) +
                              N2_Offset * N3_Index(pos[4], pos[3], pos[2])));
 }
 
-static ZINDEX Index3121_1100(const int *pos) {
+static ZIndex Index3121_1100(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[5] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[7], pos[6]) +
+                    (ZIndex)(N2_Index(pos[7], pos[6]) +
                              N2_Offset * N3_Odd_Index(pos[4], pos[3], pos[2])));
 }
 
-static ZINDEX Index3121_1111(const int *pos) {
+static ZIndex Index3121_1111(const int *pos) {
     return pos[8] +
            NSQUARES * (pos[5] +
                        (NSQUARES) *
-                           (ZINDEX)(N2_Odd_Index(pos[7], pos[6]) +
+                           (ZIndex)(N2_Odd_Index(pos[7], pos[6]) +
                                     N2_ODD_PARITY_Offset *
                                         N3_Odd_Index(pos[4], pos[3], pos[2])));
 }
 
-static ZINDEX Index3121_1110(const int *pos) {
+static ZIndex Index3121_1110(const int *pos) {
     return pos[8] +
            NSQUARES * (pos[5] +
                        (NSQUARES) *
-                           (ZINDEX)(N2_Even_Index(pos[7], pos[6]) +
+                           (ZIndex)(N2_Even_Index(pos[7], pos[6]) +
                                     N2_EVEN_PARITY_Offset *
                                         N3_Odd_Index(pos[4], pos[3], pos[2])));
 }
 
-static ZINDEX Index3112(const int *pos) {
+static ZIndex Index3112(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[5] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[8], pos[7]) +
+                    (ZIndex)(N2_Index(pos[8], pos[7]) +
                              N2_Offset * N3_Index(pos[4], pos[3], pos[2])));
 }
 
-static ZINDEX Index2311(const int *pos) {
+static ZIndex Index2311(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[7] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[3], pos[2]) +
+                    (ZIndex)(N2_Index(pos[3], pos[2]) +
                              N2_Offset * N3_Index(pos[6], pos[5], pos[4])));
 }
 
-static ZINDEX Index2131(const int *pos) {
+static ZIndex Index2131(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[4] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[3], pos[2]) +
+                    (ZIndex)(N2_Index(pos[3], pos[2]) +
                              N2_Offset * N3_Index(pos[7], pos[6], pos[5])));
 }
 
-static ZINDEX Index2113(const int *pos) {
+static ZIndex Index2113(const int *pos) {
     return pos[5] +
            NSQUARES *
                (pos[4] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[3], pos[2]) +
+                    (ZIndex)(N2_Index(pos[3], pos[2]) +
                              N2_Offset * N3_Index(pos[8], pos[7], pos[6])));
 }
 
-static ZINDEX Index1321(const int *pos) {
+static ZIndex Index1321(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[2] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[7], pos[6]) +
+                    (ZIndex)(N2_Index(pos[7], pos[6]) +
                              N2_Offset * N3_Index(pos[5], pos[4], pos[3])));
 }
 
-static ZINDEX Index1312(const int *pos) {
+static ZIndex Index1312(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[2] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[8], pos[7]) +
+                    (ZIndex)(N2_Index(pos[8], pos[7]) +
                              N2_Offset * N3_Index(pos[5], pos[4], pos[3])));
 }
 
-static ZINDEX Index1312_0010(const int *pos) {
+static ZIndex Index1312_0010(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[2] +
-                (NSQUARES) * (ZINDEX)(N2_Even_Index(pos[8], pos[7]) +
+                (NSQUARES) * (ZIndex)(N2_Even_Index(pos[8], pos[7]) +
                                       N2_EVEN_PARITY_Offset *
                                           N3_Index(pos[5], pos[4], pos[3])));
 }
 
-static ZINDEX Index1312_0011(const int *pos) {
+static ZIndex Index1312_0011(const int *pos) {
     return pos[6] +
            NSQUARES *
                (pos[2] +
-                (NSQUARES) * (ZINDEX)(N2_Odd_Index(pos[8], pos[7]) +
+                (NSQUARES) * (ZIndex)(N2_Odd_Index(pos[8], pos[7]) +
                                       N2_ODD_PARITY_Offset *
                                           N3_Index(pos[5], pos[4], pos[3])));
 }
 
-static ZINDEX Index1231(const int *pos) {
+static ZIndex Index1231(const int *pos) {
     return pos[8] +
            NSQUARES *
                (pos[2] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[4], pos[3]) +
+                    (ZIndex)(N2_Index(pos[4], pos[3]) +
                              N2_Offset * N3_Index(pos[7], pos[6], pos[5])));
 }
 
-static ZINDEX Index1213(const int *pos) {
+static ZIndex Index1213(const int *pos) {
     return pos[5] +
            NSQUARES *
                (pos[2] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[4], pos[3]) +
+                    (ZIndex)(N2_Index(pos[4], pos[3]) +
                              N2_Offset * N3_Index(pos[8], pos[7], pos[6])));
 }
 
-static ZINDEX Index1132(const int *pos) {
+static ZIndex Index1132(const int *pos) {
     return pos[3] +
            NSQUARES *
                (pos[2] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[8], pos[7]) +
+                    (ZIndex)(N2_Index(pos[8], pos[7]) +
                              N2_Offset * N3_Index(pos[6], pos[5], pos[4])));
 }
 
-static ZINDEX Index1123(const int *pos) {
+static ZIndex Index1123(const int *pos) {
     return pos[3] +
            NSQUARES *
                (pos[2] +
                 (NSQUARES) *
-                    (ZINDEX)(N2_Index(pos[5], pos[4]) +
+                    (ZIndex)(N2_Index(pos[5], pos[4]) +
                              N2_Offset * N3_Index(pos[8], pos[7], pos[6])));
 }
 
-static ZINDEX Index331(const int *pos) {
+static ZIndex Index331(const int *pos) {
     return pos[8] +
            NSQUARES * (N3_Index(pos[7], pos[6], pos[5]) +
-                       N3_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
+                       N3_Offset * (ZIndex)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index331_0020(const int *pos) {
+static ZIndex Index331_0020(const int *pos) {
     return pos[8] + NSQUARES * (N3_Even_Index(pos[7], pos[6], pos[5]) +
                                 N3_EVEN_PARITY_Offset *
-                                    (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
+                                    (ZIndex)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index331_0021(const int *pos) {
+static ZIndex Index331_0021(const int *pos) {
     return pos[8] + NSQUARES * (N3_Odd_Index(pos[7], pos[6], pos[5]) +
                                 N3_ODD_PARITY_Offset *
-                                    (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
+                                    (ZIndex)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index313(const int *pos) {
+static ZIndex Index313(const int *pos) {
     return pos[5] +
            NSQUARES * (N3_Index(pos[8], pos[7], pos[6]) +
-                       N3_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
+                       N3_Offset * (ZIndex)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index133(const int *pos) {
+static ZIndex Index133(const int *pos) {
     return pos[2] +
            NSQUARES * (N3_Index(pos[8], pos[7], pos[6]) +
-                       N3_Offset * (ZINDEX)N3_Index(pos[5], pos[4], pos[3]));
+                       N3_Offset * (ZIndex)N3_Index(pos[5], pos[4], pos[3]));
 }
 
-static ZINDEX Index322(const int *pos) {
+static ZIndex Index322(const int *pos) {
     return N2_Index(pos[8], pos[7]) +
            (N2_Offset) * (N2_Index(pos[6], pos[5]) +
-                          N2_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
+                          N2_Offset * (ZIndex)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index322_0010(const int *pos) {
+static ZIndex Index322_0010(const int *pos) {
     return N2_Even_Index(pos[6], pos[5]) +
            (N2_EVEN_PARITY_Offset) *
                (N2_Index(pos[8], pos[7]) +
-                N2_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
+                N2_Offset * (ZIndex)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index322_0011(const int *pos) {
+static ZIndex Index322_0011(const int *pos) {
     return N2_Odd_Index(pos[6], pos[5]) +
            (N2_ODD_PARITY_Offset) *
                (N2_Index(pos[8], pos[7]) +
-                N2_Offset * (ZINDEX)N3_Index(pos[4], pos[3], pos[2]));
+                N2_Offset * (ZIndex)N3_Index(pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index232(const int *pos) {
+static ZIndex Index232(const int *pos) {
     return N2_Index(pos[8], pos[7]) +
            (N2_Offset) * (N2_Index(pos[3], pos[2]) +
-                          N2_Offset * (ZINDEX)N3_Index(pos[6], pos[5], pos[4]));
+                          N2_Offset * (ZIndex)N3_Index(pos[6], pos[5], pos[4]));
 }
 
-static ZINDEX Index223(const int *pos) {
+static ZIndex Index223(const int *pos) {
     return N2_Index(pos[5], pos[4]) +
            (N2_Offset) *
                (N2_Index(pos[3], pos[2]) +
-                (N2_Offset) * (ZINDEX)N3_Index(pos[8], pos[7], pos[6]));
+                (N2_Offset) * (ZIndex)N3_Index(pos[8], pos[7], pos[6]));
 }
 
-static ZINDEX IndexDP223(const int *pos) {
-    ZINDEX dp22 = IndexDP22(pos);
+static ZIndex IndexDP223(const int *pos) {
+    ZIndex dp22 = IndexDP22(pos);
     if (dp22 == ALL_ONES)
         return ALL_ONES;
     return N3_Index(pos[8], pos[7], pos[6]) + (N3_Offset)*dp22;
 }
 
-static ZINDEX Index223_1100(const int *pos) {
+static ZIndex Index223_1100(const int *pos) {
     return N2_Odd_Index(pos[3], pos[2]) +
            (N2_ODD_PARITY_Offset) *
                (N2_Index(pos[5], pos[4]) +
-                (N2_Offset) * (ZINDEX)N3_Index(pos[8], pos[7], pos[6]));
+                (N2_Offset) * (ZIndex)N3_Index(pos[8], pos[7], pos[6]));
 }
 
-static ZINDEX Index223_1000(const int *pos) {
+static ZIndex Index223_1000(const int *pos) {
     return N2_Even_Index(pos[3], pos[2]) +
            (N2_EVEN_PARITY_Offset) *
                (N2_Index(pos[5], pos[4]) +
-                (N2_Offset) * (ZINDEX)N3_Index(pos[8], pos[7], pos[6]));
+                (N2_Offset) * (ZIndex)N3_Index(pos[8], pos[7], pos[6]));
 }
 
-static ZINDEX Index4111(const int *pos) {
+static ZIndex Index4111(const int *pos) {
     return pos[8] +
            (NSQUARES) *
                (pos[7] +
                 (NSQUARES) *
-                    (pos[6] + (NSQUARES) * (ZINDEX)N4_Index(pos[5], pos[4],
+                    (pos[6] + (NSQUARES) * (ZIndex)N4_Index(pos[5], pos[4],
                                                             pos[3], pos[2])));
 }
 
-static ZINDEX Index1411(const int *pos) {
+static ZIndex Index1411(const int *pos) {
     return pos[8] +
            (NSQUARES) *
                (pos[7] +
                 (NSQUARES) *
-                    (pos[2] + (NSQUARES) * (ZINDEX)N4_Index(pos[6], pos[5],
+                    (pos[2] + (NSQUARES) * (ZIndex)N4_Index(pos[6], pos[5],
                                                             pos[4], pos[3])));
 }
 
-static ZINDEX Index1141(const int *pos) {
+static ZIndex Index1141(const int *pos) {
     return pos[8] +
            (NSQUARES) *
                (pos[3] +
                 (NSQUARES) *
-                    (pos[2] + (NSQUARES) * (ZINDEX)N4_Index(pos[7], pos[6],
+                    (pos[2] + (NSQUARES) * (ZIndex)N4_Index(pos[7], pos[6],
                                                             pos[5], pos[4])));
 }
 
-static ZINDEX Index1114(const int *pos) {
+static ZIndex Index1114(const int *pos) {
     return pos[4] +
            (NSQUARES) *
                (pos[3] +
                 (NSQUARES) *
-                    (pos[2] + (NSQUARES) * (ZINDEX)N4_Index(pos[8], pos[7],
+                    (pos[2] + (NSQUARES) * (ZIndex)N4_Index(pos[8], pos[7],
                                                             pos[6], pos[5])));
 }
 
-static ZINDEX Index421(const int *pos) {
-    return pos[8] + NSQUARES * (ZINDEX)(N2_Index(pos[7], pos[6]) +
+static ZIndex Index421(const int *pos) {
+    return pos[8] + NSQUARES * (ZIndex)(N2_Index(pos[7], pos[6]) +
                                         N2_Offset * N4_Index(pos[5], pos[4],
                                                              pos[3], pos[2]));
 }
 
-static ZINDEX Index421_0010(const int *pos) {
+static ZIndex Index421_0010(const int *pos) {
     return pos[8] +
-           NSQUARES * (ZINDEX)(N2_Even_Index(pos[7], pos[6]) +
+           NSQUARES * (ZIndex)(N2_Even_Index(pos[7], pos[6]) +
                                N2_EVEN_PARITY_Offset *
                                    N4_Index(pos[5], pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index421_0011(const int *pos) {
+static ZIndex Index421_0011(const int *pos) {
     return pos[8] +
-           NSQUARES * (ZINDEX)(N2_Odd_Index(pos[7], pos[6]) +
+           NSQUARES * (ZIndex)(N2_Odd_Index(pos[7], pos[6]) +
                                N2_ODD_PARITY_Offset *
                                    N4_Index(pos[5], pos[4], pos[3], pos[2]));
 }
 
-static ZINDEX Index412(const int *pos) {
-    return pos[6] + NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
+static ZIndex Index412(const int *pos) {
+    return pos[6] + NSQUARES * (ZIndex)(N2_Index(pos[8], pos[7]) +
                                         N2_Offset * N4_Index(pos[5], pos[4],
                                                              pos[3], pos[2]));
 }
 
-static ZINDEX Index241(const int *pos) {
-    return pos[8] + NSQUARES * (ZINDEX)(N2_Index(pos[3], pos[2]) +
+static ZIndex Index241(const int *pos) {
+    return pos[8] + NSQUARES * (ZIndex)(N2_Index(pos[3], pos[2]) +
                                         N2_Offset * N4_Index(pos[7], pos[6],
                                                              pos[5], pos[4]));
 }
 
-static ZINDEX Index214(const int *pos) {
-    return pos[4] + NSQUARES * (ZINDEX)(N2_Index(pos[3], pos[2]) +
+static ZIndex Index214(const int *pos) {
+    return pos[4] + NSQUARES * (ZIndex)(N2_Index(pos[3], pos[2]) +
                                         N2_Offset * N4_Index(pos[8], pos[7],
                                                              pos[6], pos[5]));
 }
 
-static ZINDEX Index142(const int *pos) {
-    return pos[2] + NSQUARES * (ZINDEX)(N2_Index(pos[8], pos[7]) +
+static ZIndex Index142(const int *pos) {
+    return pos[2] + NSQUARES * (ZIndex)(N2_Index(pos[8], pos[7]) +
                                         N2_Offset * N4_Index(pos[6], pos[5],
                                                              pos[4], pos[3]));
 }
 
-static ZINDEX Index124(const int *pos) {
-    return pos[2] + NSQUARES * (ZINDEX)(N2_Index(pos[4], pos[3]) +
+static ZIndex Index124(const int *pos) {
+    return pos[2] + NSQUARES * (ZIndex)(N2_Index(pos[4], pos[3]) +
                                         N2_Offset * N4_Index(pos[8], pos[7],
                                                              pos[6], pos[5]));
 }
 
-static ZINDEX Index43(const int *pos) {
+static ZIndex Index43(const int *pos) {
     return N3_Index(pos[8], pos[7], pos[6]) +
-           N3_Offset * (ZINDEX)N4_Index(pos[5], pos[4], pos[3], pos[2]);
+           N3_Offset * (ZIndex)N4_Index(pos[5], pos[4], pos[3], pos[2]);
 }
 
-static ZINDEX Index34(const int *pos) {
+static ZIndex Index34(const int *pos) {
     return N3_Index(pos[4], pos[3], pos[2]) +
-           N3_Offset * (ZINDEX)N4_Index(pos[8], pos[7], pos[6], pos[5]);
+           N3_Offset * (ZIndex)N4_Index(pos[8], pos[7], pos[6], pos[5]);
 }
 
-static ZINDEX Index511(const int *pos) {
-    return pos[8] + NSQUARES * (pos[7] + NSQUARES * (ZINDEX)Index5(pos));
+static ZIndex Index511(const int *pos) {
+    return pos[8] + NSQUARES * (pos[7] + NSQUARES * (ZIndex)Index5(pos));
 }
 
-static ZINDEX Index151(const int *pos) {
-    return pos[8] + NSQUARES * (pos[2] + NSQUARES * (ZINDEX)Index5(pos + 1));
+static ZIndex Index151(const int *pos) {
+    return pos[8] + NSQUARES * (pos[2] + NSQUARES * (ZIndex)Index5(pos + 1));
 }
 
-static ZINDEX Index115(const int *pos) {
-    return pos[3] + NSQUARES * (pos[2] + NSQUARES * (ZINDEX)Index5(pos + 2));
+static ZIndex Index115(const int *pos) {
+    return pos[3] + NSQUARES * (pos[2] + NSQUARES * (ZIndex)Index5(pos + 2));
 }
 
-static ZINDEX Index52(const int *pos) {
-    return N2_Index(pos[8], pos[7]) + N2_Offset * ((ZINDEX)Index5(pos));
+static ZIndex Index52(const int *pos) {
+    return N2_Index(pos[8], pos[7]) + N2_Offset * ((ZIndex)Index5(pos));
 }
 
-static ZINDEX Index25(const int *pos) {
-    return N2_Index(pos[3], pos[2]) + N2_Offset * ((ZINDEX)Index5(pos + 2));
+static ZIndex Index25(const int *pos) {
+    return N2_Index(pos[3], pos[2]) + N2_Offset * ((ZIndex)Index5(pos + 2));
 }
 
-static ZINDEX Index61(const int *pos) {
-    return pos[8] + NSQUARES * ((ZINDEX)Index6(pos));
+static ZIndex Index61(const int *pos) {
+    return pos[8] + NSQUARES * ((ZIndex)Index6(pos));
 }
 
-static ZINDEX Index16(const int *pos) {
-    return pos[2] + NSQUARES * ((ZINDEX)Index6(pos + 1));
+static ZIndex Index16(const int *pos) {
+    return pos[2] + NSQUARES * ((ZIndex)Index6(pos + 1));
 }
 
 static const IndexType IndexTable[] = {{111111, Free, 0, Index111111},
@@ -3686,7 +3686,7 @@ static const IndexType IndexTable[] = {{111111, Free, 0, Index111111},
 
 #define NumIndexTypes (sizeof(IndexTable) / sizeof(IndexTable[0]))
 
-static int SetBoard(BOARD *Board, const PIECE board[NSQUARES], SIDE side,
+static int SetBoard(BOARD *Board, const Piece board[NSQUARES], Side side,
                     int ep_square) {
     int npieces = 0, nwhite = 0, nblack = 0, i;
 
@@ -3701,8 +3701,8 @@ static int SetBoard(BOARD *Board, const PIECE board[NSQUARES], SIDE side,
             if (board[i] == KING)
                 Board->wkpos = i;
             else {
-                Board->piece_locations[WHITE][board[i]]
-                                      [Board->piece_type_count[WHITE]
+                Board->piece_locations[White][board[i]]
+                                      [Board->piece_type_count[White]
                                                               [board[i]]++] = i;
                 nwhite++;
             }
@@ -3711,8 +3711,8 @@ static int SetBoard(BOARD *Board, const PIECE board[NSQUARES], SIDE side,
             if (board[i] == -KING)
                 Board->bkpos = i;
             else {
-                Board->piece_locations[BLACK][-board[i]]
-                                      [Board->piece_type_count[BLACK]
+                Board->piece_locations[Black][-board[i]]
+                                      [Board->piece_type_count[Black]
                                                               [-board[i]]++] =
                     i;
                 nblack++;
@@ -3726,7 +3726,7 @@ static int SetBoard(BOARD *Board, const PIECE board[NSQUARES], SIDE side,
     return npieces;
 }
 
-static int GetEndingType(const int count[2][KING], PIECE *piece_types,
+static int GetEndingType(const int count[2][KING], Piece *piece_types,
                          BishopParity bishop_parity[2], PawnFileType pawn_file_type) {
     int etype = 0, sub_type = 0;
     int ptypes[MAX_PIECES], npieces = 2, eindex = -1;
@@ -3735,14 +3735,14 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
     ptypes[1] = -KING;
 
     if (pawn_file_type == Bp11 || pawn_file_type == Op11) {
-        if (count[WHITE][PAWN] != 1 || count[BLACK][PAWN] != 1)
+        if (count[White][PAWN] != 1 || count[Black][PAWN] != 1)
             return -1;
         npieces = 4;
         ptypes[2] = PAWN;
         ptypes[3] = -PAWN;
         etype = 11;
     } else if (pawn_file_type == Op21) {
-        if (count[WHITE][PAWN] != 2 || count[BLACK][PAWN] != 1)
+        if (count[White][PAWN] != 2 || count[Black][PAWN] != 1)
             return -1;
         npieces = 5;
         ptypes[2] = PAWN;
@@ -3750,7 +3750,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[4] = -PAWN;
         etype = 21;
     } else if (pawn_file_type == Op12) {
-        if (count[WHITE][PAWN] != 1 || count[BLACK][PAWN] != 2)
+        if (count[White][PAWN] != 1 || count[Black][PAWN] != 2)
             return -1;
         npieces = 5;
         ptypes[2] = PAWN;
@@ -3758,7 +3758,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[4] = -PAWN;
         etype = 12;
     } else if (pawn_file_type == Op22 || pawn_file_type == Dp22) {
-        if (count[WHITE][PAWN] != 2 || count[BLACK][PAWN] != 2)
+        if (count[White][PAWN] != 2 || count[Black][PAWN] != 2)
             return -1;
         npieces = 6;
         ptypes[2] = PAWN;
@@ -3767,7 +3767,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[5] = -PAWN;
         etype = 22;
     } else if (pawn_file_type == Op31) {
-        if (count[WHITE][PAWN] != 3 || count[BLACK][PAWN] != 1)
+        if (count[White][PAWN] != 3 || count[Black][PAWN] != 1)
             return -1;
         npieces = 6;
         ptypes[2] = PAWN;
@@ -3776,7 +3776,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[5] = -PAWN;
         etype = 31;
     } else if (pawn_file_type == Op13) {
-        if (count[WHITE][PAWN] != 1 || count[BLACK][PAWN] != 3)
+        if (count[White][PAWN] != 1 || count[Black][PAWN] != 3)
             return -1;
         npieces = 6;
         ptypes[2] = PAWN;
@@ -3785,7 +3785,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[5] = -PAWN;
         etype = 13;
     } else if (pawn_file_type == Op41) {
-        if (count[WHITE][PAWN] != 4 || count[BLACK][PAWN] != 1)
+        if (count[White][PAWN] != 4 || count[Black][PAWN] != 1)
             return -1;
         npieces = 7;
         ptypes[2] = PAWN;
@@ -3795,7 +3795,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[6] = -PAWN;
         etype = 41;
     } else if (pawn_file_type == Op14) {
-        if (count[WHITE][PAWN] != 1 || count[BLACK][PAWN] != 4)
+        if (count[White][PAWN] != 1 || count[Black][PAWN] != 4)
             return -1;
         npieces = 7;
         ptypes[2] = PAWN;
@@ -3805,7 +3805,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[6] = -PAWN;
         etype = 14;
     } else if (pawn_file_type == Op32) {
-        if (count[WHITE][PAWN] != 3 || count[BLACK][PAWN] != 2)
+        if (count[White][PAWN] != 3 || count[Black][PAWN] != 2)
             return -1;
         npieces = 7;
         ptypes[2] = PAWN;
@@ -3815,7 +3815,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[6] = -PAWN;
         etype = 32;
     } else if (pawn_file_type == Op23) {
-        if (count[WHITE][PAWN] != 2 || count[BLACK][PAWN] != 3)
+        if (count[White][PAWN] != 2 || count[Black][PAWN] != 3)
             return -1;
         npieces = 7;
         ptypes[2] = PAWN;
@@ -3825,7 +3825,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[6] = -PAWN;
         etype = 23;
     } else if (pawn_file_type == Op33) {
-        if (count[WHITE][PAWN] != 3 || count[BLACK][PAWN] != 3)
+        if (count[White][PAWN] != 3 || count[Black][PAWN] != 3)
             return -1;
         npieces = 8;
         ptypes[2] = PAWN;
@@ -3836,7 +3836,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[7] = -PAWN;
         etype = 33;
     } else if (pawn_file_type == Op42) {
-        if (count[WHITE][PAWN] != 4 || count[BLACK][PAWN] != 2)
+        if (count[White][PAWN] != 4 || count[Black][PAWN] != 2)
             return -1;
         npieces = 8;
         ptypes[2] = PAWN;
@@ -3847,7 +3847,7 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         ptypes[7] = -PAWN;
         etype = 42;
     } else if (pawn_file_type == Op24) {
-        if (count[WHITE][PAWN] != 2 || count[BLACK][PAWN] != 4)
+        if (count[White][PAWN] != 2 || count[Black][PAWN] != 4)
             return -1;
         npieces = 8;
         ptypes[2] = PAWN;
@@ -3861,17 +3861,17 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
         return -1;
 
     if (pawn_file_type != Free) {
-        for (int color = WHITE; color <= BLACK; color++) {
+        for (int color = White; color <= Black; color++) {
             for (int piece = KING - 1; piece >= KNIGHT; piece--) {
                 if (count[color][piece] > 0)
                     etype = 10 * etype + count[color][piece];
             }
         }
 
-        for (int color = WHITE; color <= BLACK; color++) {
+        for (int color = White; color <= Black; color++) {
             for (int piece = KING - 1; piece >= KNIGHT; piece--) {
                 for (int i = npieces; i < npieces + count[color][piece]; i++) {
-                    ptypes[i] = (color == WHITE) ? piece : -piece;
+                    ptypes[i] = (color == White) ? piece : -piece;
                 }
                 npieces += count[color][piece];
             }
@@ -3896,63 +3896,63 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
     } else {
         npieces = 2;
 
-        for (int color = WHITE; color <= BLACK; color++) {
+        for (int color = White; color <= Black; color++) {
             if (count[color][PAWN] > 0)
                 etype = 10 * etype + count[color][PAWN];
         }
 
-        for (int color = WHITE; color <= BLACK; color++) {
+        for (int color = White; color <= Black; color++) {
             for (int piece = KING - 1; piece >= KNIGHT; piece--) {
                 if (count[color][piece] > 0)
                     etype = 10 * etype + count[color][piece];
             }
         }
 
-        for (int color = WHITE; color <= BLACK; color++) {
+        for (int color = White; color <= Black; color++) {
             for (int i = npieces; i < npieces + count[color][PAWN]; i++) {
-                ptypes[i] = (color == WHITE) ? PAWN : -PAWN;
+                ptypes[i] = (color == White) ? PAWN : -PAWN;
             }
             npieces += count[color][PAWN];
         }
 
-        for (int color = WHITE; color <= BLACK; color++) {
+        for (int color = White; color <= Black; color++) {
             for (int piece = KING - 1; piece >= KNIGHT; piece--) {
                 for (int i = npieces; i < npieces + count[color][piece]; i++) {
-                    ptypes[i] = (color == WHITE) ? piece : -piece;
+                    ptypes[i] = (color == White) ? piece : -piece;
                 }
                 npieces += count[color][piece];
             }
         }
 
-        if (bishop_parity[WHITE] != None) {
-            if (count[WHITE][BISHOP] == 2) {
+        if (bishop_parity[White] != None) {
+            if (count[White][BISHOP] == 2) {
                 int pair_index = 1;
-                if (count[WHITE][PAWN] == 2)
+                if (count[White][PAWN] == 2)
                     pair_index++;
-                if (count[BLACK][PAWN] == 2)
+                if (count[Black][PAWN] == 2)
                     pair_index++;
                 for (int piece = KING - 1; piece > BISHOP; piece--) {
-                    if (count[WHITE][piece] == 2)
+                    if (count[White][piece] == 2)
                         pair_index++;
                 }
-                if (bishop_parity[WHITE] == Even) {
+                if (bishop_parity[White] == Even) {
                     sub_type = 10 * pair_index + 0;
-                } else if (bishop_parity[WHITE] == Odd) {
+                } else if (bishop_parity[White] == Odd) {
                     sub_type = 10 * pair_index + 1;
                 }
-            } else if (count[WHITE][BISHOP] == 3) {
+            } else if (count[White][BISHOP] == 3) {
                 int triplet_index = 1;
-                if (count[WHITE][PAWN] == 3)
+                if (count[White][PAWN] == 3)
                     triplet_index++;
-                if (count[BLACK][PAWN] == 3)
+                if (count[Black][PAWN] == 3)
                     triplet_index++;
                 for (int piece = KING - 1; piece > BISHOP; piece--) {
-                    if (count[WHITE][piece] == 3)
+                    if (count[White][piece] == 3)
                         triplet_index++;
                 }
-                if (bishop_parity[WHITE] == Even) {
+                if (bishop_parity[White] == Even) {
                     sub_type = 10 * triplet_index + 0;
-                } else if (bishop_parity[WHITE] == Odd) {
+                } else if (bishop_parity[White] == Odd) {
                     sub_type = 10 * triplet_index + 1;
                 }
             } else {
@@ -3962,41 +3962,41 @@ static int GetEndingType(const int count[2][KING], PIECE *piece_types,
 
         int sub_type_black = 0;
 
-        if (bishop_parity[BLACK] != None) {
-            if (count[BLACK][BISHOP] == 2) {
+        if (bishop_parity[Black] != None) {
+            if (count[Black][BISHOP] == 2) {
                 int pair_index = 1;
                 for (int piece = KING - 1; piece >= PAWN; piece--) {
-                    if (count[WHITE][piece] == 2)
+                    if (count[White][piece] == 2)
                         pair_index++;
                 }
-                if (count[BLACK][PAWN] == 2)
+                if (count[Black][PAWN] == 2)
                     pair_index++;
 
                 for (int piece = KING - 1; piece > BISHOP; piece--) {
-                    if (count[BLACK][piece] == 2)
+                    if (count[Black][piece] == 2)
                         pair_index++;
                 }
-                if (bishop_parity[BLACK] == Even) {
+                if (bishop_parity[Black] == Even) {
                     sub_type_black = 10 * pair_index + 0;
-                } else if (bishop_parity[BLACK] == Odd) {
+                } else if (bishop_parity[Black] == Odd) {
                     sub_type_black = 10 * pair_index + 1;
                 }
-            } else if (count[BLACK][BISHOP] == 3) {
+            } else if (count[Black][BISHOP] == 3) {
                 int triplet_index = 1;
                 for (int piece = KING - 1; piece >= PAWN; piece--) {
-                    if (count[WHITE][piece] == 3)
+                    if (count[White][piece] == 3)
                         triplet_index++;
                 }
-                if (count[BLACK][PAWN] == 3)
+                if (count[Black][PAWN] == 3)
                     triplet_index++;
 
                 for (int piece = KING - 1; piece > BISHOP; piece--) {
-                    if (count[BLACK][piece] == 3)
+                    if (count[Black][piece] == 3)
                         triplet_index++;
                 }
-                if (bishop_parity[BLACK] == Even) {
+                if (bishop_parity[Black] == Even) {
                     sub_type_black = 10 * triplet_index + 0;
-                } else if (bishop_parity[BLACK] == Odd) {
+                } else if (bishop_parity[Black] == Odd) {
                     sub_type_black = 10 * triplet_index + 1;
                 }
             } else {
@@ -4373,16 +4373,16 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
     mb_position[loc++] = Board->wkpos;
     mb_position[loc++] = Board->bkpos;
 
-    for (color = WHITE; color <= BLACK; color++) {
+    for (color = White; color <= Black; color++) {
         const int *pos = Board->piece_locations[color][PAWN];
         for (int i = 0; i < Board->piece_type_count[color][PAWN]; i++) {
             mb_position[loc] = pos[i];
             if (Board->ep_square > 0) {
-                if (color == WHITE &&
+                if (color == White &&
                     SquareMake(Row(pos[i]) - 1, Column(pos[i])) ==
                         Board->ep_square)
                     mb_position[loc] = SquareMake(0, Column(pos[i]));
-                if (color == BLACK &&
+                if (color == Black &&
                     SquareMake(Row(pos[i]) + 1, Column(pos[i])) ==
                         Board->ep_square)
                     mb_position[loc] = SquareMake(NROWS - 1, Column(pos[i]));
@@ -4393,29 +4393,29 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
 
     *pawn_file_type = Free;
 
-    if (Board->piece_type_count[WHITE][PAWN] == 1 &&
-        Board->piece_type_count[BLACK][PAWN] == 1) {
+    if (Board->piece_type_count[White][PAWN] == 1 &&
+        Board->piece_type_count[Black][PAWN] == 1) {
         if (Column(mb_position[2]) == Column(mb_position[3])) {
             if (mb_position[3] == mb_position[2] + NCOLS)
                 *pawn_file_type = Bp11;
             else if (mb_position[3] > mb_position[2])
                 *pawn_file_type = Op11;
         }
-    } else if (Board->piece_type_count[WHITE][PAWN] == 2 &&
-               Board->piece_type_count[BLACK][PAWN] == 1) {
+    } else if (Board->piece_type_count[White][PAWN] == 2 &&
+               Board->piece_type_count[Black][PAWN] == 1) {
         int op21 =
             N2_1_Opposing_Index(mb_position[4], mb_position[3], mb_position[2]);
         if (op21 != -1)
             *pawn_file_type = Op21;
-    } else if (Board->piece_type_count[WHITE][PAWN] == 1 &&
-               Board->piece_type_count[BLACK][PAWN] == 2) {
+    } else if (Board->piece_type_count[White][PAWN] == 1 &&
+               Board->piece_type_count[Black][PAWN] == 2) {
         int op12 =
             N1_2_Opposing_Index(mb_position[4], mb_position[3], mb_position[2]);
         if (op12 != -1)
             *pawn_file_type = Op12;
-    } else if (Board->piece_type_count[WHITE][PAWN] == 2 &&
-               Board->piece_type_count[BLACK][PAWN] == 2) {
-        ZINDEX dp22 = IndexDP22(mb_position);
+    } else if (Board->piece_type_count[White][PAWN] == 2 &&
+               Board->piece_type_count[Black][PAWN] == 2) {
+        ZIndex dp22 = IndexDP22(mb_position);
         if (dp22 != ALL_ONES)
             *pawn_file_type = Dp22;
         else {
@@ -4424,20 +4424,20 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
             if (op22 != -1)
                 *pawn_file_type = Op22;
         }
-    } else if (Board->piece_type_count[WHITE][PAWN] == 3 &&
-               Board->piece_type_count[BLACK][PAWN] == 1) {
+    } else if (Board->piece_type_count[White][PAWN] == 3 &&
+               Board->piece_type_count[Black][PAWN] == 1) {
         int op31 = N3_1_Opposing_Index(mb_position[5], mb_position[4],
                                        mb_position[3], mb_position[2]);
         if (op31 != -1)
             *pawn_file_type = Op31;
-    } else if (Board->piece_type_count[WHITE][PAWN] == 1 &&
-               Board->piece_type_count[BLACK][PAWN] == 3) {
+    } else if (Board->piece_type_count[White][PAWN] == 1 &&
+               Board->piece_type_count[Black][PAWN] == 3) {
         int op13 = N1_3_Opposing_Index(mb_position[5], mb_position[4],
                                        mb_position[3], mb_position[2]);
         if (op13 != -1)
             *pawn_file_type = Op13;
-    } else if (Board->piece_type_count[WHITE][PAWN] == 4 &&
-               Board->piece_type_count[BLACK][PAWN] == 1) {
+    } else if (Board->piece_type_count[White][PAWN] == 4 &&
+               Board->piece_type_count[Black][PAWN] == 1) {
         if ((Column(mb_position[6]) == Column(mb_position[2]) &&
              mb_position[2] < mb_position[6]) ||
             (Column(mb_position[6]) == Column(mb_position[3]) &&
@@ -4448,8 +4448,8 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[5] < mb_position[6])) {
             *pawn_file_type = Op41;
         }
-    } else if (Board->piece_type_count[WHITE][PAWN] == 1 &&
-               Board->piece_type_count[BLACK][PAWN] == 4) {
+    } else if (Board->piece_type_count[White][PAWN] == 1 &&
+               Board->piece_type_count[Black][PAWN] == 4) {
         if ((Column(mb_position[2]) == Column(mb_position[3]) &&
              mb_position[2] < mb_position[3]) ||
             (Column(mb_position[2]) == Column(mb_position[4]) &&
@@ -4460,8 +4460,8 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[2] < mb_position[6])) {
             *pawn_file_type = Op14;
         }
-    } else if (Board->piece_type_count[WHITE][PAWN] == 3 &&
-               Board->piece_type_count[BLACK][PAWN] == 2) {
+    } else if (Board->piece_type_count[White][PAWN] == 3 &&
+               Board->piece_type_count[Black][PAWN] == 2) {
         if ((Column(mb_position[5]) == Column(mb_position[2]) &&
              mb_position[2] < mb_position[5]) ||
             (Column(mb_position[5]) == Column(mb_position[3]) &&
@@ -4476,8 +4476,8 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[4] < mb_position[6])) {
             *pawn_file_type = Op32;
         }
-    } else if (Board->piece_type_count[WHITE][PAWN] == 2 &&
-               Board->piece_type_count[BLACK][PAWN] == 3) {
+    } else if (Board->piece_type_count[White][PAWN] == 2 &&
+               Board->piece_type_count[Black][PAWN] == 3) {
         if ((Column(mb_position[2]) == Column(mb_position[4]) &&
              mb_position[2] < mb_position[4]) ||
             (Column(mb_position[2]) == Column(mb_position[5]) &&
@@ -4492,8 +4492,8 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[3] < mb_position[6])) {
             *pawn_file_type = Op23;
         }
-    } else if (Board->piece_type_count[WHITE][PAWN] == 3 &&
-               Board->piece_type_count[BLACK][PAWN] == 3) {
+    } else if (Board->piece_type_count[White][PAWN] == 3 &&
+               Board->piece_type_count[Black][PAWN] == 3) {
         if ((Column(mb_position[5]) == Column(mb_position[2]) &&
              mb_position[2] < mb_position[5]) ||
             (Column(mb_position[5]) == Column(mb_position[3]) &&
@@ -4514,8 +4514,8 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[4] < mb_position[7])) {
             *pawn_file_type = Op33;
         }
-    } else if (Board->piece_type_count[WHITE][PAWN] == 4 &&
-               Board->piece_type_count[BLACK][PAWN] == 2) {
+    } else if (Board->piece_type_count[White][PAWN] == 4 &&
+               Board->piece_type_count[Black][PAWN] == 2) {
         if ((Column(mb_position[6]) == Column(mb_position[2]) &&
              mb_position[2] < mb_position[6]) ||
             (Column(mb_position[6]) == Column(mb_position[3]) &&
@@ -4534,8 +4534,8 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
              mb_position[5] < mb_position[7])) {
             *pawn_file_type = Op42;
         }
-    } else if (Board->piece_type_count[WHITE][PAWN] == 2 &&
-               Board->piece_type_count[BLACK][PAWN] == 4) {
+    } else if (Board->piece_type_count[White][PAWN] == 2 &&
+               Board->piece_type_count[Black][PAWN] == 4) {
         if ((Column(mb_position[4]) == Column(mb_position[2]) &&
              mb_position[2] < mb_position[4]) ||
             (Column(mb_position[4]) == Column(mb_position[3]) &&
@@ -4555,7 +4555,7 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
             *pawn_file_type = Op24;
         }
     }
-    for (color = WHITE; color <= BLACK; color++) {
+    for (color = White; color <= Black; color++) {
         for (type = KING - 1; type >= KNIGHT; type--) {
             const int *pos = Board->piece_locations[color][type];
             for (i = 0; i < Board->piece_type_count[color][type]; i++) {
@@ -4575,25 +4575,25 @@ static int GetMBPosition(const BOARD *Board, int *mb_position, int *parity,
 
     // for Board with even number of squares can switch "white" and "black"
 #if ((NROWS % 2) == 0) || ((NCOLS % 2) == 0)
-    if ((bishops_on_black_squares[WHITE] > bishops_on_white_squares[WHITE]) ||
-        ((bishops_on_black_squares[WHITE] == bishops_on_white_squares[WHITE]) &&
-         (bishops_on_black_squares[BLACK] > bishops_on_white_squares[BLACK]))) {
-        SWAP(bishops_on_white_squares[WHITE], bishops_on_black_squares[WHITE]);
-        SWAP(bishops_on_white_squares[BLACK], bishops_on_black_squares[BLACK]);
+    if ((bishops_on_black_squares[White] > bishops_on_white_squares[White]) ||
+        ((bishops_on_black_squares[White] == bishops_on_white_squares[White]) &&
+         (bishops_on_black_squares[Black] > bishops_on_white_squares[Black]))) {
+        SWAP(bishops_on_white_squares[White], bishops_on_black_squares[White]);
+        SWAP(bishops_on_white_squares[Black], bishops_on_black_squares[Black]);
     }
 #endif
 
-    *parity = 1000 * bishops_on_white_squares[WHITE] +
-              100 * bishops_on_black_squares[WHITE] +
-              10 * bishops_on_white_squares[BLACK] +
-              bishops_on_black_squares[BLACK];
+    *parity = 1000 * bishops_on_white_squares[White] +
+              100 * bishops_on_black_squares[White] +
+              10 * bishops_on_white_squares[Black] +
+              bishops_on_black_squares[Black];
 
     assert(loc == Board->num_pieces);
     return loc;
 }
 
-static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
-                         const IndexType *eptr, int *kindex, ZINDEX *offset) {
+static ZIndex GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
+                         const IndexType *eptr, int *kindex, ZIndex *offset) {
     if (eptr == NULL) {
         *kindex = -1;
         *offset = ALL_ONES;
@@ -4619,7 +4619,7 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
     wk = mb_pos[0];
     bk = mb_pos[1];
 
-    *offset = (eptr->IndexFromPos)(mb_pos);
+    *offset = (eptr->index_from_pos)(mb_pos);
 
     bool flipped = false;
 
@@ -4633,7 +4633,7 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
         for (int i = 0; i < npieces; i++) {
             tmp_pos[i] = transform[mb_pos[i]];
         }
-        ZINDEX offset_t = (eptr->IndexFromPos)(tmp_pos);
+        ZIndex offset_t = (eptr->index_from_pos)(tmp_pos);
         if (offset_t < *offset) {
             *offset = offset_t;
             memcpy(mb_pos, tmp_pos, npieces * sizeof(tmp_pos[0]));
@@ -4648,7 +4648,7 @@ static ZINDEX GetMBIndex(int *mb_pos, int npieces, bool pawns_present,
     return 0;
 }
 
-static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
+static int GetMBInfo(const BOARD *Board, MbInfo *mb_info) {
     mb_info->num_parities = 0;
     mb_info->pawn_file_type = Free;
 
@@ -4892,8 +4892,8 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
         }
     }
 
-    bool pawns_present = mb_info->piece_type_count[WHITE][PAWN] ||
-                         mb_info->piece_type_count[BLACK][PAWN];
+    bool pawns_present = mb_info->piece_type_count[White][PAWN] ||
+                         mb_info->piece_type_count[Black][PAWN];
 
     // now check possible parity-constrained index tables
     // consider only subsets where parity is "odd" or "even"
@@ -4903,16 +4903,16 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
         int w_parity = mb_info->parity / 100;
 
         if (w_parity == 20 || w_parity == 2 || w_parity == 30 || w_parity == 3)
-            bishop_parity[WHITE] = Even;
+            bishop_parity[White] = Even;
         else if (w_parity == 11 || w_parity == 21 || w_parity == 12)
-            bishop_parity[WHITE] = Odd;
+            bishop_parity[White] = Odd;
 
         int b_parity = mb_info->parity % 100;
 
         if (b_parity == 20 || b_parity == 2 || b_parity == 30 || b_parity == 3)
-            bishop_parity[BLACK] = Even;
+            bishop_parity[Black] = Even;
         else if (b_parity == 11 || b_parity == 21 || b_parity == 12)
-            bishop_parity[BLACK] = Odd;
+            bishop_parity[Black] = Odd;
 
             // for odd-sized boards, can't do any parities for triples, and only
             // odd parities for doubles
@@ -4934,7 +4934,7 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
 
     // if there are no parities, no need to check further
 
-    if (bishop_parity[WHITE] == None && bishop_parity[BLACK] == None) {
+    if (bishop_parity[White] == None && bishop_parity[Black] == None) {
         if (mb_info->num_parities == 0)
             return ETYPE_NOT_MAPPED;
         GetMBIndex(mb_info->mb_position, mb_info->num_pieces, pawns_present,
@@ -4956,10 +4956,10 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
     // if both white and black have parity constraints, can add cases where only
     // one side is constrained
 
-    if (bishop_parity[WHITE] != None && bishop_parity[BLACK] != None) {
+    if (bishop_parity[White] != None && bishop_parity[Black] != None) {
         BishopParity sub_bishop_parity[2];
-        sub_bishop_parity[WHITE] = bishop_parity[WHITE];
-        sub_bishop_parity[BLACK] = None;
+        sub_bishop_parity[White] = bishop_parity[White];
+        sub_bishop_parity[Black] = None;
 
         eindex = GetEndingType(Board->piece_type_count, NULL, sub_bishop_parity,
                                Free);
@@ -4972,8 +4972,8 @@ static int GetMBInfo(const BOARD *Board, MB_INFO *mb_info) {
             mb_info->num_parities++;
         }
 
-        sub_bishop_parity[WHITE] = None;
-        sub_bishop_parity[BLACK] = bishop_parity[BLACK];
+        sub_bishop_parity[White] = None;
+        sub_bishop_parity[Black] = bishop_parity[Black];
 
         eindex = GetEndingType(Board->piece_type_count, NULL, sub_bishop_parity,
                                Free);
@@ -5012,14 +5012,14 @@ void mbeval_init(void) {
     InitPermutationTables();
 }
 
-int mbeval_get_mb_info(const PIECE pieces[NSQUARES], SIDE side, int ep_square,
-                       MB_INFO *info) {
+int mbeval_get_mb_info(const Piece pieces[NSQUARES], Side side, int ep_square,
+                       MbInfo *info) {
     assert(pieces != NULL);
     assert(info != NULL);
 
     BOARD board;
     SetBoard(&board, pieces, side, ep_square);
 
-    memset(info, 0, sizeof(MB_INFO));
+    memset(info, 0, sizeof(MbInfo));
     return GetMBInfo(&board, info);
 }
