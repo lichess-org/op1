@@ -236,7 +236,7 @@ impl Tablebase {
 
         Ok(match self.probe_side(&pos, &mut ctx)? {
             None => None,
-            Some(SideValue::Dtc(n)) => Some(Value::Dtc(i32::from(n) * pos.turn().fold_wb(1, -1))),
+            Some(SideValue::Dtc(n)) => Some(Value::Dtc(pos.turn().fold_wb(n, n.saturating_neg()))),
             Some(SideValue::Unresolved) => Some(Value::Draw),
         })
     }

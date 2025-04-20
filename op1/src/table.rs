@@ -134,7 +134,11 @@ impl Table {
     ) -> io::Result<SideValue> {
         assert_eq!(self.table_type, TableType::HighDtc);
 
-        let block_index = todo!();
+        let block_index = match self.starting_indices.binary_search(&U64::new(index)) {
+            Ok(block_index) => block_index,
+            Err(0) => return Ok(SideValue::Dtc(254)),
+            Err(block_index) => block_index - 1,
+        } as u32;
 
         self.load_compressed_block(block_index, ctx)?;
 
@@ -165,9 +169,9 @@ impl Table {
 
         Ok(SideValue::Dtc(
             if let Ok(ptr) =
-                decompressed_block.binary_search_by_key(&U64::new(index), |&entry| entry.index)
+                decompressed_block.binary_search_by_key(&U64::new(index), |entry| entry.index)
             {
-                i32::from(decompressed_block[ptr].score)
+                i32::from(decompressed_block[ptr].value)
             } else {
                 254
             },
@@ -239,7 +243,7 @@ impl TryFrom<RawHeader> for Header {
 #[repr(C)]
 struct HighDtc {
     index: U64,
-    score: I32,
+    value: I32,
 }
 
 enum CompressionMethod {
