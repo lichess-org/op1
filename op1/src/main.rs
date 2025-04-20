@@ -104,13 +104,20 @@ async fn handle_probe(
             .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
     })
     .await
-    .expect("blocking parent probe")?;
+    .expect("blocking parent probe")
+    .inspect(|_| tracing::trace!("parent success"))
+    .inspect_err(|error| tracing::error!(%error, "parent fail"))?;
 
     let mut children = FxHashMap::with_capacity_and_hasher(child_handles.len(), Default::default());
     for (m, child) in child_handles {
+        let uci = m.to_uci(CastlingMode::Chess960);
         children.insert(
-            m.to_uci(CastlingMode::Chess960),
-            child.await.expect("blocking child probe")?,
+            uci.clone(),
+            child
+                .await
+                .expect("blocking child probe")
+                .inspect(|_| tracing::trace!(%uci, "child success"))
+                .inspect_err(|error| tracing::error!(%uci, %error, "child fail"))?,
         );
     }
 
