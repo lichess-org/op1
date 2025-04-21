@@ -8,24 +8,8 @@ fn kbpkpppp(c: &mut Criterion) {
         tablebase.add_path("..").unwrap();
 
         b.iter(|| {
-            //let pos: Chess = black_box("8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1")
-            //    .parse::<Fen>()
-            //    .unwrap()
-            //    .into_position(CastlingMode::Chess960)
-            //    .unwrap();
-
-            //assert_eq!(
-            //    tablebase.probe(&pos).unwrap(),
-            //    black_box(Some(Value::Dtc(-7)))
-            //);
-
-            //let pos: Chess = black_box("8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1")
-            //    .parse::<Fen>()
-            //    .unwrap()
-            //    .into_position(CastlingMode::Chess960)
-            //    .unwrap();
-
-            //assert_eq!(tablebase.probe(&pos).unwrap(), black_box(Some(Value::Draw)));
+            // Test position will cause two table probes. The block size is
+            // 635392 bytes. Byte offsets into the block are 20981 and 334346.
 
             let pos: Chess = black_box("8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1")
                 .parse::<Fen>()

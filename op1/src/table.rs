@@ -6,6 +6,8 @@ use zerocopy::{
     little_endian::{I32, U32, U64},
 };
 
+use crate::decompression::Decompressor;
+
 pub(crate) struct Table {
     table_type: TableType,
     file: File,
@@ -100,16 +102,16 @@ impl Table {
 
         self.load_compressed_block(block_index, ctx)?;
 
+        //assert_eq!(byte_index, 20981);
+
         let block = match self.header.compression_method {
             CompressionMethod::None => &ctx.compressed_block,
             CompressionMethod::Zstd => {
-                if let Some(additional_capacity) = (self.header.block_size.get() as usize)
-                    .checked_sub(ctx.decompressed_block.capacity())
-                {
-                    ctx.decompressed_block.reserve(additional_capacity);
-                }
-                ctx.decompressor
-                    .decompress_to_buffer(&ctx.compressed_block, &mut ctx.decompressed_block)?;
+                ctx.decompressor.decompress_prefix(
+                    &ctx.compressed_block,
+                    &mut ctx.decompressed_block,
+                    byte_index as usize + 1,
+                )?;
                 &ctx.decompressed_block
             }
         };
@@ -144,22 +146,26 @@ impl Table {
         self.load_compressed_block(block_index, ctx)?;
 
         let num_per_block = self.header.block_size.get() as usize / mem::size_of::<HighDtc>();
-        let mut decompressed_block =
-            HighDtc::new_vec_zeroed(num_per_block).expect("allocate memory for decompressed block");
 
-        match self.header.compression_method {
+        let mut decompressed_block = match self.header.compression_method {
             CompressionMethod::None => {
+                let mut decompressed_block = HighDtc::new_vec_zeroed(num_per_block)
+                    .expect("allocate memory for decompressed block");
                 decompressed_block
                     .as_mut_bytes()
                     .copy_from_slice(&ctx.compressed_block);
+                decompressed_block
             }
             CompressionMethod::Zstd => {
-                ctx.decompressor.decompress_to_buffer(
+                let mut decompressed_block = Vec::<HighDtc>::new();
+                ctx.decompressor.decompress_prefix(
                     &ctx.compressed_block,
-                    decompressed_block.as_mut_bytes(),
+                    &mut decompressed_block,
+                    num_per_block,
                 )?;
+                decompressed_block
             }
-        }
+        };
 
         if block_index == self.header.num_blocks - 1 {
             let last_block_entries = self.header.num_elements % num_per_block as u64;
@@ -291,7 +297,7 @@ pub(crate) enum SideValue {
 pub struct ProbeContext {
     compressed_block: Vec<u8>,
     decompressed_block: Vec<u8>,
-    decompressor: zstd::bulk::Decompressor<'static>,
+    decompressor: Decompressor,
 }
 
 impl ProbeContext {
@@ -299,7 +305,7 @@ impl ProbeContext {
         Ok(ProbeContext {
             compressed_block: Vec::new(),
             decompressed_block: Vec::new(),
-            decompressor: zstd::bulk::Decompressor::new()?,
+            decompressor: Decompressor::new(),
         })
     }
 }

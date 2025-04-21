@@ -9,6 +9,7 @@ use axum::{
 };
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
+use op1::Tablebase;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use shakmaty::{CastlingMode, Chess, Position, PositionError, fen::Fen, uci::UciMove};
@@ -18,11 +19,6 @@ use tokio::{
 };
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
-
-use crate::tablebase::Tablebase;
-
-mod table;
-mod tablebase;
 
 #[derive(Parser, Debug)]
 struct Opt {
@@ -173,8 +169,9 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
+    use op1::Value;
+
     use super::*;
-    use crate::tablebase::Value;
 
     fn assert_score(tb: &Tablebase, fen: &str, expected: Option<Value>) {
         let pos: Chess = fen

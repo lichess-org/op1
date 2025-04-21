@@ -18,7 +18,7 @@ tower-http = { version = "0.6.2", features = ["trace"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
 zerocopy = { version = "0.8.24", features = ["derive", "std"] }
-zstd = "0.13.3"
+zstd-sys = "2.0.15"
 
 [dev-dependencies]
 criterion = "0.5.1"
