@@ -19,3 +19,10 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
 zerocopy = { version = "0.8.24", features = ["derive", "std"] }
 zstd = "0.13.3"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "benches"
+harness = false

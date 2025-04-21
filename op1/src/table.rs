@@ -18,7 +18,7 @@ impl Table {
     pub(crate) fn open(path: &Path, table_type: TableType) -> io::Result<Table> {
         let mut file = File::open(path)?;
 
-        let header = Header::try_from(dbg!(RawHeader::read_from_io(&mut file)?))?;
+        let header = Header::try_from(RawHeader::read_from_io(&mut file)?)?;
 
         if header.list_element_size != table_type.list_element_size() {
             return Err(io::Error::new(
