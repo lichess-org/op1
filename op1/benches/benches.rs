@@ -18,6 +18,14 @@ fn kbpkpppp(c: &mut Criterion) {
                 tablebase.probe(&pos).unwrap(),
                 black_box(Some(Value::Dtc(-7)))
             );
+
+            let pos: Chess = black_box("8/1kbp4/8/2PP4/PP6/8/8/4K3 w - - 0 1")
+                .parse::<Fen>()
+                .unwrap()
+                .into_position(CastlingMode::Chess960)
+                .unwrap();
+
+            assert_eq!(tablebase.probe(&pos).unwrap(), black_box(Some(Value::Draw)));
         });
     });
 }
