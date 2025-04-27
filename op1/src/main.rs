@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn test_kbpkpppp() {
         let mut tb = Tablebase::new(); // Implies mveval_init
-        tb.add_path("..").unwrap();
+        tb.add_path("../../op1-gcloud").unwrap();
 
         assert_score(
             &tb,
@@ -228,6 +228,30 @@ mod tests {
             &tb,
             "8/4p3/8/6P1/4PP2/5b2/7P/5k1K w - - 1 3",
             Some(Value::Dtc(0)), // checkmate
+        );
+    }
+
+    #[test]
+    fn test_krbbpkqp() {
+        let mut tb = Tablebase::new(); // Implies mveval_init
+        tb.add_path("../../op1-gcloud").unwrap();
+
+        assert_score(
+            &tb,
+            "R7/8/8/8/7q/2K1B2p/7P/2Bk4 w - - 0 1",
+            Some(Value::Dtc(584)),
+        );
+    }
+
+    #[test]
+    fn test_kbnnpkqp() {
+        let mut tb = Tablebase::new(); // Implies mveval_init
+        tb.add_path("../../op1-gcloud").unwrap();
+
+        assert_score(
+            &tb,
+            "8/8/6B1/1K3p2/N3k1N1/8/5P2/2q5 w - - 0 1",
+            Some(Value::Dtc(304)),
         );
     }
 }

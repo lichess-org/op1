@@ -246,11 +246,12 @@ impl TryFrom<RawHeader> for Header {
     }
 }
 
-#[derive(FromBytes, IntoBytes, Immutable)]
 #[repr(C)]
+#[derive(FromBytes, IntoBytes, Immutable)]
 struct HighDtc {
     index: U64,
     value: I32,
+    _padding: [u8; 4],
 }
 
 enum CompressionMethod {
@@ -307,5 +308,15 @@ impl ProbeContext {
             decompressed_block: Vec::new(),
             decompressor: Decompressor::new(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_high_dtc() {
+        assert_eq!(std::mem::size_of::<HighDtc>(), 16);
     }
 }
