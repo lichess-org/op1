@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn test_kbpkpppp() {
         let mut tb = Tablebase::new(); // Implies mveval_init
-        tb.add_path("../../op1-gcloud").unwrap();
+        tb.add_path("../tables").unwrap();
 
         assert_score(
             &tb,
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn test_krbbpkqp() {
         let mut tb = Tablebase::new(); // Implies mveval_init
-        tb.add_path("../../op1-gcloud").unwrap();
+        tb.add_path("../tables").unwrap();
 
         assert_score(
             &tb,
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn test_kbnnpkqp() {
         let mut tb = Tablebase::new(); // Implies mveval_init
-        tb.add_path("../../op1-gcloud").unwrap();
+        tb.add_path("../tables").unwrap();
 
         assert_score(
             &tb,
