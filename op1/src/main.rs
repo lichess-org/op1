@@ -120,6 +120,17 @@ async fn handle_probe(
     Ok(Json(ProbeResponse { parent, children }))
 }
 
+#[axum::debug_handler]
+async fn handle_monitor(State(app): State<&'static AppState>) -> String {
+    let stats = app.tablebase.stats();
+    let metrics = &[
+        format!("draws={}u", stats.draws()),
+        format!("true_predictions={}u", stats.true_predictions()),
+        format!("false_predictions={}u", stats.false_predictions()),
+    ];
+    format!("op1 {}", metrics.join(","))
+}
+
 #[tokio::main]
 async fn main() {
     // Parse arguments
@@ -149,6 +160,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(handle_probe))
+        .route("/monitor", get(handle_monitor))
         .with_state(state)
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()));
 

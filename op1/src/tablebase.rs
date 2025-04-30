@@ -3,7 +3,10 @@ use std::{
     io,
     mem::MaybeUninit,
     path::{Path, PathBuf},
-    sync::Once,
+    sync::{
+        Once,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 use mbeval_sys::{
@@ -23,6 +26,7 @@ static INIT_MBEVAL: Once = Once::new();
 
 pub struct Tablebase {
     tables: FxHashMap<TableKey, (PathBuf, OnceCell<Table>)>,
+    stats: Stats,
 }
 
 impl Tablebase {
@@ -36,6 +40,7 @@ impl Tablebase {
 
         Tablebase {
             tables: FxHashMap::default(),
+            stats: Stats::default(),
         }
     }
 
@@ -227,6 +232,7 @@ impl Tablebase {
         match self.probe_side(&pos, &mut ctx)? {
             None => return Ok(None),
             Some(SideValue::Dtc(n)) => {
+                self.stats.true_predictions.fetch_add(1, Ordering::Relaxed);
                 return Ok(Some(Value::Dtc(pos.turn().fold_wb(n, n.saturating_neg()))));
             }
             Some(SideValue::Unresolved) => (),
@@ -236,9 +242,19 @@ impl Tablebase {
 
         Ok(match self.probe_side(&pos, &mut ctx)? {
             None => None,
-            Some(SideValue::Dtc(n)) => Some(Value::Dtc(pos.turn().fold_wb(n, n.saturating_neg()))),
-            Some(SideValue::Unresolved) => Some(Value::Draw),
+            Some(SideValue::Dtc(n)) => {
+                self.stats.false_predictions.fetch_add(1, Ordering::Relaxed);
+                Some(Value::Dtc(pos.turn().fold_wb(n, n.saturating_neg())))
+            }
+            Some(SideValue::Unresolved) => {
+                self.stats.draws.fetch_add(1, Ordering::Relaxed);
+                Some(Value::Draw)
+            }
         })
+    }
+
+    pub fn stats(&self) -> &Stats {
+        &self.stats
     }
 }
 
@@ -405,4 +421,29 @@ fn flip_position(pos: Chess) -> Chess {
         .into_mirrored()
         .position(CastlingMode::Chess960)
         .expect("equivalent position")
+}
+
+#[derive(Default)]
+pub struct Stats {
+    draws: AtomicU64,
+    true_predictions: AtomicU64,
+    false_predictions: AtomicU64,
+}
+
+impl Stats {
+    pub fn new() -> Stats {
+        Self::default()
+    }
+
+    pub fn draws(&self) -> u64 {
+        self.draws.load(Ordering::Relaxed)
+    }
+
+    pub fn true_predictions(&self) -> u64 {
+        self.true_predictions.load(Ordering::Relaxed)
+    }
+
+    pub fn false_predictions(&self) -> u64 {
+        self.false_predictions.load(Ordering::Relaxed)
+    }
 }
