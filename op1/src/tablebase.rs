@@ -391,11 +391,12 @@ fn parse_material(name: &str) -> Option<Material> {
 }
 
 fn strength(board: &Board, color: Color) -> usize {
-    (board.by_color(color) & board.pawns()).count()
-        + (board.by_color(color) & board.knights()).count() * 3
-        + (board.by_color(color) & board.bishops()).count() * 3
-        + (board.by_color(color) & board.rooks()).count() * 5
-        + (board.by_color(color) & board.queens()).count() * 9
+    let side = board.by_color(color);
+    (side & board.pawns()).count()
+        + (side & board.knights()).count() * 3
+        + (side & board.bishops()).count() * 3
+        + (side & board.rooks()).count() * 5
+        + (side & board.queens()).count() * 9
 }
 
 #[must_use]
