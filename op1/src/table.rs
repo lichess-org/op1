@@ -102,8 +102,6 @@ impl Table {
 
         self.load_compressed_block(block_index, ctx)?;
 
-        //assert_eq!(byte_index, 20981);
-
         let block = match self.header.compression_method {
             CompressionMethod::None => &ctx.compressed_block,
             CompressionMethod::Zstd => {
