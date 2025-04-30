@@ -6,7 +6,7 @@ use zerocopy::{
     little_endian::{I32, U32, U64},
 };
 
-use crate::decompression::Decompressor;
+use crate::decompressor::Decompressor;
 
 pub(crate) struct Table {
     table_type: TableType,

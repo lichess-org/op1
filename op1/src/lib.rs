@@ -1,4 +1,4 @@
-mod decompression;
+mod decompressor;
 mod table;
 mod tablebase;
 
