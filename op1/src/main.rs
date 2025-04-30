@@ -190,6 +190,16 @@ mod tests {
 
         assert_score(
             &tb,
+            "8/1pp5/p1p5/8/B7/8/P6k/2K5 w - - 0 1",
+            Some(Value::Dtc(53)),
+        );
+        assert_score(
+            &tb,
+            "8/7p/k7/8/8/5P2/P5PP/K2b4 w - - 0 1",
+            Some(Value::Dtc(42)),
+        );
+        assert_score(
+            &tb,
             "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1",
             Some(Value::Dtc(-3)),
         );
@@ -253,5 +263,30 @@ mod tests {
             "8/8/6B1/1K3p2/N3k1N1/8/5P2/2q5 w - - 0 1",
             Some(Value::Dtc(304)),
         );
+    }
+
+    #[test]
+    fn test_krrnkrr() {
+        let mut tb = Tablebase::new(); // Implies mveval_init
+        tb.add_path("../tables").unwrap();
+
+        for fen in &[
+            "r7/5r1N/8/8/8/6R1/6R1/3K1k2 w - - 0 1",
+            "r7/5r1N/8/8/6R1/8/6R1/3K1k2 w - - 0 1",
+            "r7/5r1N/8/6R1/8/8/6R1/3K1k2 w - - 0 1",
+            "r7/5r1N/6R1/8/8/8/6R1/3K1k2 w - - 0 1",
+            "r7/5rRN/8/8/8/8/6R1/3K1k2 w - - 0 1",
+            "r5R1/5r1N/8/8/8/8/6R1/3K1k2 w - - 0 1",
+            "r7/5r1N/8/8/6R1/6R1/8/3K1k2 w - - 0 1",
+            "r7/5r1N/8/6R1/8/6R1/8/3K1k2 w - - 0 1",
+            "r7/5r1N/6R1/8/8/6R1/8/3K1k2 w - - 0 1",
+            "r7/5r1N/8/6R1/6R1/8/8/3K1k2 w - - 0 1",
+            "r7/5r1N/6R1/8/6R1/8/8/3K1k2 w - - 0 1",
+            "r7/5r1N/8/8/6k1/8/7R/3KR3 w - - 0 1",
+            "r7/5r1N/8/8/6k1/8/7R/3K1R2 w - - 0 1",
+            "r7/5r1N/8/8/6k1/8/7R/3K3R w - - 0 1",
+        ] {
+            assert_score(&tb, fen, Some(Value::Dtc(290)));
+        }
     }
 }
