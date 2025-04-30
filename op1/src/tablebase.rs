@@ -372,15 +372,21 @@ fn parse_material(name: &str) -> Option<Material> {
     if name.len() > 9 {
         return None;
     }
+
     let mut material = Material::default();
-    let mut color = Color::Black;
+    let mut color = None;
     for c in name.chars() {
         let role = Role::from_char(c)?;
         if role == Role::King {
-            color = !color;
-        }
-        material[color][role] += 1;
+            color = match color {
+                None => Some(Color::White),
+                Some(Color::White) => Some(Color::Black),
+                Some(Color::Black) => return None,
+            };
+        };
+        material[color?][role] += 1;
     }
+
     Some(material)
 }
 
