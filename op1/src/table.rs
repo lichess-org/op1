@@ -252,6 +252,10 @@ struct HighDtc {
     _padding: [u8; 4],
 }
 
+const _: () = const {
+    assert!(mem::size_of::<HighDtc>() == 16);
+};
+
 enum CompressionMethod {
     None,
     Zstd,
@@ -306,15 +310,5 @@ impl ProbeContext {
             decompressed_block: Vec::new(),
             decompressor: Decompressor::new(),
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_high_dtc() {
-        assert_eq!(std::mem::size_of::<HighDtc>(), 16);
     }
 }
