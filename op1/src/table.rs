@@ -18,6 +18,8 @@ pub(crate) struct Table {
 
 impl Table {
     pub(crate) fn open(path: &Path, table_type: TableType) -> io::Result<Table> {
+        tracing::trace!("try open table: {}", path.display());
+
         let mut file = File::open(path)?;
 
         let header = Header::try_from(RawHeader::read_from_io(&mut file)?)?;

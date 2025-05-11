@@ -2,6 +2,7 @@ use op1::Tablebase;
 use op1::Value;
 
 use shakmaty::{CastlingMode, Chess, fen::Fen};
+use test_log::test;
 
 fn open_tablebase() -> Tablebase {
     let mut tb = Tablebase::new(); // Implies mveval_init
@@ -16,7 +17,7 @@ fn assert_score(tb: &Tablebase, fen: &str, expected: Option<Value>) {
         .into_position(CastlingMode::Chess960)
         .unwrap();
 
-    assert_eq!(tb.probe(&pos).unwrap(), expected);
+    assert_eq!(tb.probe(&pos).unwrap(), expected, "{fen}");
 }
 
 #[test]

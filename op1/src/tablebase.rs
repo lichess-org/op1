@@ -16,6 +16,7 @@ use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use shakmaty::{
     Board, ByColor, ByRole, CastlingMode, Chess, Color, EnPassantMode, Position as _, Role,
+    fen::Fen,
 };
 
 use crate::table::{MbValue, ProbeContext, SideValue, Table, TableType};
@@ -71,6 +72,7 @@ impl Tablebase {
                 }
             }
         }
+        tracing::info!("added {num} table files");
         Ok(num)
     }
 
@@ -230,7 +232,13 @@ impl Tablebase {
         let mut ctx = ProbeContext::new()?;
 
         match self.probe_side(&pos, &mut ctx)? {
-            None => return Ok(None),
+            None => {
+                tracing::warn!(
+                    "no table for {}",
+                    Fen(pos.clone().into_setup(EnPassantMode::Legal))
+                );
+                return Ok(None);
+            }
             Some(SideValue::Dtc(n)) => {
                 self.stats.true_predictions.fetch_add(1, Ordering::Relaxed);
                 return Ok(Some(Value::Dtc(pos.turn().fold_wb(n, n.saturating_neg()))));
@@ -241,7 +249,13 @@ impl Tablebase {
         let pos = flip_position(pos);
 
         Ok(match self.probe_side(&pos, &mut ctx)? {
-            None => None,
+            None => {
+                tracing::warn!(
+                    "no table for {} (flipped)",
+                    Fen(pos.clone().into_setup(EnPassantMode::Legal))
+                );
+                None
+            }
             Some(SideValue::Dtc(n)) => {
                 self.stats.false_predictions.fetch_add(1, Ordering::Relaxed);
                 Some(Value::Dtc(pos.turn().fold_wb(n, n.saturating_neg())))
