@@ -328,10 +328,7 @@ impl ProbeContext {
 }
 
 pub fn fadvise(file: &File, advice: c_int) -> io::Result<()> {
-    // SAFETY: Unconditionally safe.
-    let res = unsafe { libc::posix_fadvise(file.as_raw_fd(), 0, 0, advice) };
-
-    if res < 0 {
+    if unsafe { libc::posix_fadvise(file.as_raw_fd(), 0, 0, advice) } < 0 {
         Err(io::Error::last_os_error())
     } else {
         Ok(())
