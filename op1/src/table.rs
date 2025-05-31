@@ -279,7 +279,7 @@ impl TryFrom<u8> for CompressionMethod {
             _ => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("unknown compression method: {}", value),
+                    format!("unknown compression method: {value}"),
                 ));
             }
         })

@@ -30,6 +30,12 @@ pub struct Tablebase {
     stats: Stats,
 }
 
+impl Default for Tablebase {
+    fn default() -> Tablebase {
+        Tablebase::new()
+    }
+}
+
 impl Tablebase {
     pub fn new() -> Tablebase {
         INIT_MBEVAL.call_once(|| {
