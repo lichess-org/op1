@@ -5,7 +5,7 @@ use shakmaty::{CastlingMode, Chess, fen::Fen};
 fn kbpkpppp(c: &mut Criterion) {
     c.bench_function("kbpkpppp", |b| {
         let mut tablebase = Tablebase::new();
-        tablebase.add_path("..").unwrap();
+        tablebase.add_path("../tables").unwrap();
 
         b.iter(|| {
             // Test position will cause two table probes. The block size is
