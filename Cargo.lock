@@ -841,6 +841,7 @@ dependencies = [
  "axum",
  "clap",
  "criterion",
+ "libc",
  "listenfd",
  "mbeval-sys",
  "once_cell",

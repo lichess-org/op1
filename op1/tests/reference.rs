@@ -1,6 +1,4 @@
-use op1::Tablebase;
-use op1::Value;
-
+use op1::{Tablebase, Value};
 use shakmaty::{CastlingMode, Chess, fen::Fen};
 use test_log::test;
 

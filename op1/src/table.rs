@@ -1,4 +1,13 @@
-use std::{fs::File, io, io::Read, mem, num::NonZeroU32, os::unix::fs::FileExt, path::Path};
+use std::{
+    ffi::c_int,
+    fs::File,
+    io,
+    io::Read,
+    mem,
+    num::NonZeroU32,
+    os::{fd::AsRawFd as _, unix::fs::FileExt as _},
+    path::Path,
+};
 
 use mbeval_sys::ZIndex;
 use zerocopy::{
@@ -21,6 +30,7 @@ impl Table {
         tracing::trace!("try open table: {}", path.display());
 
         let mut file = File::open(path)?;
+        fadvise(&file, libc::POSIX_FADV_NOREUSE)?;
 
         let header = Header::try_from(RawHeader::read_from_io(&mut file)?)?;
 
@@ -59,6 +69,8 @@ impl Table {
                 starting_indices
             }
         };
+
+        fadvise(&file, libc::POSIX_FADV_RANDOM)?;
 
         Ok(Table {
             table_type,
@@ -312,5 +324,16 @@ impl ProbeContext {
             decompressed_block: Vec::new(),
             decompressor: Decompressor::new(),
         })
+    }
+}
+
+pub fn fadvise(file: &File, advice: c_int) -> io::Result<()> {
+    // SAFETY: Unconditionally safe.
+    let res = unsafe { libc::posix_fadvise(file.as_raw_fd(), 0, 0, advice) };
+
+    if res < 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
     }
 }
