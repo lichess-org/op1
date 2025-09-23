@@ -30,7 +30,7 @@ impl PawnFileType {
         PawnFileType::Op24,
     ];
 
-    pub fn as_filename_component(self) -> Option<&'static str> {
+    pub fn as_filename_part(self) -> Option<&'static str> {
         Some(match self {
             PawnFileType::Free => return None,
             PawnFileType::Bp11 => "bp1",
@@ -51,17 +51,17 @@ impl PawnFileType {
         })
     }
 
-    pub fn from_filename_component(s: &str) -> Option<PawnFileType> {
+    pub fn from_filename_part(s: &str) -> Option<PawnFileType> {
         Self::ALL
             .into_iter()
-            .find(|pawn_file_type| pawn_file_type.as_filename_component() == Some(s))
+            .find(|pawn_file_type| pawn_file_type.as_filename_part() == Some(s))
     }
 }
 
 impl BishopParity {
     pub const ALL: [BishopParity; 3] = [BishopParity::None, BishopParity::Even, BishopParity::Odd];
 
-    pub fn as_filename_component_black(self) -> Option<&'static str> {
+    pub fn as_filename_part_black(self) -> Option<&'static str> {
         Some(match self {
             BishopParity::None => return None,
             BishopParity::Even => "bbe",
@@ -69,7 +69,7 @@ impl BishopParity {
         })
     }
 
-    pub fn as_filename_component_white(self) -> Option<&'static str> {
+    pub fn as_filename_part_white(self) -> Option<&'static str> {
         Some(match self {
             BishopParity::None => return None,
             BishopParity::Even => "wbe",
@@ -77,15 +77,15 @@ impl BishopParity {
         })
     }
 
-    pub fn from_filename_component_black(s: &str) -> Option<BishopParity> {
+    pub fn from_filename_part_black(s: &str) -> Option<BishopParity> {
         Self::ALL
             .into_iter()
-            .find(|bishop_parity| bishop_parity.as_filename_component_black() == Some(s))
+            .find(|bishop_parity| bishop_parity.as_filename_part_black() == Some(s))
     }
 
-    pub fn from_filename_component_white(s: &str) -> Option<BishopParity> {
+    pub fn from_filename_part_white(s: &str) -> Option<BishopParity> {
         Self::ALL
             .into_iter()
-            .find(|bishop_parity| bishop_parity.as_filename_component_white() == Some(s))
+            .find(|bishop_parity| bishop_parity.as_filename_part_white() == Some(s))
     }
 }

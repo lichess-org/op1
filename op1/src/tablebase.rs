@@ -1,13 +1,13 @@
 use std::{
     ffi::c_int,
-    io,
+    fmt, io,
     mem::MaybeUninit,
     path::{Path, PathBuf},
+    str::FromStr,
     sync::{
         Once,
         atomic::{AtomicU64, Ordering},
     },
-    fmt,
 };
 
 use mbeval_sys::{
@@ -20,8 +20,10 @@ use shakmaty::{
     fen::Fen,
 };
 
-use crate::meta::Meta;
-use crate::table::{MbValue, ProbeContext, SideValue, Table, TableType};
+use crate::{
+    meta::Meta,
+    table::{MbValue, ProbeContext, SideValue, Table, TableType},
+};
 
 const ALL_ONES: ZIndex = !0;
 
@@ -59,17 +61,17 @@ impl Tablebase {
         let mut num = 0;
         for directory in path.as_ref().read_dir()? {
             let directory = directory?.path();
-            if let Some((dir_material, pawn_file_type, bishop_parity)) = parse_dirname(&directory) {
+            if let Some(directory_key) = parse_dirname(&directory) {
                 for file in directory.read_dir()? {
                     let file = file?.path();
                     if let Some((file_material, side, kk_index, table_type)) = parse_filename(&file)
                     {
-                        if dir_material == file_material {
+                        if directory_key.material == file_material {
                             self.tables.insert(
                                 TableKey {
                                     material: file_material,
-                                    pawn_file_type,
-                                    bishop_parity,
+                                    pawn_file_type: directory_key.pawn_file_type,
+                                    bishop_parity: directory_key.bishop_parity,
                                     side,
                                     kk_index,
                                     table_type,
@@ -305,9 +307,69 @@ pub struct DirectoryKey {
     bishop_parity: ByColor<BishopParity>,
 }
 
-impl fmt::Display for DirectoryKey{
+#[derive(Debug)]
+pub struct InvalidDirectoryKey;
+
+impl FromStr for DirectoryKey {
+    type Err = InvalidDirectoryKey;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split('_').peekable();
+
+        let key = DirectoryKey {
+            material: parts
+                .next()
+                .and_then(parse_material)
+                .ok_or(InvalidDirectoryKey)?,
+            pawn_file_type: parts
+                .peek()
+                .copied()
+                .and_then(PawnFileType::from_filename_part)
+                .inspect(|_| {
+                    parts.next();
+                })
+                .unwrap_or(PawnFileType::Free),
+            bishop_parity: ByColor {
+                white: parts
+                    .peek()
+                    .copied()
+                    .and_then(BishopParity::from_filename_part_white)
+                    .inspect(|_| {
+                        parts.next();
+                    })
+                    .unwrap_or(BishopParity::None),
+                black: parts
+                    .peek()
+                    .copied()
+                    .and_then(BishopParity::from_filename_part_black)
+                    .inspect(|_| {
+                        parts.next();
+                    })
+                    .unwrap_or(BishopParity::None),
+            },
+        };
+
+        if parts.next().is_some() {
+            return Err(InvalidDirectoryKey);
+        }
+
+        Ok(key)
+    }
+}
+
+impl fmt::Display for DirectoryKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        f.write_str(&material_to_string(&self.material))?;
+        if let Some(part) = self.pawn_file_type.as_filename_part() {
+            write!(f, "_{}", part)?;
+        }
+        if let Some(part) = self.bishop_parity.white.as_filename_part_white() {
+            write!(f, "_{}", part)?;
+        }
+        if let Some(part) = self.bishop_parity.black.as_filename_part_black() {
+            write!(f, "_{}", part)?;
+        }
+        Ok(())
     }
 }
 
@@ -326,72 +388,12 @@ type Material = ByColor<ByRole<u8>>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct KkIndex(u32);
 
-fn parse_dirname(path: &Path) -> Option<(Material, PawnFileType, ByColor<BishopParity>)> {
-    let name = path.file_name()?.to_str()?.strip_suffix("_out")?;
-
-    let (name, black_bishop_parity) = if let Some(name) = name.strip_suffix("_bbo") {
-        (name, BishopParity::Odd)
-    } else if let Some(name) = name.strip_suffix("_bbe") {
-        (name, BishopParity::Even)
-    } else {
-        (name, BishopParity::None)
-    };
-
-    let (name, white_bishop_parity) = if let Some(name) = name.strip_suffix("_wbo") {
-        (name, BishopParity::Odd)
-    } else if let Some(name) = name.strip_suffix("_wbe") {
-        (name, BishopParity::Even)
-    } else {
-        (name, BishopParity::None)
-    };
-
-    let (name, pawn_file_type) =
-        if black_bishop_parity == BishopParity::None && white_bishop_parity == BishopParity::None {
-            if let Some(name) = name.strip_suffix("_bp1") {
-                (name, PawnFileType::Bp11)
-            } else if let Some(name) = name.strip_suffix("_op1") {
-                (name, PawnFileType::Op11)
-            } else if let Some(name) = name.strip_suffix("_op21") {
-                (name, PawnFileType::Op21)
-            } else if let Some(name) = name.strip_suffix("_op12") {
-                (name, PawnFileType::Op12)
-            } else if let Some(name) = name.strip_suffix("_dp2") {
-                (name, PawnFileType::Dp22)
-            } else if let Some(name) = name.strip_suffix("_op22") {
-                (name, PawnFileType::Op22)
-            } else if let Some(name) = name.strip_suffix("_op31") {
-                (name, PawnFileType::Op31)
-            } else if let Some(name) = name.strip_suffix("_op13") {
-                (name, PawnFileType::Op13)
-            } else if let Some(name) = name.strip_suffix("_op41") {
-                (name, PawnFileType::Op41)
-            } else if let Some(name) = name.strip_suffix("_op14") {
-                (name, PawnFileType::Op14)
-            } else if let Some(name) = name.strip_suffix("_op32") {
-                (name, PawnFileType::Op32)
-            } else if let Some(name) = name.strip_suffix("_op23") {
-                (name, PawnFileType::Op23)
-            } else if let Some(name) = name.strip_suffix("_op33") {
-                (name, PawnFileType::Op33)
-            } else if let Some(name) = name.strip_suffix("_op42") {
-                (name, PawnFileType::Op42)
-            } else if let Some(name) = name.strip_suffix("_op24") {
-                (name, PawnFileType::Op24)
-            } else {
-                (name, PawnFileType::Free)
-            }
-        } else {
-            (name, PawnFileType::Free)
-        };
-
-    Some((
-        parse_material(name)?,
-        pawn_file_type,
-        ByColor {
-            white: white_bishop_parity,
-            black: black_bishop_parity,
-        },
-    ))
+fn parse_dirname(path: &Path) -> Option<DirectoryKey> {
+    path.file_name()?
+        .to_str()?
+        .strip_suffix("_out")?
+        .parse()
+        .ok()
 }
 
 fn parse_filename(path: &Path) -> Option<(Material, Color, KkIndex, TableType)> {
@@ -441,6 +443,16 @@ fn parse_material(name: &str) -> Option<Material> {
     }
 
     Some(material)
+}
+
+fn material_to_string(material: &Material) -> String {
+    let mut s = String::new();
+    for side in material.iter().rev() {
+        for (role, count) in side.zip_role().into_iter().rev() {
+            s.push_str(&role.char().to_string().repeat(usize::from(count)));
+        }
+    }
+    s
 }
 
 fn strength(board: &Board, color: Color) -> usize {
