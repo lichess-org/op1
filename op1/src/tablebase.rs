@@ -7,6 +7,7 @@ use std::{
         Once,
         atomic::{AtomicU64, Ordering},
     },
+    fmt,
 };
 
 use mbeval_sys::{
@@ -19,6 +20,7 @@ use shakmaty::{
     fen::Fen,
 };
 
+use crate::meta::Meta;
 use crate::table::{MbValue, ProbeContext, SideValue, Table, TableType};
 
 const ALL_ONES: ZIndex = !0;
@@ -26,6 +28,7 @@ const ALL_ONES: ZIndex = !0;
 static INIT_MBEVAL: Once = Once::new();
 
 pub struct Tablebase {
+    meta: FxHashMap<DirectoryKey, Meta>,
     tables: FxHashMap<TableKey, (PathBuf, OnceCell<Table>)>,
     stats: Stats,
 }
@@ -46,6 +49,7 @@ impl Tablebase {
         });
 
         Tablebase {
+            meta: FxHashMap::default(),
             tables: FxHashMap::default(),
             stats: Stats::default(),
         }
@@ -291,6 +295,19 @@ impl Value {
             Value::Dtc(0) => None,
             Value::Dtc(dtc) => Some(dtc),
         }
+    }
+}
+
+#[derive(Debug, Eq, Hash, PartialEq)]
+pub struct DirectoryKey {
+    material: Material,
+    pawn_file_type: PawnFileType,
+    bishop_parity: ByColor<BishopParity>,
+}
+
+impl fmt::Display for DirectoryKey{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
     }
 }
 
