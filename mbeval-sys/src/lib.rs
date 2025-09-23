@@ -57,3 +57,35 @@ impl PawnFileType {
             .find(|pawn_file_type| pawn_file_type.as_filename_component() == Some(s))
     }
 }
+
+impl BishopParity {
+    pub const ALL: [BishopParity; 3] = [BishopParity::None, BishopParity::Even, BishopParity::Odd];
+
+    pub fn as_filename_component_black(self) -> Option<&'static str> {
+        Some(match self {
+            BishopParity::None => return None,
+            BishopParity::Even => "bbe",
+            BishopParity::Odd => "bbo",
+        })
+    }
+
+    pub fn as_filename_component_white(self) -> Option<&'static str> {
+        Some(match self {
+            BishopParity::None => return None,
+            BishopParity::Even => "wbe",
+            BishopParity::Odd => "wbo",
+        })
+    }
+
+    pub fn from_filename_component_black(s: &str) -> Option<BishopParity> {
+        Self::ALL
+            .into_iter()
+            .find(|bishop_parity| bishop_parity.as_filename_component_black() == Some(s))
+    }
+
+    pub fn from_filename_component_white(s: &str) -> Option<BishopParity> {
+        Self::ALL
+            .into_iter()
+            .find(|bishop_parity| bishop_parity.as_filename_component_white() == Some(s))
+    }
+}
