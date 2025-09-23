@@ -39,7 +39,7 @@ struct ProbeQuery {
 
 #[derive(Serialize)]
 struct ProbeResponse {
-    parent: Option<i32>,
+    root: Option<i32>,
     children: FxHashMap<UciMove, Option<i32>>,
 }
 
@@ -94,15 +94,15 @@ async fn handle_probe(
         })
         .collect::<Vec<_>>();
 
-    let parent = task::spawn_blocking(move || {
+    let root = task::spawn_blocking(move || {
         app.tablebase
             .probe(&pos)
             .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
     })
     .await
-    .expect("blocking parent probe")
-    .inspect(|_| tracing::trace!("parent success"))
-    .inspect_err(|error| tracing::error!(%error, "parent fail"))?;
+    .expect("blocking root probe")
+    .inspect(|_| tracing::trace!("root success"))
+    .inspect_err(|error| tracing::error!(%error, "root fail"))?;
 
     let mut children = FxHashMap::with_capacity_and_hasher(child_handles.len(), Default::default());
     for (m, child) in child_handles {
@@ -117,7 +117,7 @@ async fn handle_probe(
         );
     }
 
-    Ok(Json(ProbeResponse { parent, children }))
+    Ok(Json(ProbeResponse { root, children }))
 }
 
 #[axum::debug_handler]
