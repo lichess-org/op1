@@ -1,3 +1,31 @@
 body {
-    background: green;
+  font-family: Arial;
+}
+
+.key {
+  display: inline-block;
+  margin: 1em;
+  color: black;
+  text-decoration: none;
+}
+
+.key span {
+  border: 1px solid #ccc;
+  padding: 5px;
+  background:#f9f2f4;
+  color: #c7254e;
+}
+
+.key span + span {
+  border-left: none;
+}
+
+span.w {
+  color: white;
+  background: black;
+}
+
+span.b {
+  color: black;
+  background: white;
 }
