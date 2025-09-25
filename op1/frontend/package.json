@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "devDependencies": {
-    "esbuild": "^0.25"
+    "esbuild": "^0.25",
+    "prettier": "^3.6.2"
   },
   "dependencies": {
     "chessground": "^9.2.1",
@@ -13,6 +14,7 @@
   "scripts": {
     "prepare": "$npm_execpath run build-js && $npm_execpath run build-css",
     "build-js": "esbuild --bundle src/main.ts --outfile=dist/main.js --target=es2018,chrome105,edge91,firefox67,opera55,safari11",
-    "build-css": "esbuild --bundle css/style.css --outfile=dist/style.css --target=chrome105,edge91,firefox67,opera55,safari11"
+    "build-css": "esbuild --bundle css/style.css --outfile=dist/style.css --target=chrome105,edge91,firefox67,opera55,safari11",
+    "format": "prettier --write ."
   }
 }

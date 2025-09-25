@@ -4,53 +4,53 @@ import page from 'page';
 const backend = 'http://localhost:9999';
 
 class Controller {
-    metaKeys: string[];
+  metaKeys: string[];
 
-    constructor(readonly redraw: () => void) {
-        this.redraw = redraw;
-    }
+  constructor(readonly redraw: () => void) {
+    this.redraw = redraw;
+  }
 
   showMetaKeys() {
     fetch(`${backend}/api/meta`)
       .then(response => response.json())
       .then(data => {
         this.metaKeys = data;
-          this.redraw();
+        this.redraw();
       });
   }
 }
 
 function view(ctrl: Controller): VNode {
-    return h('div#app', [h('h1', ctrl.metaKeys)]);
+  return h('div#app', [h('h1', ctrl.metaKeys)]);
 }
 
 function run(element: Element) {
-    const patch = init([classModule]);
+  const patch = init([classModule]);
 
-    let vnode: VNode;
+  let vnode: VNode;
 
-    function redraw() {
-        vnode = patch(vnode || element, render());
-    }
+  function redraw() {
+    vnode = patch(vnode || element, render());
+  }
 
-    const ctrl = new Controller(redraw);
+  const ctrl = new Controller(redraw);
 
-    function render() {
-        return view(ctrl);
-    }
+  function render() {
+    return view(ctrl);
+  }
 
-    page('/', () => {
-      ctrl.showMetaKeys();
-    });
-    page('/meta', () => {
-        ctrl.text = 'Meta';
-        redraw();
-    });
-    page('*', () => {
-        ctrl.text = 'Page not found';
-        redraw();
-    });
-    page({ hashbang: true });
+  page('/', () => {
+    ctrl.showMetaKeys();
+  });
+  page('/meta', () => {
+    ctrl.text = 'Meta';
+    redraw();
+  });
+  page('*', () => {
+    ctrl.text = 'Page not found';
+    redraw();
+  });
+  page({ hashbang: true });
 }
 
 run(document.getElementById('app')!);
