@@ -144,7 +144,7 @@ async fn handle_meta(
     State(app): State<&'static AppState>,
     Path(MetaPath { key }): Path<MetaPath>,
 ) -> Json<Option<Meta>> {
-    Json(app.tablebase.meta(&key).cloned())
+    Json(app.tablebase.meta(&key))
 }
 
 #[axum::debug_handler]

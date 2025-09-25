@@ -33,7 +33,7 @@ const ALL_ONES: ZIndex = !0;
 static INIT_MBEVAL: Once = Once::new();
 
 pub struct Tablebase {
-    meta: FxHashMap<DirectoryKey, Meta>,
+    meta: FxHashMap<DirectoryKey, Option<Meta>>,
     tables: FxHashMap<TableKey, (PathBuf, OnceCell<Table>)>,
     stats: Stats,
 }
@@ -65,6 +65,17 @@ impl Tablebase {
         for directory in path.as_ref().read_dir()? {
             let directory = directory?.path();
             if let Some(directory_key) = parse_dirname(&directory) {
+                self.meta.insert(
+                    directory_key.clone(),
+                    match read_meta_file(path.as_ref(), &directory_key) {
+                        Ok(meta) => Some(meta),
+                        Err(err) => {
+                            tracing::error!("meta file for {directory_key}: {err}");
+                            None
+                        }
+                    },
+                );
+
                 for file in directory.read_dir()? {
                     let file = file?.path();
                     if let Some((file_material, side, kk_index, table_type)) = parse_filename(&file)
@@ -291,8 +302,8 @@ impl Tablebase {
         self.meta.keys()
     }
 
-    pub fn meta(&self, key: &DirectoryKey) -> Option<&Meta> {
-        self.meta.get(key)
+    pub fn meta(&self, key: &DirectoryKey) -> Option<Meta> {
+        self.meta.get(key).cloned().unwrap_or_default()
     }
 
     pub fn stats(&self) -> &Stats {
@@ -418,6 +429,11 @@ fn parse_dirname(path: &Path) -> Option<DirectoryKey> {
         .strip_suffix("_out")?
         .parse()
         .ok()
+}
+
+fn read_meta_file(directory: &Path, directory_key: &DirectoryKey) -> Result<Meta, io::Error> {
+    let file = File::open(directory.join(&format!("{directory_key}.json")))?;
+    serde_json::from_reader(file).map_err(io::Error::other)
 }
 
 fn is_meta_file(path: &Path, directory_key: &DirectoryKey) -> bool {
