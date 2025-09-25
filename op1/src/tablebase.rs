@@ -1,6 +1,8 @@
 use std::{
     ffi::c_int,
-    fmt, io,
+    fmt,
+    fs::File,
+    io,
     mem::MaybeUninit,
     path::{Path, PathBuf},
     str::FromStr,
@@ -65,21 +67,26 @@ impl Tablebase {
                 for file in directory.read_dir()? {
                     let file = file?.path();
                     if let Some((file_material, side, kk_index, table_type)) = parse_filename(&file)
+                        && directory_key.material == file_material
                     {
-                        if directory_key.material == file_material {
-                            self.tables.insert(
-                                TableKey {
-                                    material: file_material,
-                                    pawn_file_type: directory_key.pawn_file_type,
-                                    bishop_parity: directory_key.bishop_parity,
-                                    side,
-                                    kk_index,
-                                    table_type,
-                                },
-                                (file, OnceCell::new()),
-                            );
-                            num += 1;
-                        }
+                        self.tables.insert(
+                            TableKey {
+                                material: file_material,
+                                pawn_file_type: directory_key.pawn_file_type,
+                                bishop_parity: directory_key.bishop_parity,
+                                side,
+                                kk_index,
+                                table_type,
+                            },
+                            (file, OnceCell::new()),
+                        );
+                        num += 1;
+                    } else if is_meta_file(&file, &directory_key) {
+                        self.meta.insert(
+                            directory_key.clone(),
+                            serde_json::from_reader(File::open(&file)?)
+                                .map_err(io::Error::other)?,
+                        );
                     }
                 }
             }
@@ -300,7 +307,7 @@ impl Value {
     }
 }
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub struct DirectoryKey {
     material: Material,
     pawn_file_type: PawnFileType,
@@ -394,6 +401,13 @@ fn parse_dirname(path: &Path) -> Option<DirectoryKey> {
         .strip_suffix("_out")?
         .parse()
         .ok()
+}
+
+fn is_meta_file(path: &Path, directory_key: &DirectoryKey) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .and_then(|name| name.strip_suffix(".json"))
+        .is_some_and(|stem| stem == directory_key.to_string())
 }
 
 fn parse_filename(path: &Path) -> Option<(Material, Color, KkIndex, TableType)> {
