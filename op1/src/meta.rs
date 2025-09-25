@@ -1,7 +1,8 @@
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
+use serde::Serialize;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Meta {
     files: FxHashMap<String, FileMeta>,
     histograms: Histograms,
@@ -20,14 +21,14 @@ pub struct Meta {
     btm_saving_captures: u64,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileMeta {
     bytes: u64,
     md5: Option<String>,
     sha256: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Histograms {
     wtm_wins: Vec<u64>,
     wtm_lost: Vec<u64>,
@@ -35,7 +36,7 @@ pub struct Histograms {
     btm_lost: Vec<u64>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MaxPosition {
     dtc: u32,
     fen: String,

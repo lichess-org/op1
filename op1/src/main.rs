@@ -2,16 +2,18 @@ use std::{io, net::SocketAddr, path::PathBuf};
 
 use axum::{
     Json, Router,
-    extract::{Query, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
 };
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
-use op1::Tablebase;
+use op1::{DirectoryKey, Tablebase, meta::Meta};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use serde_with::DisplayFromStr;
+use serde_with::serde_as;
 use shakmaty::{CastlingMode, Chess, Position, PositionError, fen::Fen, uci::UciMove};
 use tokio::{
     net::{TcpListener, UnixListener},
@@ -121,6 +123,31 @@ async fn handle_probe(
 }
 
 #[axum::debug_handler]
+async fn handle_meta_keys(State(app): State<&'static AppState>) -> Json<Vec<String>> {
+    Json(
+        app.tablebase
+            .meta_keys()
+            .map(|key| key.to_string())
+            .collect(),
+    )
+}
+
+#[serde_as]
+#[derive(Deserialize)]
+struct MetaPath {
+    #[serde_as(as = "DisplayFromStr")]
+    key: DirectoryKey,
+}
+
+#[axum::debug_handler]
+async fn handle_meta(
+    State(app): State<&'static AppState>,
+    Path(MetaPath { key }): Path<MetaPath>,
+) -> Json<Option<Meta>> {
+    Json(app.tablebase.meta(&key).cloned())
+}
+
+#[axum::debug_handler]
 async fn handle_monitor(State(app): State<&'static AppState>) -> String {
     let stats = app.tablebase.stats();
     let metrics = &[
@@ -159,7 +186,9 @@ async fn main() {
     let state: &'static AppState = Box::leak(Box::new(AppState { tablebase }));
 
     let app = Router::new()
-        .route("/", get(handle_probe))
+        .route("/api/probe", get(handle_probe))
+        .route("/api/meta", get(handle_meta_keys))
+        .route("/api/meta/{key}", get(handle_meta))
         .route("/monitor", get(handle_monitor))
         .with_state(state)
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()));

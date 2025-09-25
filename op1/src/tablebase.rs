@@ -1,4 +1,5 @@
 use std::{
+    error::Error,
     ffi::c_int,
     fmt,
     fs::File,
@@ -286,6 +287,14 @@ impl Tablebase {
         })
     }
 
+    pub fn meta_keys(&self) -> impl Iterator<Item = &DirectoryKey> {
+        self.meta.keys()
+    }
+
+    pub fn meta(&self, key: &DirectoryKey) -> Option<&Meta> {
+        self.meta.get(key)
+    }
+
     pub fn stats(&self) -> &Stats {
         &self.stats
     }
@@ -316,6 +325,14 @@ pub struct DirectoryKey {
 
 #[derive(Debug)]
 pub struct InvalidDirectoryKey;
+
+impl fmt::Display for InvalidDirectoryKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("invalid directory key")
+    }
+}
+
+impl Error for InvalidDirectoryKey {}
 
 impl FromStr for DirectoryKey {
     type Err = InvalidDirectoryKey;

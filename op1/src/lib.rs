@@ -1,6 +1,6 @@
 mod decompressor;
-mod meta;
+pub mod meta;
 mod table;
 mod tablebase;
 
-pub use tablebase::{Tablebase, Value};
+pub use tablebase::{DirectoryKey, Tablebase, Value};
