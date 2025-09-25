@@ -1,2 +1,4 @@
 target
 mbeval-sys/mbeval/mbeval.o
+op1/frontend/dist
+op1/frontend/node_modules

@@ -1,0 +1,15 @@
+{
+  "name": "op1-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "esbuild": "^0.25"
+  },
+  "dependencies": {
+    "chessground": "^9",
+    "snabbdom": "^3"
+  },
+  "scripts": {
+    "prepare": "esbuild --bundle src/main.ts --outfile=dist/main.js --target=es2018,chrome105,edge91,firefox67,opera55,safari11"
+  }
+}
