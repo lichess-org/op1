@@ -10,6 +10,8 @@
     "snabbdom": "^3"
   },
   "scripts": {
-    "prepare": "esbuild --bundle src/main.ts --outfile=dist/main.js --target=es2018,chrome105,edge91,firefox67,opera55,safari11"
+    "prepare": "$npm_execpath run build-js && $npm_execpath run build-css",
+    "build-js": "esbuild --bundle src/main.ts --outfile=dist/main.js --target=es2018,chrome105,edge91,firefox67,opera55,safari11",
+    "build-css": "esbuild --bundle css/style.css --outfile=dist/style.css --target=chrome105,edge91,firefox67,opera55,safari11"
   }
 }
