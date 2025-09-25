@@ -1,29 +1,46 @@
 import { h, init, VNode, classModule } from 'snabbdom';
 import page from 'page';
 
+const backend = 'http://localhost:9999';
+
 class Controller {
-    text: string;
+    metaKeys: string[];
+
+    constructor(readonly redraw: () => void) {
+        this.redraw = redraw;
+    }
+
+  showMetaKeys() {
+    fetch(`${backend}/api/meta`)
+      .then(response => response.json())
+      .then(data => {
+        this.metaKeys = data;
+          this.redraw();
+      });
+  }
+}
+
+function view(ctrl: Controller): VNode {
+    return h('div#app', [h('h1', ctrl.metaKeys)]);
 }
 
 function run(element: Element) {
     const patch = init([classModule]);
 
     let vnode: VNode;
-    const ctrl = new Controller();
 
     function redraw() {
         vnode = patch(vnode || element, render());
     }
 
+    const ctrl = new Controller(redraw);
+
     function render() {
-      return h('div#app', [
-        h('h1', ctrl.text)
-      ])
+        return view(ctrl);
     }
 
     page('/', () => {
-        ctrl.text = 'Hello world!';
-        redraw();
+      ctrl.showMetaKeys();
     });
     page('/meta', () => {
         ctrl.text = 'Meta';
@@ -33,8 +50,7 @@ function run(element: Element) {
         ctrl.text = 'Page not found';
         redraw();
     });
-    page({hashbang: true});
+    page({ hashbang: true });
 }
-
 
 run(document.getElementById('app')!);

@@ -191,7 +191,14 @@ async fn main() {
         .route("/api/meta/{key}", get(handle_meta))
         .route("/monitor", get(handle_monitor))
         .with_state(state)
-        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()));
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+                    axum::http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
+                    axum::http::HeaderValue::from_static("*"),
+                )),
+        );
 
     let mut fds = ListenFd::from_env();
     if let Ok(Some(uds)) = fds.take_unix_listener(0) {
