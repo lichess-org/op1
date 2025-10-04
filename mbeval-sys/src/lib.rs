@@ -52,9 +52,24 @@ impl PawnFileType {
     }
 
     pub fn from_filename_part(s: &str) -> Option<PawnFileType> {
-        Self::ALL
-            .into_iter()
-            .find(|pawn_file_type| pawn_file_type.as_filename_part() == Some(s))
+        Some(match s {
+            "bp1" => PawnFileType::Bp11,
+            "op1" => PawnFileType::Op11,
+            "op21" => PawnFileType::Op21,
+            "op12" => PawnFileType::Op12,
+            "op22" => PawnFileType::Op22,
+            "dp2" => PawnFileType::Dp22,
+            "op31" => PawnFileType::Op31,
+            "op13" => PawnFileType::Op13,
+            "op14" => PawnFileType::Op14,
+            "op41" => PawnFileType::Op41,
+            "op32" => PawnFileType::Op32,
+            "op23" => PawnFileType::Op23,
+            "op33" => PawnFileType::Op33,
+            "op42" => PawnFileType::Op42,
+            "op24" => PawnFileType::Op24,
+            _ => return None,
+        })
     }
 }
 
@@ -78,14 +93,56 @@ impl BishopParity {
     }
 
     pub fn from_filename_part_black(s: &str) -> Option<BishopParity> {
-        Self::ALL
-            .into_iter()
-            .find(|bishop_parity| bishop_parity.as_filename_part_black() == Some(s))
+        Some(match s {
+            "bbe" => BishopParity::Even,
+            "bbo" => BishopParity::Odd,
+            _ => return None,
+        })
     }
 
     pub fn from_filename_part_white(s: &str) -> Option<BishopParity> {
-        Self::ALL
-            .into_iter()
-            .find(|bishop_parity| bishop_parity.as_filename_part_white() == Some(s))
+        Some(match s {
+            "wbe" => BishopParity::Even,
+            "wbo" => BishopParity::Odd,
+            _ => return None,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pawn_file_roundtrip_filename_part() {
+        for pawn_file_type in PawnFileType::ALL {
+            assert_eq!(
+                pawn_file_type
+                    .as_filename_part()
+                    .and_then(PawnFileType::from_filename_part)
+                    .unwrap_or(PawnFileType::Free),
+                pawn_file_type
+            );
+        }
+    }
+
+    #[test]
+    fn test_bishop_parity_roundtrip_filename_part() {
+        for bishop_parity in BishopParity::ALL {
+            assert_eq!(
+                bishop_parity
+                    .as_filename_part_black()
+                    .and_then(BishopParity::from_filename_part_black)
+                    .unwrap_or(BishopParity::None),
+                bishop_parity
+            );
+            assert_eq!(
+                bishop_parity
+                    .as_filename_part_white()
+                    .and_then(BishopParity::from_filename_part_white)
+                    .unwrap_or(BishopParity::None),
+                bishop_parity
+            );
+        }
     }
 }
