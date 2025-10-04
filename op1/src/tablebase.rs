@@ -119,7 +119,7 @@ impl Tablebase {
         pos: &Chess,
         mb_info: &MbInfo,
         table_type: TableType,
-    ) -> io::Result<Option<(&Table, ZIndex)>> {
+    ) -> io::Result<Option<(TableKey, &Table, ZIndex)>> {
         let table_key = TableKey {
             material: pos.board().material(),
             pawn_file_type: PawnFileType::Free,
@@ -130,27 +130,29 @@ impl Tablebase {
         };
 
         for bishop_parity in &mb_info.parity_index[..mb_info.num_parities as usize] {
-            if let Some(table) = self.open_table(&TableKey {
+            let with_bishop_parity = TableKey {
                 bishop_parity: ByColor {
                     white: bishop_parity.bishop_parity[Side::White as usize],
                     black: bishop_parity.bishop_parity[Side::Black as usize],
                 },
                 ..table_key
-            })? {
-                return Ok(Some((table, bishop_parity.index)));
+            };
+            if let Some(table) = self.open_table(&with_bishop_parity)? {
+                return Ok(Some((with_bishop_parity, table, bishop_parity.index)));
             }
         }
 
         let index = match mb_info.pawn_file_type {
             PawnFileType::Free => ALL_ONES,
             PawnFileType::Bp11 => {
+                let with_op11 = TableKey {
+                    pawn_file_type: PawnFileType::Op11,
+                    ..table_key
+                };
                 if mb_info.index_op_11 != ALL_ONES
-                    && let Some(table) = self.open_table(&TableKey {
-                        pawn_file_type: PawnFileType::Op11,
-                        ..table_key
-                    })?
+                    && let Some(table) = self.open_table(&with_op11)?
                 {
-                    return Ok(Some((table, mb_info.index_op_11)));
+                    return Ok(Some((with_op11, table, mb_info.index_op_11)));
                 }
                 mb_info.index_bp_11
             }
@@ -159,13 +161,14 @@ impl Tablebase {
             PawnFileType::Op12 => mb_info.index_op_12,
             PawnFileType::Op22 => mb_info.index_op_22,
             PawnFileType::Dp22 => {
+                let with_op22 = TableKey {
+                    pawn_file_type: PawnFileType::Op22,
+                    ..table_key
+                };
                 if mb_info.index_op_22 != ALL_ONES
-                    && let Some(table) = self.open_table(&TableKey {
-                        pawn_file_type: PawnFileType::Op22,
-                        ..table_key
-                    })?
+                    && let Some(table) = self.open_table(&with_op22)?
                 {
-                    return Ok(Some((table, mb_info.index_op_22)));
+                    return Ok(Some((with_op22, table, mb_info.index_op_22)));
                 }
                 mb_info.index_dp_22
             }
@@ -184,18 +187,20 @@ impl Tablebase {
             return Ok(None);
         }
 
+        let with_pawn_file_type = TableKey {
+            pawn_file_type: mb_info.pawn_file_type,
+            ..table_key
+        };
         Ok(self
-            .open_table(&TableKey {
-                pawn_file_type: mb_info.pawn_file_type,
-                ..table_key
-            })?
-            .map(|table| (table, index)))
+            .open_table(&with_pawn_file_type)?
+            .map(|table| (with_pawn_file_type, table, index)))
     }
 
     fn probe_side(
         &self,
         pos: &Chess,
         ctx: &mut ProbeContext,
+        log: &mut ProbeLog,
     ) -> Result<Option<SideValue>, io::Error> {
         // If one side has no pieces, only the other side can potentially win.
         if !pos.board().white().more_than_one() {
@@ -229,21 +234,26 @@ impl Tablebase {
         }
         let mb_info = unsafe { mb_info.assume_init() };
 
-        let Some((table, index)) = self.select_table(pos, &mb_info, TableType::Mb)? else {
+        let Some((table_key, table, index)) = self.select_table(pos, &mb_info, TableType::Mb)?
+        else {
             return Ok(None);
         };
 
+        log.push(table_key);
         Ok(match table.read_mb(index, ctx)? {
             MbValue::Dtc(dtc) => Some(SideValue::Dtc(i32::from(dtc))),
             MbValue::Unresolved => Some(SideValue::Unresolved),
             MbValue::MaybeHighDtc => self
                 .select_table(pos, &mb_info, TableType::HighDtc)?
-                .map(|(table, index)| table.read_high_dtc(index, ctx))
+                .map(|(table_key, table, index)| {
+                    log.push(table_key);
+                    table.read_high_dtc(index, ctx)
+                })
                 .transpose()?,
         })
     }
 
-    pub fn probe(&self, pos: &Chess) -> Result<Option<Value>, io::Error> {
+    pub fn probe(&self, pos: &Chess, log: &mut ProbeLog) -> Result<Option<Value>, io::Error> {
         if pos.is_insufficient_material() {
             return Ok(Some(Value::Draw));
         }
@@ -262,7 +272,7 @@ impl Tablebase {
 
         let mut ctx = ProbeContext::new()?;
 
-        match self.probe_side(&pos, &mut ctx)? {
+        match self.probe_side(&pos, &mut ctx, log)? {
             None => {
                 tracing::warn!(
                     "no table for {}",
@@ -279,7 +289,7 @@ impl Tablebase {
 
         let pos = flip_position(pos);
 
-        Ok(match self.probe_side(&pos, &mut ctx)? {
+        Ok(match self.probe_side(&pos, &mut ctx, log)? {
             None => {
                 tracing::warn!(
                     "no table for {} (flipped)",
@@ -418,6 +428,28 @@ pub struct TableKey {
     table_type: TableType,
 }
 
+impl fmt::Display for TableKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&material_to_string(&self.material))?;
+        if let Some(part) = self.pawn_file_type.as_filename_part() {
+            write!(f, "_{}", part)?;
+        }
+        if let Some(part) = self.bishop_parity.white.as_filename_part_white() {
+            write!(f, "_{}", part)?;
+        }
+        if let Some(part) = self.bishop_parity.black.as_filename_part_black() {
+            write!(f, "_{}", part)?;
+        }
+        write!(
+            f,
+            "_{}_{}.{}",
+            self.side.char(),
+            self.kk_index.0,
+            self.table_type.filename_extension()
+        )
+    }
+}
+
 type Material = ByColor<ByRole<u8>>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -432,7 +464,7 @@ fn parse_dirname(path: &Path) -> Option<DirectoryKey> {
 }
 
 fn read_meta_file(directory: &Path, directory_key: &DirectoryKey) -> Result<Meta, io::Error> {
-    let file = File::open(directory.join(&format!("{directory_key}.json")))?;
+    let file = File::open(directory.join(format!("{directory_key}.json")))?;
     serde_json::from_reader(file).map_err(io::Error::other)
 }
 
@@ -517,6 +549,38 @@ fn flip_position(pos: Chess) -> Chess {
         .into_mirrored()
         .position(CastlingMode::Chess960)
         .expect("equivalent position")
+}
+
+pub struct ProbeLog {
+    steps: Option<Vec<TableKey>>,
+}
+
+impl Default for ProbeLog {
+    fn default() -> Self {
+        ProbeLog::new()
+    }
+}
+
+impl ProbeLog {
+    pub fn new() -> ProbeLog {
+        ProbeLog {
+            steps: Some(Vec::new()),
+        }
+    }
+
+    pub fn ignore() -> ProbeLog {
+        ProbeLog { steps: None }
+    }
+
+    pub fn push(&mut self, table: TableKey) {
+        if let Some(steps) = &mut self.steps {
+            steps.push(table);
+        }
+    }
+
+    pub fn into_steps(self) -> Vec<TableKey> {
+        self.steps.unwrap_or_default()
+    }
 }
 
 #[derive(Default)]

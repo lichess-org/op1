@@ -1,6 +1,5 @@
 use rustc_hash::FxHashMap;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Meta {

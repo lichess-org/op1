@@ -9,11 +9,10 @@ use axum::{
 };
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
-use op1::{DirectoryKey, Tablebase, meta::Meta};
+use op1::{DirectoryKey, ProbeLog, TableKey, Tablebase, meta::Meta};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use serde_with::DisplayFromStr;
-use serde_with::serde_as;
+use serde_with::{DisplayFromStr, serde_as};
 use shakmaty::{CastlingMode, Chess, Position, PositionError, fen::Fen, uci::UciMove};
 use tokio::{
     net::{TcpListener, UnixListener},
@@ -39,10 +38,13 @@ struct ProbeQuery {
     fen: Fen,
 }
 
+#[serde_as]
 #[derive(Serialize)]
 struct ProbeResponse {
     root: Option<i32>,
     children: FxHashMap<UciMove, Option<i32>>,
+    #[serde_as(as = "Vec<DisplayFromStr>")]
+    tables: Vec<TableKey>,
 }
 
 enum ProbeError {
@@ -89,17 +91,18 @@ async fn handle_probe(
                 m,
                 task::spawn_blocking(move || {
                     app.tablebase
-                        .probe(&after)
+                        .probe(&after, &mut ProbeLog::ignore())
                         .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
                 }),
             )
         })
         .collect::<Vec<_>>();
 
-    let root = task::spawn_blocking(move || {
+    let (root, tables) = task::spawn_blocking(move || {
+        let mut probe_log = ProbeLog::new();
         app.tablebase
-            .probe(&pos)
-            .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
+            .probe(&pos, &mut probe_log)
+            .map(|maybe_v| (maybe_v.and_then(|v| v.zero_draw()), probe_log.into_steps()))
     })
     .await
     .expect("blocking root probe")
@@ -119,7 +122,11 @@ async fn handle_probe(
         );
     }
 
-    Ok(Json(ProbeResponse { root, children }))
+    Ok(Json(ProbeResponse {
+        root,
+        children,
+        tables,
+    }))
 }
 
 #[axum::debug_handler]
