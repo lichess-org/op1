@@ -59,21 +59,20 @@ impl Tablebase {
                 for file in directory.read_dir()? {
                     let file = file?.path();
                     if let Some((file_material, side, kk_index, table_type)) = parse_filename(&file)
+                        && dir_material == file_material
                     {
-                        if dir_material == file_material {
-                            self.tables.insert(
-                                TableKey {
-                                    material: file_material,
-                                    pawn_file_type,
-                                    bishop_parity,
-                                    side,
-                                    kk_index,
-                                    table_type,
-                                },
-                                (file, OnceCell::new()),
-                            );
-                            num += 1;
-                        }
+                        self.tables.insert(
+                            TableKey {
+                                material: file_material,
+                                pawn_file_type,
+                                bishop_parity,
+                                side,
+                                kk_index,
+                                table_type,
+                            },
+                            (file, OnceCell::new()),
+                        );
+                        num += 1;
                     }
                 }
             }
@@ -119,13 +118,13 @@ impl Tablebase {
         let index = match mb_info.pawn_file_type {
             PawnFileType::Free => ALL_ONES,
             PawnFileType::Bp11 => {
-                if mb_info.index_op_11 != ALL_ONES {
-                    if let Some(table) = self.open_table(&TableKey {
+                if mb_info.index_op_11 != ALL_ONES
+                    && let Some(table) = self.open_table(&TableKey {
                         pawn_file_type: PawnFileType::Op11,
                         ..table_key
-                    })? {
-                        return Ok(Some((table, mb_info.index_op_11)));
-                    }
+                    })?
+                {
+                    return Ok(Some((table, mb_info.index_op_11)));
                 }
                 mb_info.index_bp_11
             }
@@ -134,13 +133,13 @@ impl Tablebase {
             PawnFileType::Op12 => mb_info.index_op_12,
             PawnFileType::Op22 => mb_info.index_op_22,
             PawnFileType::Dp22 => {
-                if mb_info.index_op_22 != ALL_ONES {
-                    if let Some(table) = self.open_table(&TableKey {
+                if mb_info.index_op_22 != ALL_ONES
+                    && let Some(table) = self.open_table(&TableKey {
                         pawn_file_type: PawnFileType::Op22,
                         ..table_key
-                    })? {
-                        return Ok(Some((table, mb_info.index_op_22)));
-                    }
+                    })?
+                {
+                    return Ok(Some((table, mb_info.index_op_22)));
                 }
                 mb_info.index_dp_22
             }
