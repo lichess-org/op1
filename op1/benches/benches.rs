@@ -1,5 +1,5 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use op1::{ProbeLog, Tablebase, Value};
+use op1::{Tablebase, Value};
 use shakmaty::{CastlingMode, Chess, fen::Fen};
 
 fn kbpkpppp(c: &mut Criterion) {
@@ -18,7 +18,7 @@ fn kbpkpppp(c: &mut Criterion) {
                 .unwrap();
 
             assert_eq!(
-                tablebase.probe(&pos, &mut ProbeLog::ignore()).unwrap(),
+                tablebase.probe(&pos).unwrap(),
                 black_box(Some(Value::Dtc(-1)))
             );
         });

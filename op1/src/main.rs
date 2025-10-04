@@ -2,17 +2,16 @@ use std::{io, net::SocketAddr, path::PathBuf};
 
 use axum::{
     Json, Router,
-    extract::{Path, Query, State},
+    extract::{Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
 };
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
-use op1::{DirectoryKey, ProbeLog, ProbeStep, Tablebase, meta::Meta};
+use op1::Tablebase;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use serde_with::{DisplayFromStr, serde_as};
 use shakmaty::{CastlingMode, Chess, Position, PositionError, fen::Fen, uci::UciMove};
 use tokio::{
     net::{TcpListener, UnixListener},
@@ -38,12 +37,10 @@ struct ProbeQuery {
     fen: Fen,
 }
 
-#[serde_as]
 #[derive(Serialize)]
 struct ProbeResponse {
     root: Option<i32>,
     children: FxHashMap<UciMove, Option<i32>>,
-    steps: Vec<ProbeStep>,
 }
 
 enum ProbeError {
@@ -90,18 +87,17 @@ async fn handle_probe(
                 m,
                 task::spawn_blocking(move || {
                     app.tablebase
-                        .probe(&after, &mut ProbeLog::ignore())
+                        .probe(&after)
                         .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
                 }),
             )
         })
         .collect::<Vec<_>>();
 
-    let (root, steps) = task::spawn_blocking(move || {
-        let mut probe_log = ProbeLog::new();
+    let root = task::spawn_blocking(move || {
         app.tablebase
-            .probe(&pos, &mut probe_log)
-            .map(|maybe_v| (maybe_v.and_then(|v| v.zero_draw()), probe_log.into_steps()))
+            .probe(&pos)
+            .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
     })
     .await
     .expect("blocking root probe")
@@ -121,36 +117,7 @@ async fn handle_probe(
         );
     }
 
-    Ok(Json(ProbeResponse {
-        root,
-        children,
-        steps,
-    }))
-}
-
-#[axum::debug_handler]
-async fn handle_meta_keys(State(app): State<&'static AppState>) -> Json<Vec<String>> {
-    Json(
-        app.tablebase
-            .meta_keys()
-            .map(|key| key.to_string())
-            .collect(),
-    )
-}
-
-#[serde_as]
-#[derive(Deserialize)]
-struct MetaPath {
-    #[serde_as(as = "DisplayFromStr")]
-    key: DirectoryKey,
-}
-
-#[axum::debug_handler]
-async fn handle_meta(
-    State(app): State<&'static AppState>,
-    Path(MetaPath { key }): Path<MetaPath>,
-) -> Json<Option<Meta>> {
-    Json(app.tablebase.meta(&key))
+    Ok(Json(ProbeResponse { root, children }))
 }
 
 #[axum::debug_handler]
@@ -192,19 +159,10 @@ async fn main() {
     let state: &'static AppState = Box::leak(Box::new(AppState { tablebase }));
 
     let app = Router::new()
-        .route("/api/probe", get(handle_probe))
-        .route("/api/meta", get(handle_meta_keys))
-        .route("/api/meta/{key}", get(handle_meta))
+        .route("/", get(handle_probe))
         .route("/monitor", get(handle_monitor))
         .with_state(state)
-        .layer(
-            ServiceBuilder::new()
-                .layer(TraceLayer::new_for_http())
-                .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
-                    axum::http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                    axum::http::HeaderValue::from_static("*"),
-                )),
-        );
+        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()));
 
     let mut fds = ListenFd::from_env();
     if let Ok(Some(uds)) = fds.take_unix_listener(0) {

@@ -211,13 +211,6 @@ impl TableType {
             TableType::HighDtc => mem::size_of::<HighDtc>() as u8,
         }
     }
-
-    pub fn filename_extension(self) -> &'static str {
-        match self {
-            TableType::Mb => "mb",
-            TableType::HighDtc => "hi",
-        }
-    }
 }
 
 #[derive(FromBytes, Debug)]

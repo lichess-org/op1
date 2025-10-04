@@ -1,4 +1,4 @@
-use op1::{ProbeLog, Tablebase, Value};
+use op1::{Tablebase, Value};
 use shakmaty::{CastlingMode, Chess, fen::Fen};
 use test_log::test;
 
@@ -15,11 +15,7 @@ fn assert_score(tb: &Tablebase, fen: &str, expected: Option<Value>) {
         .into_position(CastlingMode::Chess960)
         .unwrap();
 
-    assert_eq!(
-        tb.probe(&pos, &mut ProbeLog::ignore()).unwrap(),
-        expected,
-        "{fen}"
-    );
+    assert_eq!(tb.probe(&pos).unwrap(), expected, "{fen}");
 }
 
 #[test]
