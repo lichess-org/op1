@@ -1,3 +1,5 @@
+use serde::Serialize;
+use serde_with::{DisplayFromStr, DurationMilliSeconds, serde_as};
 use std::{
     error::Error,
     ffi::c_int,
@@ -11,6 +13,7 @@ use std::{
         Once,
         atomic::{AtomicU64, Ordering},
     },
+    time::{Duration, Instant},
 };
 
 use mbeval_sys::{
@@ -239,15 +242,20 @@ impl Tablebase {
             return Ok(None);
         };
 
-        log.push(table_key);
-        Ok(match table.read_mb(index, ctx)? {
+        let start = Instant::now();
+        let mb_result = table.read_mb(index, ctx);
+        log.record(table_key, index, start.elapsed());
+
+        Ok(match mb_result? {
             MbValue::Dtc(dtc) => Some(SideValue::Dtc(i32::from(dtc))),
             MbValue::Unresolved => Some(SideValue::Unresolved),
             MbValue::MaybeHighDtc => self
                 .select_table(pos, &mb_info, TableType::HighDtc)?
                 .map(|(table_key, table, index)| {
-                    log.push(table_key);
-                    table.read_high_dtc(index, ctx)
+                    let start = Instant::now();
+                    let high_dtc_result = table.read_high_dtc(index, ctx);
+                    log.record(table_key, index, start.elapsed());
+                    high_dtc_result
                 })
                 .transpose()?,
         })
@@ -551,8 +559,20 @@ fn flip_position(pos: Chess) -> Chess {
         .expect("equivalent position")
 }
 
+#[derive(Debug)]
 pub struct ProbeLog {
-    steps: Option<Vec<TableKey>>,
+    steps: Option<Vec<ProbeStep>>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize)]
+pub struct ProbeStep {
+    #[serde_as(as = "DisplayFromStr")]
+    table: TableKey,
+    index: ZIndex,
+    #[serde_as(as = "DurationMilliSeconds")]
+    #[serde(rename = "millis")]
+    duration: Duration,
 }
 
 impl Default for ProbeLog {
@@ -572,13 +592,17 @@ impl ProbeLog {
         ProbeLog { steps: None }
     }
 
-    pub fn push(&mut self, table: TableKey) {
+    pub fn record(&mut self, table: TableKey, index: ZIndex, duration: Duration) {
         if let Some(steps) = &mut self.steps {
-            steps.push(table);
+            steps.push(ProbeStep {
+                table,
+                index,
+                duration,
+            });
         }
     }
 
-    pub fn into_steps(self) -> Vec<TableKey> {
+    pub fn into_steps(self) -> Vec<ProbeStep> {
         self.steps.unwrap_or_default()
     }
 }

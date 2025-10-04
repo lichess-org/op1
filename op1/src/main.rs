@@ -9,7 +9,7 @@ use axum::{
 };
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
-use op1::{DirectoryKey, ProbeLog, TableKey, Tablebase, meta::Meta};
+use op1::{DirectoryKey, ProbeLog, ProbeStep, Tablebase, meta::Meta};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
@@ -43,8 +43,7 @@ struct ProbeQuery {
 struct ProbeResponse {
     root: Option<i32>,
     children: FxHashMap<UciMove, Option<i32>>,
-    #[serde_as(as = "Vec<DisplayFromStr>")]
-    tables: Vec<TableKey>,
+    steps: Vec<ProbeStep>,
 }
 
 enum ProbeError {
@@ -98,7 +97,7 @@ async fn handle_probe(
         })
         .collect::<Vec<_>>();
 
-    let (root, tables) = task::spawn_blocking(move || {
+    let (root, steps) = task::spawn_blocking(move || {
         let mut probe_log = ProbeLog::new();
         app.tablebase
             .probe(&pos, &mut probe_log)
@@ -125,7 +124,7 @@ async fn handle_probe(
     Ok(Json(ProbeResponse {
         root,
         children,
-        tables,
+        steps,
     }))
 }
 
