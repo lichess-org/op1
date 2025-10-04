@@ -310,64 +310,48 @@ struct KkIndex(u32);
 
 fn parse_dirname(path: &Path) -> Option<(Material, PawnFileType, ByColor<BishopParity>)> {
     let name = path.file_name()?.to_str()?.strip_suffix("_out")?;
+    let mut parts = name.split('_').peekable();
 
-    let (name, black_bishop_parity) = if let Some(name) = name.strip_suffix("_bbo") {
-        (name, BishopParity::Odd)
-    } else if let Some(name) = name.strip_suffix("_bbe") {
-        (name, BishopParity::Even)
-    } else {
-        (name, BishopParity::None)
+    let material = parse_material(parts.next()?)?;
+
+    let pawn_file_type = parts
+        .peek()
+        .and_then(|s| parse_pawn_file_type(s))
+        .inspect(|_| {
+            parts.next();
+        })
+        .unwrap_or(PawnFileType::Free);
+
+    let white_bishop_parity = match parts.peek() {
+        Some(&"wbo") => {
+            parts.next();
+            BishopParity::Odd
+        }
+        Some(&"wbe") => {
+            parts.next();
+            BishopParity::Even
+        }
+        _ => BishopParity::None,
     };
 
-    let (name, white_bishop_parity) = if let Some(name) = name.strip_suffix("_wbo") {
-        (name, BishopParity::Odd)
-    } else if let Some(name) = name.strip_suffix("_wbe") {
-        (name, BishopParity::Even)
-    } else {
-        (name, BishopParity::None)
+    let black_bishop_parity = match parts.peek() {
+        Some(&"bbo") => {
+            parts.next();
+            BishopParity::Odd
+        }
+        Some(&"bbe") => {
+            parts.next();
+            BishopParity::Even
+        }
+        _ => BishopParity::None,
     };
 
-    let (name, pawn_file_type) =
-        if black_bishop_parity == BishopParity::None && white_bishop_parity == BishopParity::None {
-            if let Some(name) = name.strip_suffix("_bp1") {
-                (name, PawnFileType::Bp11)
-            } else if let Some(name) = name.strip_suffix("_op1") {
-                (name, PawnFileType::Op11)
-            } else if let Some(name) = name.strip_suffix("_op21") {
-                (name, PawnFileType::Op21)
-            } else if let Some(name) = name.strip_suffix("_op12") {
-                (name, PawnFileType::Op12)
-            } else if let Some(name) = name.strip_suffix("_dp2") {
-                (name, PawnFileType::Dp22)
-            } else if let Some(name) = name.strip_suffix("_op22") {
-                (name, PawnFileType::Op22)
-            } else if let Some(name) = name.strip_suffix("_op31") {
-                (name, PawnFileType::Op31)
-            } else if let Some(name) = name.strip_suffix("_op13") {
-                (name, PawnFileType::Op13)
-            } else if let Some(name) = name.strip_suffix("_op41") {
-                (name, PawnFileType::Op41)
-            } else if let Some(name) = name.strip_suffix("_op14") {
-                (name, PawnFileType::Op14)
-            } else if let Some(name) = name.strip_suffix("_op32") {
-                (name, PawnFileType::Op32)
-            } else if let Some(name) = name.strip_suffix("_op23") {
-                (name, PawnFileType::Op23)
-            } else if let Some(name) = name.strip_suffix("_op33") {
-                (name, PawnFileType::Op33)
-            } else if let Some(name) = name.strip_suffix("_op42") {
-                (name, PawnFileType::Op42)
-            } else if let Some(name) = name.strip_suffix("_op24") {
-                (name, PawnFileType::Op24)
-            } else {
-                (name, PawnFileType::Free)
-            }
-        } else {
-            (name, PawnFileType::Free)
-        };
+    if parts.next().is_some() {
+        return None;
+    }
 
     Some((
-        parse_material(name)?,
+        material,
         pawn_file_type,
         ByColor {
             white: white_bishop_parity,
@@ -387,18 +371,16 @@ fn parse_filename(path: &Path) -> Option<(Material, Color, KkIndex, TableType)> 
         return None;
     };
 
-    let (name, side, kk_index) = if let Some((name, kk_index)) = name.split_once("_b_") {
-        (name, Color::Black, kk_index)
-    } else if let Some((name, kk_index)) = name.split_once("_w_") {
-        (name, Color::White, kk_index)
-    } else {
-        return None;
-    };
+    let mut parts = name.splitn(3, '_');
 
     Some((
-        parse_material(name)?,
-        side,
-        KkIndex(kk_index.parse().ok()?),
+        parse_material(parts.next()?)?,
+        match parts.next()? {
+            "b" => Color::Black,
+            "w" => Color::White,
+            _ => return None,
+        },
+        KkIndex(parts.next()?.parse().ok()?),
         table_type,
     ))
 }
@@ -423,6 +405,27 @@ fn parse_material(name: &str) -> Option<Material> {
     }
 
     Some(material)
+}
+
+fn parse_pawn_file_type(s: &str) -> Option<PawnFileType> {
+    Some(match s {
+        "bp1" => PawnFileType::Bp11,
+        "op1" => PawnFileType::Op11,
+        "op21" => PawnFileType::Op21,
+        "op12" => PawnFileType::Op12,
+        "dp2" => PawnFileType::Dp22,
+        "op22" => PawnFileType::Op22,
+        "op31" => PawnFileType::Op31,
+        "op13" => PawnFileType::Op13,
+        "op41" => PawnFileType::Op41,
+        "op14" => PawnFileType::Op14,
+        "op32" => PawnFileType::Op32,
+        "op23" => PawnFileType::Op23,
+        "op33" => PawnFileType::Op33,
+        "op42" => PawnFileType::Op42,
+        "op24" => PawnFileType::Op24,
+        _ => return None,
+    })
 }
 
 fn strength(board: &Board, color: Color) -> usize {
