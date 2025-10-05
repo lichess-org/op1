@@ -229,18 +229,18 @@ impl Tablebase {
         // Make the stronger side white to reduce the chance of having to probe the
         // flipped position.
         let pos = if strength(pos.board(), Color::White) < strength(pos.board(), Color::Black) {
-            flip_position(pos.clone())
+            &flip_position(pos)
         } else {
-            pos.clone()
+            pos
         };
 
         let mut ctx = ProbeContext::new()?;
 
-        match self.probe_side(&pos, &mut ctx)? {
+        match self.probe_side(pos, &mut ctx)? {
             None => {
                 tracing::warn!(
                     "no table for {}",
-                    Fen(pos.clone().into_setup(EnPassantMode::Legal))
+                    Fen::from_position(pos, EnPassantMode::Legal)
                 );
                 return Ok(None);
             }
@@ -257,7 +257,7 @@ impl Tablebase {
             None => {
                 tracing::warn!(
                     "no table for {} (flipped)",
-                    Fen(pos.clone().into_setup(EnPassantMode::Legal))
+                    Fen::from_position(&pos, EnPassantMode::Legal)
                 );
                 None
             }
@@ -438,8 +438,8 @@ fn strength(board: &Board, color: Color) -> usize {
 }
 
 #[must_use]
-fn flip_position(pos: Chess) -> Chess {
-    pos.into_setup(EnPassantMode::Legal)
+fn flip_position(pos: &Chess) -> Chess {
+    pos.to_setup(EnPassantMode::Legal)
         .into_mirrored()
         .position(CastlingMode::Chess960)
         .expect("equivalent position")

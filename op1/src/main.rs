@@ -82,7 +82,7 @@ async fn handle_probe(
         .into_iter()
         .map(|m| {
             let mut after = pos.clone();
-            after.play_unchecked(&m);
+            after.play_unchecked(m);
             (
                 m,
                 task::spawn_blocking(move || {
@@ -108,7 +108,7 @@ async fn handle_probe(
     for (m, child) in child_handles {
         let uci = m.to_uci(CastlingMode::Chess960);
         children.insert(
-            uci.clone(),
+            uci,
             child
                 .await
                 .expect("blocking child probe")

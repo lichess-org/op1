@@ -12,7 +12,7 @@ mbeval-sys = { version = "0.1.0", path = "../mbeval-sys" }
 once_cell = "1.21.3"
 rustc-hash = "2.1.1"
 serde = { version = "1.0.219", features = ["derive"] }
-shakmaty = { version = "0.27.3", features = ["serde"] }
+shakmaty = { version = "0.29.3", features = ["serde"] }
 tokio = { version = "1.44.1", features = ["full"] }
 tower = "0.5.2"
 tower-http = { version = "0.6.2", features = ["trace"] }
@@ -22,7 +22,7 @@ zerocopy = { version = "0.8.24", features = ["derive", "std"] }
 zstd-sys = "2.0.15"
 
 [dev-dependencies]
-criterion = "0.5.1"
+criterion = "0.7.0"
 test-log = { version = "0.2.17", features = ["trace"] }
 
 [[bench]]
