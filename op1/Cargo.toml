@@ -28,3 +28,6 @@ test-log = { version = "0.2.17", features = ["trace"] }
 [[bench]]
 name = "benches"
 harness = false
+
+[profile.release]
+lto = true
