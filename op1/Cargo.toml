@@ -25,6 +25,10 @@ zstd-sys = "2.0.15"
 criterion = "0.7.0"
 test-log = { version = "0.2.17", features = ["trace"] }
 
+[[bin]]
+name = "op1-server"
+path = "src/main.rs"
+
 [[bench]]
 name = "benches"
 harness = false

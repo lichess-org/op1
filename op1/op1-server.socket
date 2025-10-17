@@ -1,0 +1,8 @@
+[Unit]
+Description=op1-server socket
+
+[Socket]
+ListenStream=/run/op1-server.socket
+
+[Install]
+WantedBy=sockets.target
