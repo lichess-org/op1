@@ -159,7 +159,7 @@ async fn main() {
     let state: &'static AppState = Box::leak(Box::new(AppState { tablebase }));
 
     let app = Router::new()
-        .route("/", get(handle_probe))
+        .route("/probe", get(handle_probe))
         .route("/monitor", get(handle_monitor))
         .with_state(state)
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()));
