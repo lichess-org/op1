@@ -1,7 +1,7 @@
 [package]
 name = "mbeval-sys"
 publish = false
-descriptions = "Low-level tablebase probing library adapted from Marc Bourzutschky's mbeval.cpp"
+description = "Low-level tablebase probing library adapted from Marc Bourzutschky's mbeval.cpp"
 repository = "https://github.com/lichess-org/op1"
 license = "AGPL-3.0+"
 categories = ["games"]

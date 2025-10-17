@@ -1,3 +1,6 @@
 [workspace]
 members = ["mbeval-sys", "op1"]
 resolver = "3"
+
+[profile.release]
+lto = true
