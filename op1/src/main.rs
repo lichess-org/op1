@@ -19,12 +19,16 @@ use op1::Tablebase;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use shakmaty::{CastlingMode, Chess, Position, PositionError, fen::Fen, uci::UciMove};
+use tikv_jemallocator::Jemalloc;
 use tokio::{
     net::{TcpListener, UnixListener},
     task,
 };
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
+
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
 
 #[derive(Parser, Debug)]
 struct Opt {
