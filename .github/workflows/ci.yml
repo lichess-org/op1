@@ -47,7 +47,7 @@ jobs:
           mkdir -p ~/.ssh
           touch ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          echo "$SSH_KEY" ~/.ssh/id_deploy
+          echo "$SSH_KEY" > ~/.ssh/id_deploy
           echo "$SSH_HOST $SSH_HOST_KEY" > ~/.ssh/known_hosts
           cat >>~/.ssh/config <<END
           Host deploy-host
