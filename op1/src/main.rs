@@ -1,4 +1,10 @@
-use std::{io, net::SocketAddr, path::PathBuf};
+use std::{
+    io,
+    net::SocketAddr,
+    path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
+    time::Instant,
+};
 
 use axum::{
     Json, Router,
@@ -30,6 +36,13 @@ struct Opt {
 
 struct AppState {
     tablebase: Tablebase,
+    stats: AppStats,
+}
+
+#[derive(Debug, Default)]
+struct AppStats {
+    probe_requests: AtomicU64,
+    probe_micros: AtomicU64,
 }
 
 #[derive(Deserialize)]
@@ -75,6 +88,7 @@ async fn handle_probe(
     State(app): State<&'static AppState>,
     Query(query): Query<ProbeQuery>,
 ) -> Result<Json<ProbeResponse>, ProbeError> {
+    let start = Instant::now();
     let pos = query.fen.into_position(CastlingMode::Chess960)?;
 
     let child_handles = pos
@@ -117,6 +131,11 @@ async fn handle_probe(
         );
     }
 
+    app.stats.probe_requests.fetch_add(1, Ordering::Relaxed);
+    app.stats
+        .probe_micros
+        .fetch_add(start.elapsed().as_micros() as u64, Ordering::Relaxed);
+
     Ok(Json(ProbeResponse { root, children }))
 }
 
@@ -124,6 +143,16 @@ async fn handle_probe(
 async fn handle_monitor(State(app): State<&'static AppState>) -> String {
     let stats = app.tablebase.stats();
     let metrics = &[
+        // Application stats
+        format!(
+            "probe_requests={}u",
+            app.stats.probe_requests.load(Ordering::Relaxed)
+        ),
+        format!(
+            "probe_micros={}u",
+            app.stats.probe_micros.load(Ordering::Relaxed)
+        ),
+        // Tablebase stats
         format!("draws={}u", stats.draws()),
         format!("true_predictions={}u", stats.true_predictions()),
         format!("false_predictions={}u", stats.false_predictions()),
@@ -156,7 +185,10 @@ async fn main() {
     }
 
     // Start server
-    let state: &'static AppState = Box::leak(Box::new(AppState { tablebase }));
+    let state: &'static AppState = Box::leak(Box::new(AppState {
+        tablebase,
+        stats: AppStats::default(),
+    }));
 
     let app = Router::new()
         .route("/probe", get(handle_probe))

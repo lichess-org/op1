@@ -1,7 +1,8 @@
+use std::hint::black_box;
+
 use criterion::{Criterion, criterion_group, criterion_main};
 use op1::{Tablebase, Value};
 use shakmaty::{CastlingMode, Chess, fen::Fen};
-use std::hint::black_box;
 
 fn kbpkpppp(c: &mut Criterion) {
     c.bench_function("kbpkpppp", |b| {
