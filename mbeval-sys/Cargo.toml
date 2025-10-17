@@ -1,6 +1,11 @@
 [package]
 name = "mbeval-sys"
-version = "0.1.0"
+publish = false
+descriptions = "Low-level tablebase probing library adapted from Marc Bourzutschky's mbeval.cpp"
+repository = "https://github.com/lichess-org/op1"
+license = "AGPL-3.0+"
+categories = ["games"]
+keywords = ["chess", "op1", "tablebase"]
 edition = "2024"
 
 [build-dependencies]

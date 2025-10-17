@@ -1,6 +1,11 @@
 [package]
 name = "op1"
-version = "0.1.0"
+publish = false
+description = "Probe Marc Bourzutschky's partial 8-piece tablebase"
+repository = "https://github.com/lichess-org/op1"
+license = "AGPL-3.0+"
+categories = ["games"]
+keywords = ["chess", "op1", "tablebase"]
 edition = "2024"
 
 [dependencies]
