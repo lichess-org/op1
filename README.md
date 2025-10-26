@@ -13,6 +13,11 @@ The provided metric is Depth to Conversion (DTC), the number of moves to
 a capture or promotion that retains the game theoretical outcome, ignoring
 the 50-move rule.
 
+Download tables
+---------------
+
+https://op1.lichess.ovh/tables/
+
 `mbeval-sys`
 ------------
 
