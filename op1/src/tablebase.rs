@@ -239,8 +239,9 @@ impl Tablebase {
         match self.probe_side(pos, &mut ctx)? {
             None => {
                 tracing::warn!(
-                    "no table for {}",
-                    Fen::from_position(pos, EnPassantMode::Legal)
+                    "no table for {} ({} pieces)",
+                    Fen::from_position(pos, EnPassantMode::Legal),
+                    pos.board().occupied().count()
                 );
                 return Ok(None);
             }
@@ -256,8 +257,9 @@ impl Tablebase {
         Ok(match self.probe_side(&pos, &mut ctx)? {
             None => {
                 tracing::warn!(
-                    "no table for {} (flipped)",
-                    Fen::from_position(&pos, EnPassantMode::Legal)
+                    "no table for {} ({} pieces, flipped)",
+                    Fen::from_position(&pos, EnPassantMode::Legal),
+                    pos.board().occupied().count()
                 );
                 None
             }
