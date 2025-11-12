@@ -15,11 +15,13 @@ use mbeval_sys::{
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use shakmaty::{
-    Board, ByColor, ByRole, CastlingMode, Chess, Color, EnPassantMode, Position as _, Role,
-    fen::Fen,
+    ByColor, ByRole, CastlingMode, Chess, Color, EnPassantMode, Position as _, Role, fen::Fen,
 };
 
-use crate::table::{MbValue, ProbeContext, SideValue, Table, TableType};
+use crate::{
+    guess::guess_winner,
+    table::{MbValue, ProbeContext, SideValue, Table, TableType},
+};
 
 const ALL_ONES: ZIndex = !0;
 
@@ -228,10 +230,10 @@ impl Tablebase {
 
         // Make the stronger side white to reduce the chance of having to probe the
         // flipped position.
-        let pos = if strength(pos.board(), Color::White) < strength(pos.board(), Color::Black) {
-            &flip_position(pos)
-        } else {
+        let pos = if guess_winner(pos).is_white() {
             pos
+        } else {
+            &flip_position(pos)
         };
 
         let mut ctx = ProbeContext::new()?;
@@ -428,15 +430,6 @@ fn parse_pawn_file_type(s: &str) -> Option<PawnFileType> {
         "op24" => PawnFileType::Op24,
         _ => return None,
     })
-}
-
-fn strength(board: &Board, color: Color) -> usize {
-    let side = board.by_color(color);
-    (side & board.pawns()).count()
-        + (side & board.knights()).count() * 3
-        + (side & board.bishops()).count() * 3
-        + (side & board.rooks()).count() * 5
-        + (side & board.queens()).count() * 9
 }
 
 #[must_use]
