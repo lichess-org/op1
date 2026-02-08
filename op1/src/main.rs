@@ -93,7 +93,12 @@ async fn handle_probe(
     Query(query): Query<ProbeQuery>,
 ) -> Result<Json<ProbeResponse>, ProbeError> {
     let start = Instant::now();
-    let pos = query.fen.into_position(CastlingMode::Chess960)?;
+    let pos = query
+        .fen
+        .into_position(CastlingMode::Chess960)
+        .or_else(PositionError::ignore_invalid_castling_rights)
+        .or_else(PositionError::ignore_invalid_ep_square)
+        .or_else(PositionError::ignore_impossible_check)?;
 
     let child_handles = pos
         .legal_moves()
