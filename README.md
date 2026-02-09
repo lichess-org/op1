@@ -26,7 +26,7 @@ Low-level tablebase probing library adapted from a debug and research tool, `mbe
 `op1-server`
 ------------
 
-Provides and HTTP API that can be used directly, or more conveniently via
+Provides an HTTP API that can be used directly, or more conveniently via
 [`lila-tablebase`](https://github.com/lichess-org/lila-tablebase), where it
 provides one of multiple metrics.
 
