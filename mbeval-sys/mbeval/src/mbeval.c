@@ -13,7 +13,7 @@
 
 #if (NROWS == 8) && (NCOLS == 8)
 #define Row(sq) ((sq) >> 3)
-#define Column(sq) ((sq)&07)
+#define Column(sq) ((sq) & 07)
 #define SquareMake(row, col) (((row) << 3) | (col))
 #else
 #define Row(sq) ((sq) / (NCOLS))
@@ -623,7 +623,8 @@ static int N2_Opposing_Index(int a, int b) {
     return (k2_opposing_tab[(a) | ((b) << 6)]);
 }
 static int N4_Opposing_Index(int a, int b, int c, int d) {
-    return (k4_opposing_tab[((a) >> 3) | ((b)&070) | ((c) << 6) | ((d) << 12)]);
+    return (
+        k4_opposing_tab[((a) >> 3) | ((b) & 070) | ((c) << 6) | ((d) << 12)]);
 }
 
 static int N2_1_Opposing_Index(int a, int b, int c) {
@@ -3688,15 +3689,14 @@ static const IndexType IndexTable[] = {{111111, Free, 0, Index111111},
 
 static int SetBoard(BOARD *Board, const Piece board[NSQUARES], Side side,
                     int ep_square) {
-    int npieces = 0, nwhite = 0, nblack = 0, i;
-
     memcpy(Board->board, board, sizeof(Board->board));
     Board->side = side;
     Board->ep_square = ep_square;
+    Board->num_pieces = 0;
     memset(Board->piece_type_count, 0, sizeof(Board->piece_type_count));
     memset(Board->piece_locations, 0, sizeof(Board->piece_locations));
 
-    for (i = 0; i < NSQUARES; i++) {
+    for (int i = 0; i < NSQUARES; i++) {
         if (board[i] > 0) {
             if (board[i] == KING)
                 Board->wkpos = i;
@@ -3704,9 +3704,8 @@ static int SetBoard(BOARD *Board, const Piece board[NSQUARES], Side side,
                 Board->piece_locations[White][board[i]]
                                       [Board->piece_type_count[White]
                                                               [board[i]]++] = i;
-                nwhite++;
             }
-            npieces++;
+            Board->num_pieces++;
         } else if (board[i] < 0) {
             if (board[i] == -KING)
                 Board->bkpos = i;
@@ -3715,19 +3714,17 @@ static int SetBoard(BOARD *Board, const Piece board[NSQUARES], Side side,
                                       [Board->piece_type_count[Black]
                                                               [-board[i]]++] =
                     i;
-                nblack++;
             }
-            npieces++;
+            Board->num_pieces++;
         }
     }
 
-    Board->num_pieces = npieces;
-
-    return npieces;
+    return Board->num_pieces;
 }
 
 static int GetEndingType(const int count[2][KING], Piece *piece_types,
-                         BishopParity bishop_parity[2], PawnFileType pawn_file_type) {
+                         BishopParity bishop_parity[2],
+                         PawnFileType pawn_file_type) {
     int etype = 0, sub_type = 0;
     int ptypes[MAX_PIECES], npieces = 2, eindex = -1;
 
@@ -4914,8 +4911,8 @@ static int GetMBInfo(const BOARD *Board, MbInfo *mb_info) {
         else if (b_parity == 11 || b_parity == 21 || b_parity == 12)
             bishop_parity[Black] = Odd;
 
-            // for odd-sized boards, can't do any parities for triples, and only
-            // odd parities for doubles
+        // for odd-sized boards, can't do any parities for triples, and only
+        // odd parities for doubles
 
 #if (NROWS % 2) && (NCOLS % 2)
         if (bishop_parity[WHITE] != NONE) {
