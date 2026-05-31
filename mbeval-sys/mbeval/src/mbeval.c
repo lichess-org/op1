@@ -3,7 +3,6 @@
 #include "mbeval.h"
 
 #include <assert.h>
-#include <ctype.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -1863,18 +1862,18 @@ static void InitN4Tables(int *tab) {
     assert(index == N4);
 }
 
-static void InitN5Tables() {
+static void InitN5Tables(void) {
     for (unsigned int i = 0; i <= NSQUARES; i++)
         k5_tab[i] = i * (i - 1) * (i - 2) * (i - 3) * (i - 4) / 120;
 }
 
-static void InitN6Tables() {
+static void InitN6Tables(void) {
     for (unsigned int i = 0; i <= NSQUARES; i++)
         k6_tab[i] =
             (i * (i - 1) * (i - 2) * (i - 3) * (i - 4) / 120) * (i - 5) / 6;
 }
 
-static void InitN7Tables() {
+static void InitN7Tables(void) {
     for (unsigned int i = 0; i <= NSQUARES; i++) {
         ZIndex itmp =
             (i * (i - 1) * (i - 2) * (i - 3) * (i - 4) / 120) * (i - 5) / 6;
@@ -4184,7 +4183,7 @@ static bool KK_Canonical_NoPawns(int *wk_in, int *bk_in, int *sym) {
     return false;
 }
 
-static void InitTransforms() {
+static void InitTransforms(void) {
     int n_kings = 0;
     int n_kings_nopawns = 0;
 
@@ -4349,7 +4348,7 @@ static void InitTransforms() {
     }
 }
 
-static void InitParity() {
+static void InitParity(void) {
     int sq;
 
     for (sq = 0; sq < NSQUARES; sq++) {
