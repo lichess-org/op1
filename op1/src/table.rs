@@ -12,7 +12,7 @@ use std::{
 use mbeval_sys::ZIndex;
 use zerocopy::{
     FromBytes, FromZeros, Immutable, IntoBytes,
-    little_endian::{I32, U32, U64},
+    little_endian::{U32, U64},
 };
 
 use crate::decompressor::Decompressor;
@@ -138,6 +138,15 @@ impl Table {
         Ok(match value {
             254 if self.header.max_dtc > 254 => MbValue::MaybeHighDtc,
             255 => MbValue::Unresolved,
+            dtc if u32::from(dtc) > self.header.max_dtc => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!(
+                        "inconsistent dtc {} (expected 0..={})",
+                        dtc, self.header.max_dtc
+                    ),
+                ));
+            }
             dtc => MbValue::Dtc(dtc),
         })
     }
@@ -186,15 +195,23 @@ impl Table {
             }
         }
 
-        Ok(SideValue::Dtc(
-            if let Ok(ptr) =
-                decompressed_block.binary_search_by_key(&U64::new(index), |entry| entry.index)
-            {
-                i32::from(decompressed_block[ptr].value)
-            } else {
-                254
-            },
-        ))
+        let value =
+            match decompressed_block.binary_search_by_key(&U64::new(index), |entry| entry.index) {
+                Ok(ptr) => u32::from(decompressed_block[ptr].value),
+                _ => 254,
+            };
+
+        if !(254..=self.header.max_dtc).contains(&value) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "inconsistent high dtc {} (expected 254..={})",
+                    value, self.header.max_dtc
+                ),
+            ));
+        }
+
+        Ok(SideValue::Dtc(value))
     }
 }
 
@@ -262,7 +279,7 @@ impl TryFrom<RawHeader> for Header {
 #[derive(FromBytes, IntoBytes, Immutable)]
 struct HighDtc {
     index: U64,
-    value: I32,
+    value: U32,
     _padding: [u8; 4],
 }
 
@@ -307,7 +324,7 @@ pub(crate) enum MbValue {
 
 #[derive(Debug)]
 pub(crate) enum SideValue {
-    Dtc(i32),
+    Dtc(u32),
     Unresolved,
 }
 

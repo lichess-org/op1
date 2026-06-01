@@ -25,42 +25,42 @@ fn test_kbpkpppp() {
     assert_score(
         &tb,
         "8/1pp5/p1p5/8/B7/8/P6k/2K5 w - - 0 1",
-        Some(Value::Dtc(53)),
+        Some(Value::WinningDtc(53)),
     );
     assert_score(
         &tb,
         "8/7p/k7/8/8/5P2/P5PP/K2b4 w - - 0 1",
-        Some(Value::Dtc(42)),
+        Some(Value::WinningDtc(42)),
     );
     assert_score(
         &tb,
         "8/2b5/8/8/3P4/pPP5/P7/2k1K3 w - - 0 1",
-        Some(Value::Dtc(-3)),
+        Some(Value::LosingDtc(3)),
     );
     assert_score(
         &tb,
         "8/2b5/8/8/3P4/pPP5/P7/1k2K3 w - - 0 1",
-        Some(Value::Dtc(-1)),
+        Some(Value::LosingDtc(1)),
     );
     assert_score(
         &tb,
         "8/p1b5/8/8/3P4/1PP5/P7/1k2K3 w - - 0 1",
-        Some(Value::Dtc(-2)),
+        Some(Value::LosingDtc(2)),
     );
     assert_score(
         &tb,
         "8/p1b5/8/2PP4/PP6/8/8/1k2K3 b - - 0 1",
-        Some(Value::Dtc(-7)),
+        Some(Value::LosingDtc(7)),
     );
     assert_score(
         &tb,
         "8/p1b5/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
-        Some(Value::Dtc(6)),
+        Some(Value::WinningDtc(6)),
     );
     assert_score(
         &tb,
         "8/2bp4/8/2PP4/PP6/8/8/1k2K3 w - - 0 1",
-        Some(Value::Dtc(4)),
+        Some(Value::WinningDtc(4)),
     );
     assert_score(
         &tb,
@@ -71,7 +71,7 @@ fn test_kbpkpppp() {
     assert_score(
         &tb,
         "8/4p3/8/6P1/4PP2/5b2/7P/5k1K w - - 1 3",
-        Some(Value::Dtc(0)), // checkmate
+        Some(Value::LosingDtc(0)), // checkmate
     );
 }
 
@@ -82,7 +82,7 @@ fn test_krbbpkqp() {
     assert_score(
         &tb,
         "R7/8/8/8/7q/2K1B2p/7P/2Bk4 w - - 0 1",
-        Some(Value::Dtc(584)),
+        Some(Value::WinningDtc(584)),
     );
 }
 
@@ -93,7 +93,7 @@ fn test_kbnnpkqp() {
     assert_score(
         &tb,
         "8/8/6B1/1K3p2/N3k1N1/8/5P2/2q5 w - - 0 1",
-        Some(Value::Dtc(304)),
+        Some(Value::WinningDtc(304)),
     );
 }
 
@@ -117,7 +117,7 @@ fn test_krrnkrr() {
         "r7/5r1N/8/8/6k1/8/7R/3K1R2 w - - 0 1",
         "r7/5r1N/8/8/6k1/8/7R/3K3R w - - 0 1",
     ] {
-        assert_score(&tb, fen, Some(Value::Dtc(290)));
+        assert_score(&tb, fen, Some(Value::WinningDtc(290)));
     }
 }
 
@@ -128,12 +128,12 @@ fn test_knnppkrpp_dp2() {
     assert_score(
         &tb,
         "1k2N3/1p1r4/3p4/3P4/8/8/KP6/N7 w - - 0 1",
-        Some(Value::Dtc(128)),
+        Some(Value::WinningDtc(128)),
     );
     assert_score(
         &tb,
         "1k2N3/1p1r4/3p4/3P4/8/8/KP6/4N3 w - - 0 1",
-        Some(Value::Dtc(128)),
+        Some(Value::WinningDtc(128)),
     );
 }
 
@@ -144,6 +144,6 @@ fn test_krppknnpp_dp2() {
     assert_score(
         &tb,
         "n6k/6p1/4n1P1/6p1/8/3K4/5RP1/8 w - - 0 1",
-        Some(Value::Dtc(78)),
+        Some(Value::WinningDtc(78)),
     );
 }

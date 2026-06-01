@@ -20,7 +20,7 @@ fn kbpkpppp(c: &mut Criterion) {
             // 635392 bytes. Byte offsets into the block are 20981 and 334346.
             assert_eq!(
                 tablebase.probe(black_box(&pos)).unwrap(),
-                black_box(Some(Value::Dtc(-1)))
+                black_box(Some(Value::LosingDtc(1)))
             );
         });
     });

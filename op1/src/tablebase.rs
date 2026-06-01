@@ -1,4 +1,5 @@
 use std::{
+    cmp::max,
     ffi::c_int,
     io,
     mem::MaybeUninit,
@@ -210,7 +211,7 @@ impl Tablebase {
         };
 
         Ok(match table.read_mb(index, ctx)? {
-            MbValue::Dtc(dtc) => Some(SideValue::Dtc(i32::from(dtc))),
+            MbValue::Dtc(dtc) => Some(SideValue::Dtc(u32::from(dtc))),
             MbValue::Unresolved => Some(SideValue::Unresolved),
             MbValue::MaybeHighDtc => self
                 .select_table(pos, &mb_info, TableType::HighDtc)?
@@ -249,7 +250,10 @@ impl Tablebase {
             }
             Some(SideValue::Dtc(n)) => {
                 self.stats.true_predictions.fetch_add(1, Ordering::Relaxed);
-                return Ok(Some(Value::Dtc(pos.turn().fold_wb(n, n.saturating_neg()))));
+                return Ok(Some(
+                    pos.turn()
+                        .fold_wb(Value::WinningDtc(n), Value::LosingDtc(n)),
+                ));
             }
             Some(SideValue::Unresolved) => (),
         }
@@ -267,7 +271,10 @@ impl Tablebase {
             }
             Some(SideValue::Dtc(n)) => {
                 self.stats.false_predictions.fetch_add(1, Ordering::Relaxed);
-                Some(Value::Dtc(pos.turn().fold_wb(n, n.saturating_neg())))
+                Some(
+                    pos.turn()
+                        .fold_wb(Value::WinningDtc(n), Value::LosingDtc(n)),
+                )
             }
             Some(SideValue::Unresolved) => {
                 self.stats.draws.fetch_add(1, Ordering::Relaxed);
@@ -284,15 +291,16 @@ impl Tablebase {
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Value {
     Draw,
-    Dtc(i32),
+    WinningDtc(u32),
+    LosingDtc(u32),
 }
 
 impl Value {
-    pub fn zero_draw(self) -> Option<i32> {
+    pub fn zero_draw(self) -> i32 {
         match self {
-            Value::Draw => Some(0),
-            Value::Dtc(0) => None,
-            Value::Dtc(dtc) => Some(dtc),
+            Value::Draw => 0,
+            Value::WinningDtc(n) => max(1, i32::try_from(n).unwrap_or(i32::MAX)),
+            Value::LosingDtc(n) => -max(1, i32::try_from(n).unwrap_or(i32::MAX)),
         }
     }
 }

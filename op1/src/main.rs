@@ -15,7 +15,7 @@ use axum::{
 };
 use clap::{ArgAction, CommandFactory as _, Parser, builder::PathBufValueParser};
 use listenfd::ListenFd;
-use op1::Tablebase;
+use op1::{Tablebase, Value};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use shakmaty::{CastlingMode, Chess, Position, PositionError, fen::Fen, uci::UciMove};
@@ -111,7 +111,7 @@ async fn handle_probe(
                 task::spawn_blocking(move || {
                     app.tablebase
                         .probe(&after)
-                        .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
+                        .map(|maybe_v| maybe_v.map(Value::zero_draw))
                 }),
             )
         })
@@ -120,7 +120,7 @@ async fn handle_probe(
     let root = task::spawn_blocking(move || {
         app.tablebase
             .probe(&pos)
-            .map(|maybe_v| maybe_v.and_then(|v| v.zero_draw()))
+            .map(|maybe_v| maybe_v.map(Value::zero_draw))
     })
     .await
     .expect("blocking root probe")
