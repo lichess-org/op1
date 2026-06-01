@@ -29,7 +29,7 @@ fn material_balance(pos: &Chess) -> i32 {
             current
                 + m.promotion()
                     .map_or(0, |r| role_value(r) - role_value(Role::Pawn))
-                + m.capture().map_or(0, |r| role_value(r))
+                + m.capture().map_or(0, role_value)
         })
         .max()
         .unwrap_or(i32::MIN)
