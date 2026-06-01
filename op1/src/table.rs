@@ -55,6 +55,13 @@ impl Table {
             ));
         }
 
+        if i32::try_from(header.max_dtc).is_err() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("max dtc {} too large", header.max_dtc),
+            ));
+        }
+
         let mut offsets = <[U64]>::new_box_zeroed_with_elems(header.num_blocks as usize + 1)
             .expect("allocate offsets vector");
         file.read_exact(offsets.as_mut_bytes())?;
