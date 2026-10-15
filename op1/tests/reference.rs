@@ -98,6 +98,7 @@ fn test_kbnnpkqp() {
 }
 
 #[test]
+#[ignore = "sub 8 piece tables not yet published"]
 fn test_krrnkrr() {
     let tb = open_tablebase();
 
@@ -122,6 +123,7 @@ fn test_krrnkrr() {
 }
 
 #[test]
+#[ignore = "9 piece tables not yet published"]
 fn test_knnppkrpp_dp2() {
     let tb = open_tablebase();
 
@@ -138,6 +140,7 @@ fn test_knnppkrpp_dp2() {
 }
 
 #[test]
+#[ignore = "9 piece tables not yet published"]
 fn test_krppknnpp_dp2() {
     let tb = open_tablebase();
 
